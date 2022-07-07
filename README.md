@@ -1,8 +1,17 @@
+![](.github/vera.jpg)
+
 # VERA 
 
-VERA is an easy cross platform OpenGL ES 2.0 library for creating apps for Windows, MacOS, Linux (with or without an X11 Window Manager) and WASM (Emscripten WebAssembly).
+VERA is a C++/OpenGL framework for making visual creative apps for a big spectrum of surfaces:
+
+- native Windows, MacOS, Linux app (through GLFW)
+- RaspberryPi stand alone app (no required X11)
+- any browser as WebGL/WASM (Emscripten WebAssembly)
+
 
 ## 1. Install Dependencies
+
+VERA is a C++ library that require installing the following dependencies depending the OS/Platform 
 
 ### Windows 
 
@@ -81,6 +90,8 @@ cd ..
 ```
 
 ## 2. Compiling a project made with VERA
+
+VERA is a C++ library, so in order to try it you will need to do it through a project that use it. In this case we will download and compile [this HELLO WORLD project](https://github.com/patriciogonzalezvivo/vera_hello_world)
 
 ### For windows managers like MacOS, Windows or Linux (with X11 Window Manager) (all through GLFW) 
 
