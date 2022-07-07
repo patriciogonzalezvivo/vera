@@ -12,6 +12,6 @@ Debug/
 Release/
 
 # CMake
-*.cmake
+# *.cmake
 CMakeFiles/
 *.stamp
