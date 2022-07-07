@@ -13,7 +13,7 @@
 // tmp
 #include <iostream>
 
-namespace ada {
+namespace vera {
 
 class Shader : public HaveDefines {
 public:

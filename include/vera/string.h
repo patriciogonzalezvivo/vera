@@ -9,7 +9,7 @@
 
 #include "glm/glm.hpp"
 
-namespace ada {
+namespace vera {
 
 std::string getVersion(const std::string& program, size_t& _version);
 

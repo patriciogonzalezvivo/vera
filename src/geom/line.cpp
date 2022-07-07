@@ -1,6 +1,6 @@
-#include "ada/geom/line.h"
+#include "vera/geom/line.h"
 
-namespace ada {
+namespace vera {
 
 Line::Line() : m_direction(0.0) { 
 

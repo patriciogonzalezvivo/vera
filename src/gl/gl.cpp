@@ -1,6 +1,6 @@
-#include "ada/gl/gl.h"
+#include "vera/gl/gl.h"
 
-namespace ada {
+namespace vera {
 
 #if defined(PLATFORM_RPI)
 

@@ -1,8 +1,8 @@
-#include "ada/scene/sky.h"
+#include "vera/scene/sky.h"
 
-#include "ada/gl/fbo.h"
-#include "ada/math.h"
-#include "ada/pixel.h"
+#include "vera/gl/fbo.h"
+#include "vera/math.h"
+#include "vera/pixel.h"
 
 #include <math.h>
 
@@ -27,7 +27,7 @@
 #define M_RPI 0.31830988618379067153f
 #endif
 
-namespace ada {
+namespace vera {
 
 const GLenum cubemapFaceId[6] { 
     GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 

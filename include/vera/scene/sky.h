@@ -6,7 +6,7 @@
 #include "glm/glm.hpp"
 #include "camera.h"
 
-namespace ada {
+namespace vera {
 
 // ENVIROMENT CUBEMAPS
 // -------------------------------------------------------------- 

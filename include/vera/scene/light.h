@@ -3,7 +3,7 @@
 #include "node.h"
 #include "../gl/fbo.h"
 
-namespace ada {
+namespace vera {
 
 enum LightType {
     LIGHT_DIRECTIONAL, LIGHT_POINT, LIGHT_SPOT

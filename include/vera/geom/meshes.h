@@ -5,7 +5,7 @@
 #include "mesh.h"
 #include "boundingBox.h"
 
-namespace ada {
+namespace vera {
 
 Mesh lineMesh(const glm::vec3 &_a, const glm::vec3 &_b);
 Mesh lineToMesh(const glm::vec3 &_a, const glm::vec3 &_dir, float _size);

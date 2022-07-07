@@ -1,7 +1,7 @@
-#include "ada/devices/holoPlay.h"
-#include "ada/gl/gl.h"
+#include "vera/devices/holoPlay.h"
+#include "vera/gl/gl.h"
 
-namespace ada {
+namespace vera {
 
 //  QUILT 
 

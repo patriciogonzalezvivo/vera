@@ -13,7 +13,7 @@ extern "C" {
 #include <libswscale/swscale.h>
 }
 
-namespace ada {
+namespace vera {
 
 class TextureStreamAV : public TextureStream {
 public:

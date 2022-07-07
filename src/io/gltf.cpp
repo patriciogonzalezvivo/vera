@@ -1,4 +1,4 @@
-#include "ada/io/gltf.h"
+#include "vera/io/gltf.h"
 
 #include <iostream>
 #include <fstream>
@@ -6,10 +6,10 @@
 #include <map>
 
 
-#include "ada/gl/vbo.h"
-#include "ada/fs.h"
-#include "ada/string.h"
-#include "ada/pixel.h"
+#include "vera/gl/vbo.h"
+#include "vera/fs.h"
+#include "vera/string.h"
+#include "vera/pixel.h"
 
 #include "stb_image.h"
 #include "stb_image_write.h"
@@ -30,7 +30,7 @@
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
-namespace ada {
+namespace vera {
 
 bool loadModel(const std::string& _filename, tinygltf::Model& _model) {
     tinygltf::TinyGLTF loader;

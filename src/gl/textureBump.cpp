@@ -1,15 +1,15 @@
 #include <iostream>
 
-#include "ada/gl/textureBump.h"
+#include "vera/gl/textureBump.h"
 
 #include "glm/glm.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/normal.hpp>
 
-#include "ada/fs.h"
-#include "ada/pixel.h"
+#include "vera/fs.h"
+#include "vera/pixel.h"
 
-namespace ada {
+namespace vera {
 
 bool TextureBump::load(const std::string& _path, bool _vFlip) {
     std::string ext = getExt(_path);

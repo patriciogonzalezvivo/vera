@@ -2,19 +2,19 @@
 
 #include <vector>
 
-#include "ada/gl/vbo.h"
+#include "vera/gl/vbo.h"
 
-#include "ada/gl/shader.h"
-#include "ada/shaders/defaultShaders.h"
+#include "vera/gl/shader.h"
+#include "vera/shaders/defaultShaders.h"
 
-#include "ada/scene.h"
+#include "vera/scene.h"
 
-#include "ada/geom/mesh.h"
-#include "ada/geom/line.h"
-#include "ada/geom/triangle.h"
-#include "ada/geom/boundingBox.h"
+#include "vera/geom/mesh.h"
+#include "vera/geom/line.h"
+#include "vera/geom/triangle.h"
+#include "vera/geom/boundingBox.h"
 
-#include "ada/font.h"
+#include "vera/font.h"
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
@@ -23,7 +23,7 @@
 #define EGL_EGLEXT_PROTOTYPES
 #endif
 
-namespace ada {
+namespace vera {
 
 enum PointShape {
     SQUARE_SHAPE = 0,

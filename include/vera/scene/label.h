@@ -8,7 +8,7 @@
 #include "../window.h"
 #include "../font.h"
 
-namespace ada {
+namespace vera {
 
 enum LabelType {
     LABEL_CENTER = 0,

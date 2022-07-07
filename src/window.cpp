@@ -1,4 +1,4 @@
-#include "ada/window.h"
+#include "vera/window.h"
 
 #include <time.h>
 #include <string>
@@ -13,9 +13,9 @@
     #include <sys/time.h>
 #endif 
 
-#include "ada/fs.h"
-#include "ada/time.h"
-#include "ada/string.h"
+#include "vera/fs.h"
+#include "vera/time.h"
+#include "vera/string.h"
 #include "glm/gtc/matrix_transform.hpp"
 
 // Common global variables
@@ -75,7 +75,7 @@ static bool             bControl = false;
         #include "GLFW/glfw3.h"
     #endif
 
-namespace ada {
+namespace vera {
 //----------------------------------------------------
 static bool             left_mouse_button_down = false;
 static GLFWwindow*      window;
@@ -109,7 +109,7 @@ static GLFWwindow*      window;
 #include <unistd.h>
 
 
-namespace ada {
+namespace vera {
 
 #define check() assert(glGetError() == 0)
 

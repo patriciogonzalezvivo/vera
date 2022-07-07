@@ -9,7 +9,7 @@
 #include "../geom/mesh.h"
 #include "../geom/boundingBox.h"
 
-namespace ada {
+namespace vera {
 
 class Model : public Node {
 public:

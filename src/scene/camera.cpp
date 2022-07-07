@@ -1,6 +1,6 @@
-#include "ada/scene/camera.h"
+#include "vera/scene/camera.h"
 
-#include "ada/window.h"
+#include "vera/window.h"
 
 #include <iostream>
 
@@ -13,7 +13,7 @@
 // static const float MIN_SENSITIVITY = 10.0f;
 // static const float MAX_SENSITIVITY = 204800.0f;
 
-namespace ada {
+namespace vera {
 
 Camera::Camera(): 
     m_target(0.0), 

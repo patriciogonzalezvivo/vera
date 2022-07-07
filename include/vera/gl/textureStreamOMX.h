@@ -1,12 +1,12 @@
 #pragma once
 
-#include "ada/gl/textureStream.h"
+#include "vera/gl/textureStream.h"
 
 #if defined(DRIVER_BROADCOM) && defined(SUPPORT_OMAX)
 
 #include <thread>
 
-namespace ada {
+namespace vera {
 
 class TextureStreamOMX: public TextureStream {
 public:

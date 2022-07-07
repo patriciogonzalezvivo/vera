@@ -1,14 +1,14 @@
-#include "ada/scene/label.h"
-#include "ada/window.h"
-#include "ada/draw.h"
-#include "ada/math.h"
+#include "vera/scene/label.h"
+#include "vera/window.h"
+#include "vera/draw.h"
+#include "vera/math.h"
 
 #include <iostream>
 
 #define SCREEN_MARGIN 25.0
 #define TEXT_MARGIN 10.0
 
-namespace ada {
+namespace vera {
 
 Label::Label() : m_text(""), m_type(LABEL_CENTER), m_bbox(nullptr), m_worldPos(nullptr) { 
 

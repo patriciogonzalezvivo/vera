@@ -1,15 +1,15 @@
-#include "ada/font.h"
+#include "vera/font.h"
 
 #define GLFONTSTASH_IMPLEMENTATION
 #include "glfontstash.h"
 
-#include "ada/window.h"
-#include "ada/fs.h"
-#include "ada/string.h"
+#include "vera/window.h"
+#include "vera/fs.h"
+#include "vera/string.h"
 
 #include "glm/gtc/type_ptr.hpp"
 
-namespace ada { 
+namespace vera { 
 
 static FONScontext* fs = nullptr;
 static size_t fn = 0;

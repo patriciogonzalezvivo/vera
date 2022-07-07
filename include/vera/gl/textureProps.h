@@ -3,7 +3,7 @@
 #include <string>
 #include "gl.h"
 
-namespace ada {
+namespace vera {
 
 enum TextureFilter {
     LINEAR = 0,     // Bilinear, no mipmap.

@@ -1,10 +1,10 @@
-#include "ada/scene/node.h"
-#include "ada/math.h"
+#include "vera/scene/node.h"
+#include "vera/math.h"
 
 #include "glm/gtx/matrix_decompose.hpp"
 #include "glm/gtc/matrix_access.hpp"
 
-namespace ada {
+namespace vera {
 
 Node::Node(): 
     bChange(true),

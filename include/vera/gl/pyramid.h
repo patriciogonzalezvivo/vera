@@ -14,7 +14,7 @@
 
 #define PYRAMID_MAX_LAYERS 12
 
-namespace ada {
+namespace vera {
 
 class Pyramid {
 public:

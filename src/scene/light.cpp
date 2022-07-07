@@ -1,8 +1,8 @@
-#include "ada/scene/light.h"
+#include "vera/scene/light.h"
 
 #include <iostream>
 
-namespace ada {
+namespace vera {
 
 Light::Light(): 
     color(1.0), 

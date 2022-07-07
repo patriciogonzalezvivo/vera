@@ -7,7 +7,7 @@
 #include "gl.h"
 #include "shader.h"
 
-namespace ada {
+namespace vera {
 
 struct VertexAttrib {
     std::string name;

@@ -1,8 +1,8 @@
 #include <iostream>
 
-#include "ada/gl/pingpong.h"
+#include "vera/gl/pingpong.h"
 
-namespace ada {
+namespace vera {
 
 PingPong::PingPong(): 
     src(nullptr), dst(nullptr), 

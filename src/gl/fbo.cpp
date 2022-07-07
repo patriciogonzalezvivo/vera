@@ -23,14 +23,14 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "ada/gl/fbo.h"
+#include "vera/gl/fbo.h"
 #include <iostream>
 
 #include "glm/gtc/round.hpp"
-#include "ada/string.h"
-#include "ada/window.h"
+#include "vera/string.h"
+#include "vera/window.h"
 
-namespace ada {
+namespace vera {
 
 Fbo::Fbo():
     fixed(false),

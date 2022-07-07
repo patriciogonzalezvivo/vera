@@ -1,7 +1,7 @@
-#include "ada/gl/vertexLayout.h"
-#include "ada/string.h"
+#include "vera/gl/vertexLayout.h"
+#include "vera/string.h"
 
-namespace ada {
+namespace vera {
 
 std::map<GLint, GLuint> VertexLayout::s_enabledAttribs = std::map<GLint, GLuint>();
 

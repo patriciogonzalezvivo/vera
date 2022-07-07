@@ -1,7 +1,7 @@
-#include "ada/gl/defines.h"
-#include "ada/string.h"
+#include "vera/gl/defines.h"
+#include "vera/string.h"
 
-namespace ada {
+namespace vera {
 
 HaveDefines::HaveDefines() : m_defineChange(false) {
 }

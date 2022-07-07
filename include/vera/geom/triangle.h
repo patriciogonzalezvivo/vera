@@ -4,9 +4,9 @@
 
 #include "glm/glm.hpp"
 
-// #include "ada/scene/material.h"
+// #include "vera/scene/material.h"
 
-namespace ada {
+namespace vera {
 
 class Triangle {
 public :

@@ -4,7 +4,7 @@
 #include <cstring>
 #include <string>
 
-namespace ada {
+namespace vera {
 
 enum Channels {
     LUMINANCE = 1,

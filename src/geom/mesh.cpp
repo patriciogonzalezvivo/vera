@@ -1,12 +1,12 @@
 
 #include <iostream>
 
-#include "ada/gl/vertexLayout.h"
+#include "vera/gl/vertexLayout.h"
 
-#include "ada/geom/mesh.h"
-#include "ada/string.h"
+#include "vera/geom/mesh.h"
+#include "vera/string.h"
 
-namespace ada {
+namespace vera {
 
 Mesh::Mesh():m_drawMode(TRIANGLES) {
 }

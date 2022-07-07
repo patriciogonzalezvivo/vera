@@ -1,11 +1,11 @@
-#include "ada/scene/model.h"
+#include "vera/scene/model.h"
 
-#include "ada/geom/meshes.h"
-#include "ada/geom/ops.h"
+#include "vera/geom/meshes.h"
+#include "vera/geom/ops.h"
 
-#include "ada/string.h"
+#include "vera/string.h"
 
-namespace ada {
+namespace vera {
 
 Model::Model():
     m_model_vbo(nullptr), m_bbox_vbo(nullptr),

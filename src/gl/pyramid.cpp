@@ -1,10 +1,10 @@
-#include "ada/gl/pyramid.h"
-#include "ada/gl/textureProps.h"
+#include "vera/gl/pyramid.h"
+#include "vera/gl/textureProps.h"
 
 #include <algorithm>
 #include <iostream>
 
-namespace ada {
+namespace vera {
 
 Pyramid::Pyramid(): m_depth(0) {
 }

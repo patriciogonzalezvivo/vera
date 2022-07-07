@@ -1,8 +1,8 @@
-#include "ada/window.h"
-#include "ada/pixel.h"
-#include "ada/gl/textureProps.h"
+#include "vera/window.h"
+#include "vera/pixel.h"
+#include "vera/gl/textureProps.h"
 
-namespace ada {
+namespace vera {
 
 GLenum getFilter( TextureFilter _filter ) {
     static GLenum filters[6] = {

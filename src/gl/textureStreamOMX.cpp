@@ -1,4 +1,4 @@
-#include "ada/gl/textureStreamOMX.h"
+#include "vera/gl/textureStreamOMX.h"
 
 #if defined(DRIVER_BROADCOM) && defined(SUPPORT_OMAX)
 
@@ -39,9 +39,9 @@ extern "C" {
 }
 #endif
 
-#include "ada/window.h"
+#include "vera/window.h"
 
-namespace ada {
+namespace vera {
 
 TextureStreamOMX::TextureStreamOMX() : 
     m_eglImage(NULL),

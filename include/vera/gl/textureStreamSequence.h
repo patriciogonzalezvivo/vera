@@ -3,7 +3,7 @@
 #include "textureStream.h"
 #include <vector>
 
-namespace ada {
+namespace vera {
 
 class TextureStreamSequence : public TextureStream {
 public:

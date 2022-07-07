@@ -5,7 +5,7 @@
 #include <vector>
 #include <iostream>
 
-namespace ada {
+namespace vera {
 
 class TextureStream : public Texture {
 public:

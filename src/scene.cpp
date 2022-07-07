@@ -1,34 +1,34 @@
-#include "ada/scene.h"
+#include "vera/scene.h"
 
 #include <sys/stat.h>
 
 #include "extract_depthmap.h"
 
-#include "ada/fs.h"
-#include "ada/pixel.h"
-#include "ada/string.h"
+#include "vera/fs.h"
+#include "vera/pixel.h"
+#include "vera/string.h"
 
-#include "ada/io/ply.h"
-#include "ada/io/obj.h"
-#include "ada/io/gltf.h"
-#include "ada/io/stl.h"
+#include "vera/io/ply.h"
+#include "vera/io/obj.h"
+#include "vera/io/gltf.h"
+#include "vera/io/stl.h"
 
-#include "ada/gl/textureBump.h"
-#include "ada/gl/textureStreamSequence.h"
+#include "vera/gl/textureBump.h"
+#include "vera/gl/textureStreamSequence.h"
 
 #if defined(SUPPORT_MMAL)
-#include "ada/gl/textureStreamMMAL.h"
+#include "vera/gl/textureStreamMMAL.h"
 #endif
 
 #if defined(SUPPORT_LIBAV) 
-#include "ada/gl/textureStreamAV.h"
+#include "vera/gl/textureStreamAV.h"
 #endif
 
 #if defined(DRIVER_BROADCOM) && defined(SUPPORT_OMAX)
-#include "ada/gl/textureStreamOMX.h"
+#include "vera/gl/textureStreamOMX.h"
 #endif
 
-namespace ada {
+namespace vera {
 
 Scene::Scene(): 
     m_streamsPrevs(0), 

@@ -1,10 +1,10 @@
 #include <iostream>
 
-#include "ada/gl/texture.h"
-#include "ada/fs.h"
-#include "ada/pixel.h"
+#include "vera/gl/texture.h"
+#include "vera/fs.h"
+#include "vera/pixel.h"
 
-namespace ada {
+namespace vera {
 
 // TEXTURE
 Texture::Texture():m_path(""), m_width(0), m_height(0), m_id(0), m_vFlip(false) {

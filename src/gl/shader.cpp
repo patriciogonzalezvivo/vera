@@ -3,14 +3,14 @@
 #include <algorithm>
 #include <iostream>
 
-#include "ada/window.h"
-#include "ada/string.h"
-#include "ada/gl/shader.h"
-#include "ada/shaders/defaultShaders.h"
+#include "vera/window.h"
+#include "vera/string.h"
+#include "vera/gl/shader.h"
+#include "vera/shaders/defaultShaders.h"
 
 #include "glm/gtc/type_ptr.hpp"
 
-namespace ada {
+namespace vera {
 
 Shader::Shader():
     m_fragmentSource(""),

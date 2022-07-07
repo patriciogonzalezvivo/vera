@@ -1,4 +1,4 @@
-#include "ada/app.h"
+#include "vera/app.h"
 
 #include <iostream>
 
@@ -8,7 +8,7 @@
 // #define GLFW_INCLUDE_ES3
 #endif
 
-namespace ada {
+namespace vera {
 
 
 #if defined(__EMSCRIPTEN__)

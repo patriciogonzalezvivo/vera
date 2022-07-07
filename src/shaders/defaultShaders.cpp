@@ -1,25 +1,25 @@
 
-#include "ada/shaders/defaultShaders.h"
+#include "vera/shaders/defaultShaders.h"
 
-#include "ada/shaders/default.h"
-#include "ada/shaders/default_error.h"
-#include "ada/shaders/default_scene.h"
+#include "vera/shaders/default.h"
+#include "vera/shaders/default_error.h"
+#include "vera/shaders/default_scene.h"
 
-#include "ada/shaders/billboard.h"
-#include "ada/shaders/dynamic_billboard.h"
+#include "vera/shaders/billboard.h"
+#include "vera/shaders/dynamic_billboard.h"
 
-#include "ada/shaders/plot.h"
-#include "ada/shaders/fxaa.h"
-#include "ada/shaders/poissonfill.h"
+#include "vera/shaders/plot.h"
+#include "vera/shaders/fxaa.h"
+#include "vera/shaders/poissonfill.h"
 
 // 3D SCENE
-#include "ada/shaders/light_ui.h"
-#include "ada/shaders/cubemap.h"
-#include "ada/shaders/draw.h"
+#include "vera/shaders/light_ui.h"
+#include "vera/shaders/cubemap.h"
+#include "vera/shaders/draw.h"
 
-#include "ada/string.h"
+#include "vera/string.h"
 
-namespace ada {
+namespace vera {
 
 static size_t versionNumber = 100;
 static std::string versionLine = "";

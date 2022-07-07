@@ -6,7 +6,7 @@
 #include "glm/gtc/quaternion.hpp"
 #include "glm/gtx/quaternion.hpp"
 
-namespace ada {
+namespace vera {
 
 enum NodeType {
     EMPTY_NODE = 0, 

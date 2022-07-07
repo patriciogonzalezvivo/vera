@@ -4,9 +4,9 @@
 #include <string>
 
 #include "glm/glm.hpp"
-#include "ada/gl/shader.h"
+#include "vera/gl/shader.h"
 
-namespace ada {
+namespace vera {
 
 // QUILT
 //

@@ -20,7 +20,7 @@
 #include "scene/material.h"
 #include "scene/label.h"
 
-namespace ada {
+namespace vera {
 
 // Textures
 typedef std::map<std::string, Texture*>         TexturesMap;

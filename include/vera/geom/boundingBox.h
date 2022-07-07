@@ -5,7 +5,7 @@
 // #include "line.h"
 #include "triangle.h"
 
-namespace ada {
+namespace vera {
 
 class BoundingBox {
 public:

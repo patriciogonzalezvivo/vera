@@ -5,7 +5,7 @@
 #include "../gl/shader.h"
 #include "../gl/defines.h"
 
-namespace ada {
+namespace vera {
 
 class Material : public HaveDefines {
 public:

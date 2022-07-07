@@ -1,10 +1,10 @@
-#include "ada/gl/textureStreamSequence.h"
+#include "vera/gl/textureStreamSequence.h"
 
-#include "ada/window.h"
-#include "ada/fs.h"
-#include "ada/pixel.h"
+#include "vera/window.h"
+#include "vera/fs.h"
+#include "vera/pixel.h"
 
-namespace ada {
+namespace vera {
 
 TextureStreamSequence::TextureStreamSequence() : m_currentFrame(0), m_bits(8) {
 

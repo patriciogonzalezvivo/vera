@@ -1,4 +1,4 @@
-#include "ada/io/obj.h"
+#include "vera/io/obj.h"
 
 #include <iostream>
 #include <fstream>
@@ -6,14 +6,14 @@
 
 // #include "../tools/text.h"
 
-#include "ada/fs.h"
-#include "ada/string.h"
-#include "ada/geom/ops.h"
+#include "vera/fs.h"
+#include "vera/string.h"
+#include "vera/geom/ops.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
-namespace ada {
+namespace vera {
 
 void addModel(Scene* _scene, const std::string& _name, Mesh& _mesh, Material& _mat, bool _verbose) {
     if (_verbose) {

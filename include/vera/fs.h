@@ -2,7 +2,7 @@
 
 #include "string.h"
 
-namespace ada {
+namespace vera {
 
 // files
 bool urlExists(const std::string& _filename);

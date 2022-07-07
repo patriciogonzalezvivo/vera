@@ -1,18 +1,18 @@
 
-#include "ada/io/stl.h"
+#include "vera/io/stl.h"
 
 #include <iostream>
 #include <fstream>
 #include <string>
 
-#include "ada/geom/ops.h"
-#include "ada/string.h"
+#include "vera/geom/ops.h"
+#include "vera/string.h"
 
 #ifndef LINE_MAX
 #define LINE_MAX 2048
 #endif
 
-namespace ada {
+namespace vera {
 
 bool loadSTL(const std::string& _filename, Scene* _scene, bool _verbose) {
     std::string name = _filename.substr(0, _filename.size()-4);

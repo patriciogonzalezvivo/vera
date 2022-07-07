@@ -10,7 +10,7 @@
 #include "triangle.h"
 #include "boundingBox.h"
 
-namespace ada {
+namespace vera {
 
 // 2D
 void                    simplify(std::vector<glm::vec2> &_pts, float _tolerance=0.3f);

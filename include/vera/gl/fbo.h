@@ -3,7 +3,7 @@
 #include "gl.h"
 #include "textureProps.h"
 
-namespace ada {
+namespace vera {
 
 enum FboType {
     COLOR_TEXTURE = 0, 

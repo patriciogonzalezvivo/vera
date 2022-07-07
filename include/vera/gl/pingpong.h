@@ -2,7 +2,7 @@
 
 #include "fbo.h"
 
-namespace ada {
+namespace vera {
 
 class PingPong {
 public:

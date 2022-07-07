@@ -1,5 +1,5 @@
-#include "ada/fs.h"
-#include "ada/string.h"
+#include "vera/fs.h"
+#include "vera/string.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,7 +20,7 @@
 #endif
 
 
-namespace ada {
+namespace vera {
 
 bool haveExt(const std::string& _file, const std::string& _ext){
     return _file.find( "." + _ext) != std::string::npos;

@@ -1,12 +1,12 @@
-#include "ada/gl/textureStreamMMAL.h"
+#include "vera/gl/textureStreamMMAL.h"
 
 #if defined(SUPPORT_MMAL)
 
 #include <iostream>
 
-#include "ada/window.h"
-#include "ada/geom/meshes.h"
-#include "ada/string.h"
+#include "vera/window.h"
+#include "vera/geom/meshes.h"
+#include "vera/string.h"
 
 #if defined(DRIVER_GBM)
 #include "libdrm/drm_fourcc.h"
@@ -42,7 +42,7 @@
 #include "interface/vcos/vcos.h"
 #include "interface/vmcs_host/vc_vchi_gencmd.h"
 
-namespace ada {
+namespace vera {
 
 // There isn't actually a MMAL structure for the following, so make one
 typedef struct {

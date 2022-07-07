@@ -1,4 +1,4 @@
-#include "ada/geom/ops.h"
+#include "vera/geom/ops.h"
 
 
 
@@ -12,7 +12,7 @@
 #define TAU 6.2831853071795864769252867665590
 #endif
 
-namespace ada {
+namespace vera {
 
 float getArea(const std::vector<glm::vec2>& _points) {
     float area = 0.0;

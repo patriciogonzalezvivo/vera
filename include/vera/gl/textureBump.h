@@ -2,7 +2,7 @@
 
 #include "texture.h"
 
-namespace ada {
+namespace vera {
 
 class TextureBump : public Texture {
 public:

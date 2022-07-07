@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ada/scene.h"
+#include "vera/scene.h"
 
-namespace ada {
+namespace vera {
 
 bool loadSTL(const std::string& _filename, Scene* _scene, bool _verbose);
 

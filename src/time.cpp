@@ -1,4 +1,4 @@
-#include "ada/time.h"
+#include "vera/time.h"
 
 #ifdef _WIN32
     #define NOMINMAX
@@ -9,7 +9,7 @@
     #include <unistd.h>
 #endif 
 
-namespace ada {
+namespace vera {
 
 void sleep_ms(uint64_t value) {
 #if defined(_WIN32)

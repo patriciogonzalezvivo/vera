@@ -4,7 +4,7 @@
 #include <vector>
 #include "glm/glm.hpp"
 
-namespace ada {
+namespace vera {
 
 enum FontHorizontalAlign {
     ALIGN_LEFT 	    = 1<<0,	// Default

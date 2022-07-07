@@ -2,7 +2,7 @@
 
 #if defined(SUPPORT_LIBAV)
 
-#include "ada/gl/textureStream.h"
+#include "vera/gl/textureStream.h"
 #include <vector>
 
 class TextureStreamAudio : public vera::TextureStream {

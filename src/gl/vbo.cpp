@@ -1,7 +1,7 @@
-#include "ada/gl/vbo.h"
+#include "vera/gl/vbo.h"
 #include <iostream>
 
-namespace ada {
+namespace vera {
 
 Vbo::Vbo() : 
     m_vertexLayout(NULL),

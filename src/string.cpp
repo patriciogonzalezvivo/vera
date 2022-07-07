@@ -1,10 +1,10 @@
-#include "ada/string.h"
+#include "vera/string.h"
 
 #include <algorithm>
 #include <iterator>
 #include <regex>
 
-namespace ada {
+namespace vera {
 
 std::string toLower(const std::string& _string) {
     std::string std = _string;

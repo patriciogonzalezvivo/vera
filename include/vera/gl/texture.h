@@ -5,7 +5,7 @@
 #include "gl.h"
 #include "textureProps.h"
 
-namespace ada {
+namespace vera {
 
 enum TextureType {
     JUST_TEXTURE = 0, BUMP_TEXTURE, 

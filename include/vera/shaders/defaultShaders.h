@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace ada
+namespace vera
 {
 
 enum DefaultShaders {
@@ -22,4 +22,4 @@ int     getVersion();
 
 std::string getDefaultSrc(DefaultShaders _type);
     
-} // namespace ada
+} // namespace vera

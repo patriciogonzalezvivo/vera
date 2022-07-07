@@ -16,7 +16,7 @@
 #include "interface/mmal/util/mmal_default_components.h"
 #include "interface/mmal/util/mmal_connection.h"
 
-namespace ada {
+namespace vera {
 
 class TextureStreamMMAL : public TextureStream {
 public:

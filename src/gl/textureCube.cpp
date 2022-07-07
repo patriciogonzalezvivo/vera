@@ -1,13 +1,13 @@
 #include <iostream>
 #include <cstring>
 
-#include "ada/gl/textureCube.h"
+#include "vera/gl/textureCube.h"
 
-#include "ada/fs.h"
-#include "ada/math.h"
-#include "ada/pixel.h"
+#include "vera/fs.h"
+#include "vera/math.h"
+#include "vera/pixel.h"
 
-namespace ada {
+namespace vera {
 
 TextureCube::TextureCube() 
     : SH {  glm::vec3(0.0), glm::vec3(0.0), glm::vec3(0.0),

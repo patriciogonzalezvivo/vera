@@ -1,7 +1,7 @@
-#include "ada/scene/material.h"
-#include "ada/string.h"
+#include "vera/scene/material.h"
+#include "vera/string.h"
 
-namespace ada {
+namespace vera {
 
 Material::Material():name("default") {
 }

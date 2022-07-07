@@ -8,7 +8,7 @@
 #include <functional>
 #endif
 
-namespace ada {
+namespace vera {
 
 enum WindowStyle {
     HEADLESS = 0,

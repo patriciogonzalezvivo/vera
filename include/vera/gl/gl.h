@@ -32,7 +32,7 @@
 
     #endif
 
-    namespace ada {
+    namespace vera {
     EGLImageKHR createImage(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLint *attrib_list);
     EGLBoolean destroyImage(EGLDisplay dpy, EGLImageKHR image);
     void imageTargetTexture2D(EGLenum target, EGLImageKHR image);
@@ -52,7 +52,7 @@
     #include <GLES2/gl2.h>
     #include <GLES2/gl2ext.h>
 
-    namespace ada {
+    namespace vera {
     EGLImageKHR createImage(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLint *attrib_list);
     EGLBoolean destroyImage(EGLDisplay dpy, EGLImageKHR image);
     void imageTargetTexture2D(EGLenum target, EGLImageKHR image);
@@ -85,7 +85,7 @@
 #endif
 
 
-namespace ada {
+namespace vera {
 
 enum BlendMode {
     BLEND_NONE = 0,

@@ -1,5 +1,5 @@
-#include "ada/gl/textureStreamAudio.h"
-#include "ada/string.h"
+#include "vera/gl/textureStreamAudio.h"
+#include "vera/string.h"
 
 #include <iostream>
 #include <mutex>

@@ -1,10 +1,10 @@
-#include "ada/geom/triangle.h"
+#include "vera/geom/triangle.h"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/gtx/norm.hpp"
 #include "glm/glm.hpp"
 
-namespace ada {
+namespace vera {
 
 Triangle::Triangle() { 
 }

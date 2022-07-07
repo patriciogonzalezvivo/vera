@@ -10,7 +10,7 @@
 
 #include <math.h>
 
-namespace ada {
+namespace vera {
 
 class App {
 public:

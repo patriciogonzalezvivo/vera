@@ -6,7 +6,7 @@
 
 #include "../scene/sky.h"
 
-namespace ada {
+namespace vera {
 
 class TextureCube : public Texture {
 public:

@@ -5,7 +5,7 @@
 
 #include "glm/glm.hpp"
 
-namespace ada {
+namespace vera {
 
 typedef std::map<std::string,std::string>                   DefinesMap;
 typedef std::map<std::string,std::string>::iterator         DefinesMap_it;

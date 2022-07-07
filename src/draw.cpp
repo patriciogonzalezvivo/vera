@@ -1,16 +1,16 @@
-#include "ada/draw.h"
-#include "ada/fs.h"
-#include "ada/font.h"
-#include "ada/string.h"
-#include "ada/window.h"
+#include "vera/draw.h"
+#include "vera/fs.h"
+#include "vera/font.h"
+#include "vera/string.h"
+#include "vera/window.h"
 
-#include "ada/shaders/defaultShaders.h"
+#include "vera/shaders/defaultShaders.h"
 
 #include "glm/gtc/matrix_transform.hpp"
 
 #include <stack>
 
-namespace ada {
+namespace vera {
 
 Shader*     shaderPtr     = nullptr;
 bool        shaderChange  = true; 

@@ -7,7 +7,7 @@
 
 #include "glm/glm.hpp"
 
-namespace ada {
+namespace vera {
 
 #if defined(PLATFORM_RPI) || defined(__EMSCRIPTEN__)
 #define INDEX_TYPE uint16_t

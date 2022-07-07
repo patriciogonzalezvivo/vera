@@ -1,13 +1,13 @@
-#include "ada/io/ply.h"
+#include "vera/io/ply.h"
 
 #include <iostream>
 #include <fstream>
 #include <string>
 
-#include "ada/geom/ops.h"
-#include "ada/string.h"
+#include "vera/geom/ops.h"
+#include "vera/string.h"
 
-namespace ada {
+namespace vera {
 
 #if defined(SUPPORT_PLY_BINARY)
 

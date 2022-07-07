@@ -9,7 +9,7 @@
 #ifndef SHADERS_H
 #define SHADERS_H
 
-#include "ada/gl/gl.h"
+#include "vera/gl/gl.h"
 
 namespace glfs {
 

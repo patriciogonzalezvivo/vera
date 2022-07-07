@@ -2,7 +2,7 @@
 
 #include <cinttypes>
 
-namespace ada {
+namespace vera {
 
 void sleep_ms(uint64_t value);
 

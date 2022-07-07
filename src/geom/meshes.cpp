@@ -1,7 +1,7 @@
-#include "ada/geom/meshes.h"
-#include "ada/geom/ops.h"
+#include "vera/geom/meshes.h"
+#include "vera/geom/ops.h"
 
-#include "ada/math.h"
+#include "vera/math.h"
 
 #include <iostream>
 
@@ -16,7 +16,7 @@
 #define TAU 6.2831853071795864769252867665590
 #endif
 
-namespace ada {
+namespace vera {
 
 Mesh lineMesh(const glm::vec3 &_a, const glm::vec3 &_b) {
     glm::vec3 linePoints[2];

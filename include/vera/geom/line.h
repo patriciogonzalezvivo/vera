@@ -3,7 +3,7 @@
 #include <vector>
 #include "glm/glm.hpp"
 
-namespace ada {
+namespace vera {
 
 class Line{
 public:

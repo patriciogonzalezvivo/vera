@@ -1,4 +1,4 @@
-#include "ada/gl/textureStreamAV.h"
+#include "vera/gl/textureStreamAV.h"
 
 #include <iostream>
 #include <fstream>
@@ -14,9 +14,9 @@ extern "C" {
 #include <libswresample/swresample.h>
 }
 
-#include "ada/window.h"
-#include "ada/string.h"
-#include "ada/pixel.h"
+#include "vera/window.h"
+#include "vera/string.h"
+#include "vera/pixel.h"
 
 #define EPS 0.000025
 
@@ -25,7 +25,7 @@ extern "C" {
 #define posix_memalign(p, a, s) (((*(p)) = _aligned_malloc((s), (a))), *(p) ? 0 : errno)
 #endif
 
-namespace ada {
+namespace vera {
 
 TextureStreamAV::TextureStreamAV() : 
     av_format_ctx(NULL),
