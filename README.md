@@ -111,46 +111,6 @@ make
 ```bash
 git clone --recursive https://github.com/patriciogonzalezvivo/vera_hello_world.git
 cd vera_hello_world
-cd doc
-cmake .. -DCMAKE_TOOLCHAIN_FILE=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
-make
-
-python3 -m http.server 
-```
-Then open http://localhost:8000/
-
-## 2. Compiling
-
-### For windows managers like MacOS, Windows or Linux (with X11 Window Manager) (all through GLFW) 
-
-```bash
-git clone https://github.com/patriciogonzalezvivo/ada_example.git
-cd ada_test
-mkdir build
-cd build
-cmake ..
-make
-./hello_world
-```
-
-### For Linux with no X11 Window Manager
-
-```bash
-git clone https://github.com/patriciogonzalezvivo/ada_example.git
-cd ada_test
-mkdir build
-cd build
-cmake -DNO_X11=TRUE ..
-make
-./hello_world
-```
-
-### As a Emscripten WebAssembly project
-
-```bash
-git clone https://github.com/patriciogonzalezvivo/ada_example.git
-cd ada_test
-mkdir build
 cd build
 cmake .. -DCMAKE_TOOLCHAIN_FILE=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
 make
@@ -158,4 +118,3 @@ make
 python3 -m http.server 
 ```
 Then open http://localhost:8000/
-
