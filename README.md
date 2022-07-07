@@ -1,6 +1,6 @@
-# VERA [![Build Status](https://app.travis-ci.com/patriciogonzalezvivo/vera.svg?branch=main)](https://app.travis-ci.com/github/patriciogonzalezvivo/vera)
+# VERA 
 
-ADA is an easy cross platform OpenGL ES 2.0 library for creating apps for Windows, MacOS, Linux (with or without an X11 Window Manager) and WASM (Emscripten WebAssembly).
+VERA is an easy cross platform OpenGL ES 2.0 library for creating apps for Windows, MacOS, Linux (with or without an X11 Window Manager) and WASM (Emscripten WebAssembly).
 
 ## 1. Install Dependencies
 
@@ -120,9 +120,4 @@ make
 python3 -m http.server 
 ```
 Then open http://localhost:8000/
-
-
-# Acknowledgements
-
-This library is highly inspired on [openFrameworks](https://github.com/openframeworks/openFrameworks), a dear framework and community very close to my heart. The Mesh, Node and Camera clases are VERY similar. The reason to branch ADA was to minimize the amount of code, dependencies and be hable to add it through CMake.
 
