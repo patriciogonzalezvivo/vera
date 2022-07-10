@@ -47,8 +47,6 @@ Scene::Scene():
 
     // Defualt light source
     lights["default"] = new Light(glm::vec3(0.0, 1000.0, 1000.0), -1.0);
-
-
 }
 
 Scene::~Scene() {
