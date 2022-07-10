@@ -1,9 +1,4 @@
 ## GLFW
-
-if (WIN32)
-    add_subdirectory(glew)
-endif (WIN32)
-
 if (NOT NO_X11 AND NOT FORCE_GBM AND NOT EMSCRIPTEN)
     # Configure GLFW to build only the library.
     set(GLFW_BUILD_DOCS OFF CACHE BOOL "")
@@ -26,6 +21,10 @@ if (NOT NO_X11 AND NOT FORCE_GBM AND NOT EMSCRIPTEN)
     message(STATUS "OPENGL_LIBRARIES: ${OPENGL_LIBRARIES}")
     message(STATUS "OPENGL_opengl_LIBRARY: ${OPENGL_opengl_LIBRARY}")
 endif()
+
+if (WIN32)
+    add_subdirectory(glew)
+endif (WIN32)
 
 ## Glob
 add_subdirectory(glob)
