@@ -100,7 +100,7 @@ public:
 
     // Skybox
     virtual void        setSunPosition(const glm::vec3& _v);
-    virtual void        setSunPosition(float _az, float _elev);
+    virtual void        setSunPosition(float _az, float _elev, float _distance = 10000.0f);
     virtual void        setSkyTurbidity(float _turbidity);
     virtual void        setGroundAlbedo(const glm::vec3& _albedo);
     virtual float       getSunAzimuth() const;

@@ -36,9 +36,17 @@ Scene::Scene():
     activeFont(nullptr),
     m_streamsPrevs(0), 
     m_streamsPrevsChange(false) {
+    
+    // Default Active Camera
     Camera* cam = new Camera();
     cameras["default"] = cam;
     activeCamera = cam;
+
+    // Defualt light source
+    lights["default"] = new Light(glm::vec3(0.0, 1000.0, 1000.0), -1.0);
+
+    // Default Skybox Texture Cube
+    cubemaps["default"] = new TextureCube();
 }
 
 Scene::~Scene() {
@@ -67,9 +75,7 @@ void Scene::load(const std::string& _filename, bool _verbose) {
 
 void Scene::update() {
     if (m_skybox.change) {
-        if ( cubemaps.find("skybox") == cubemaps.end() )
-            cubemaps["skybox"] = new TextureCube();
-        cubemaps["skybox"]->load(&m_skybox);
+        cubemaps["default"]->load(&m_skybox);
         m_skybox.change = false;
     }
 
@@ -528,38 +534,24 @@ void Scene::clearCubemaps() {
 
 // SKYBOX
 //
-void Scene::setSunPosition(float _az, float _elev) {
+void Scene::setSunPosition(float _az, float _elev, float _distance) {
     m_skybox.elevation = _elev;
     m_skybox.azimuth = _az;
     m_skybox.change = true;
 
-    float distance = 100.0f;
-    LightsMap::iterator it = lights.find("sun");
-    if ( it != lights.end() ) 
-        distance = glm::length( it->second->getPosition() );
-
-    glm::vec3 p = glm::vec3(0.0f, 0.0f, distance );
+    glm::vec3 p = glm::vec3(0.0f, 0.0f, _distance );
     glm::quat lat = glm::angleAxis(-m_skybox.elevation, glm::vec3(1.0, 0.0, 0.0));
     glm::quat lon = glm::angleAxis(m_skybox.azimuth, glm::vec3(0.0, 1.0, 0.0));
     p = lat * p;
     p = lon * p;
-
-    if ( it != lights.end() ) 
-        it->second->setPosition(p);
-    else
-        lights["sun"] = new Light(p, -1.0);
+    lights["default"]->setPosition(p);
 }
 
 void Scene::setSunPosition(const glm::vec3& _v) {
     m_skybox.elevation = atan2(_v.y, sqrt(_v.x * _v.x + _v.z * _v.z) );
     m_skybox.azimuth = atan2(_v.x, _v.z);
     m_skybox.change = true;
-
-    LightsMap::iterator it = lights.find("sun");
-    if ( it != lights.end() ) 
-        it->second->setPosition(_v);
-    else
-        lights["sun"] = new Light(_v, -1.0);
+    lights["default"]->setPosition(_v);
 }
 
 void Scene::setSkyTurbidity(float _turbidity) {
