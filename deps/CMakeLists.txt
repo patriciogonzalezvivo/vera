@@ -29,12 +29,3 @@ endif (WIN32)
 
 ## Glob
 add_subdirectory(glob)
-
-# ## stb
-# add_subdirectory(stb)
-
-# # PhoneDepth
-# add_subdirectory(phonedepth)
-
-# ## SkyModel
-# add_subdirectory(skymodel)

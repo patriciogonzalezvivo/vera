@@ -4,9 +4,10 @@ project(vera)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
+add_compile_options(-DGLM_FORCE_CXX14)
 
 if (NO_X11 OR FORCE_GBM)
-    add_compile_options(-std=c++14 -DGLM_FORCE_CXX14 -fpermissive -Wno-psabi)
+    add_compile_options(-std=c++14 -fpermissive -Wno-psabi)
 endif()
 
 # The compiled library code is here

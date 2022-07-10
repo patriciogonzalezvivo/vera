@@ -274,9 +274,7 @@ target_include_directories(vera PUBLIC
 )
 
 ## DEPS
-
 target_link_libraries(vera PUBLIC glob)
-# target_link_libraries(vera PUBLIC stb glob skymodel phonedepth)
 
 # IDEs should put the headers in a nice place
 # source_group(   TREE ${INCLUDE_FOLDER} 
