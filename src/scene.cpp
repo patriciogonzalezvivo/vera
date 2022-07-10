@@ -38,15 +38,17 @@ Scene::Scene():
     m_streamsPrevsChange(false) {
     
     // Default Active Camera
-    Camera* cam = new Camera();
-    cameras["default"] = cam;
-    activeCamera = cam;
+    activeCamera = new Camera();
+    cameras["default"] = activeCamera;
+
+    // Default Skybox Texture Cube
+    activeCubemap = new TextureCube();
+    cubemaps["default"] = activeCubemap;
 
     // Defualt light source
     lights["default"] = new Light(glm::vec3(0.0, 1000.0, 1000.0), -1.0);
 
-    // Default Skybox Texture Cube
-    cubemaps["default"] = new TextureCube();
+
 }
 
 Scene::~Scene() {
