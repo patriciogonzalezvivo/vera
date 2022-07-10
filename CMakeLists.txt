@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.2)
 
 project(vera)
 
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
 if (NO_X11 OR FORCE_GBM)

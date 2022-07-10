@@ -27,14 +27,14 @@ if (WIN32)
     add_subdirectory(glew)
 endif (WIN32)
 
-## stb
-add_subdirectory(stb)
-
 ## Glob
 add_subdirectory(glob)
 
-# PhoneDepth
-add_subdirectory(phonedepth)
+# ## stb
+# add_subdirectory(stb)
 
-## SkyModel
-add_subdirectory(skymodel)
+# # PhoneDepth
+# add_subdirectory(phonedepth)
+
+# ## SkyModel
+# add_subdirectory(skymodel)

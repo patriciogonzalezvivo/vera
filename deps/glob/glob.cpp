@@ -6,6 +6,8 @@
     #include <fnmatch.h>
 #endif
 
+#include <memory>
+
 namespace glob {
 
 #ifdef _WIN32
