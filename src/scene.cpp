@@ -36,7 +36,9 @@ Scene::Scene():
     activeFont(nullptr),
     m_streamsPrevs(0), 
     m_streamsPrevsChange(false) {
-    cameras["default"] = new Camera();
+    Camera* cam = new Camera();
+    cameras["default"] = cam;
+    activeCamera = cam;
 }
 
 Scene::~Scene() {
