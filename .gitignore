@@ -1,4 +1,4 @@
-build/
+# build/
 
 # glfw
 glfw_config.h
