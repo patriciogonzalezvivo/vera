@@ -148,10 +148,10 @@ Material extractMaterial(const tinygltf::Model& _model, const tinygltf::Material
         if (_verbose)
             std::cout << "Loading " << name << "for BASECOLORMAP as " << name << std::endl;
 
-        if (!_scene->haveTexture(name)) {
+        if (_scene->textures.find(name) != _scene->textures.end()) {
             Texture* texture = new Texture();
             texture->load(image.width, image.height, image.component, image.bits, &image.image.at(0));
-            _scene->setTexture(name, texture);
+            _scene->textures[name] = texture;
         }
         mat.addDefine("MATERIAL_BASECOLORMAP", name);
     }
@@ -167,10 +167,10 @@ Material extractMaterial(const tinygltf::Model& _model, const tinygltf::Material
         if (_verbose)
             std::cout << "Loading " << name << "for EMISSIVEMAP as " << name << std::endl;
 
-        if (!_scene->haveTexture(name)) {
+        if (_scene->textures.find(name) != _scene->textures.end()) {
             Texture* texture = new Texture();
             texture->load(image.width, image.height, image.component, image.bits, &image.image.at(0));
-            _scene->setTexture(name, texture);
+            _scene->textures[name] = texture;
         }
         mat.addDefine("MATERIAL_EMISSIVEMAP", name);
     }
@@ -189,10 +189,10 @@ Material extractMaterial(const tinygltf::Model& _model, const tinygltf::Material
         if (_verbose)
             std::cout << "Loading " << name << "for METALLICROUGHNESSMAP as " << name << std::endl;
 
-        if (!_scene->haveTexture(name)) {
+        if (_scene->textures.find(name) != _scene->textures.end()) {
             Texture* texture = new Texture();
             texture->load(image.width, image.height, image.component, image.bits, &image.image.at(0));
-            _scene->setTexture(name, texture);
+            _scene->textures[name] = texture;
         }
 
         if (_material.occlusionTexture.index >= 0) {
@@ -221,10 +221,10 @@ Material extractMaterial(const tinygltf::Model& _model, const tinygltf::Material
         if (_verbose)
             std::cout << "Loading " << name << "for OCCLUSIONMAP as " << name << std::endl;
 
-        if (!_scene->haveTexture(name)) {
+        if (_scene->textures.find(name) != _scene->textures.end()) {
             Texture* texture = new Texture();
             texture->load(image.width, image.height, image.component, image.bits, &image.image.at(0));
-            _scene->setTexture(name, texture);
+            _scene->textures[name] = texture;
         }
         mat.addDefine("MATERIAL_OCCLUSIONMAP", name);
 
@@ -243,10 +243,10 @@ Material extractMaterial(const tinygltf::Model& _model, const tinygltf::Material
         if (_verbose)
             std::cout << "Loading " << name << "for NORMALMAP as " << name << std::endl;
 
-        if (!_scene->haveTexture(name)) {
+        if (_scene->textures.find(name) != _scene->textures.end()) {
             Texture* texture = new Texture();
             texture->load(image.width, image.height, image.component, image.bits, &image.image.at(0));
-            _scene->setTexture(name, texture);
+            _scene->textures[name] = texture;
         }
         mat.addDefine("MATERIAL_NORMALMAP", name);
 
@@ -361,7 +361,7 @@ void extractMesh(const tinygltf::Model& _model, const tinygltf::Mesh& _mesh, glm
 
         Material mat = extractMaterial( _model, _model.materials[primitive.material], _scene, _verbose );
 
-        _scene->setModel( _mesh.name, new Model(_mesh.name, mesh, mat) );
+        _scene->models[_mesh.name] = new Model(_mesh.name, mesh, mat);
     }
 };
 

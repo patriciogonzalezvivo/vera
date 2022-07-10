@@ -40,7 +40,7 @@ void addModel(Scene* _scene, const std::string& _name, Mesh& _mesh, Material& _m
         if ( _verbose )
             std::cout << "    . Compute tangents" << std::endl;
 
-    _scene->setModel( _name, new Model(_name, _mesh, _mat) );
+    _scene->models[_name] = new Model(_name, _mesh, _mat);
 }
 
 glm::vec3 getVertex(const tinyobj::attrib_t& _attrib, int _index) {
@@ -379,12 +379,12 @@ bool loadOBJ(const std::string& _filename, Scene* _scene, bool _verbose) {
     }
 
     for (size_t m = 0; m < materials.size(); m++) {
-        if ( !_scene->haveMaterial( materials[m].name ) ) {
+        if ( _scene->materials.find( materials[m].name ) == _scene->materials.end() ) {
             if (_verbose)
                 std::cout << "Add Material " << materials[m].name << std::endl;
 
             Material mat = InitMaterial( materials[m], _scene, base_dir );
-            _scene->setMaterial( materials[m].name, mat);
+            _scene->materials[ materials[m].name ] = mat;
         }
     }
 

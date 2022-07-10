@@ -37,6 +37,9 @@ typedef std::map<std::string, Light*>           LightsMap;
 typedef std::map<std::string, Camera*>          CamerasMap;
 typedef std::map<std::string, Model*>           ModelsMap;
 typedef std::map<std::string, Material>         MaterialsMap;
+typedef std::map<std::string, Shader*>          ShadersMap;
+
+typedef std::map<std::string, Font*>            FontsMap;
 typedef std::vector<Label*>                     LabelsList;
 
 class Scene {
@@ -48,19 +51,6 @@ public:
     virtual void        load(const std::string& _name, bool _verbose = false);
     virtual void        update();
     virtual void        clear();
-    
-    virtual void        flagChange();
-    virtual void        unflagChange();
-    virtual bool        haveChange() const;
-
-    // Feed scene uniforms to shader 
-    virtual bool        feedTo(Shader &_shader, bool _lights = true, bool _buffers = true);
-    virtual bool        feedTo(Shader *_shader, bool _lights = true, bool _buffers = true);
-
-    // defines
-    virtual void        addDefine(const std::string& _define, const std::string& _value);
-    virtual void        delDefine(const std::string& _define);
-    virtual void        printDefines();
 
     // Buffers
     BuffersList         buffers;
@@ -71,22 +61,17 @@ public:
 
     // Textures
     TexturesMap         textures;
-    virtual bool        haveTexture(const std::string& _name ) const;
-    virtual void        setTexture(const std::string& _name, Texture* _texture);
     virtual bool        addTexture(const std::string& _name, const std::string& _path, bool _flip = true, bool _verbose = true);
     virtual bool        addBumpTexture(const std::string& _name, const std::string& _path, bool _flip = true, bool _verbose = true);
-    virtual Texture*    getTexture(const std::string& _name);
     virtual void        printTextures();
     virtual void        clearTextures();
 
     // Streams (videos, camera, image sequences, audio textures, etc)
     TextureStreamsMap   streams;
-    virtual bool        haveStreamingTexture(const std::string& _name) const;
-    virtual void        setStreamingTexture(const std::string& _name, TextureStream* _stream);
     virtual bool        addStreamingTexture(const std::string& _name, const std::string& _url, bool _flip = true, bool _device = false, bool _verbose = true);
     virtual bool        addStreamingAudioTexture(const std::string& _name, const std::string& device_id, bool _flip = false, bool _verbose = true);
-    virtual TextureStream* getStreamingTexture(const std::string& _name);
     virtual void        printStreams();
+    virtual void        clearStreams();
 
     virtual void        setStreamPlay(const std::string& _name);
     virtual void        setStreamStop(const std::string& _name);
@@ -107,16 +92,9 @@ public:
     virtual void        setStreamsSpeed(float _speed);
     virtual void        setStreamsPrevs(size_t _total);
 
-    virtual void        clearStreams();
-
     // Cubemap
     TextureCubesMap     cubemaps;
-    virtual bool        haveCubemap(const std::string& _name ) const;
-    virtual void        setCubemap(const std::string& _name, TextureCube* _cubemap);
     virtual bool        addCubemap(const std::string& _name, const std::string& _filename, bool _verbose = true);
-    virtual TextureCube* getCubemap(const std::string& _name);
-    virtual void        setActiveCubemap(const std::string& _name);
-    virtual TextureCube* getActiveCubemap() const { return m_activeCubemap; }
     virtual void        clearCubemaps();
     virtual void        printCubemaps();
 
@@ -132,46 +110,46 @@ public:
 
     // Camera
     CamerasMap          cameras;
-    virtual bool        haveCamera(const std::string& _name ) const;
-    virtual void        setCamera(const std::string& _name, Camera* _camera);
-    virtual void        setActiveCamera(const std::string& _name);
-    virtual Camera*     getActiveCamera() const { return m_activeCamera; }
-    virtual Camera*     getCamera(const std::string& _name);
     virtual void        printCameras();
     virtual void        clearCameras();
 
     // Lights
     LightsMap           lights;
-    virtual bool        haveLight(const std::string& _name) const;
-    virtual void        setLight(const std::string& _name, Light* _light);
-    virtual Light*      getLight(const std::string& _name);
-    virtual void        enableLights(bool _v) { m_enableLights = true; }
-    virtual bool        getLightsEnabled() const { return m_enableLights; }
     virtual void        printLights();
     virtual void        clearLights();
 
     // Materials
     MaterialsMap        materials;
-    virtual bool        haveMaterial(const std::string& _name) const;
-    virtual void        setMaterial(const std::string& _name, Material& _material);
     virtual void        printMaterials();
     virtual void        clearMaterials();
+
+    // Models
+    ModelsMap           models;
+    virtual void        printModels();
+    virtual void        clearModels();
+
+    // Node Tree
+    std::vector<Node*>  root;
+
+    ShadersMap          shaders;
+    virtual void        printShaders();
+    virtual void        clearShaders();
+
+    // Fonts
+    FontsMap            fonts;
+    virtual bool        addFont(const std::string& _name, const std::string& _path);
+    virtual Font*       getDefaultFont();
+    virtual void        printFonts();
+    virtual void        clearFonts();
 
     // Labels
     LabelsList          labels;
     virtual void        printLabels();
     virtual void        clearLabels();
 
-    // Models
-    ModelsMap           models;
-    virtual bool        haveModel(const std::string& _name) const;
-    virtual void        setModel(const std::string& _name, Model* _model);
-    virtual Model*      getModel(const std::string& _name);
-    virtual void        printModels();
-    virtual void        clearModels();
-
-    // Node Tree
-    std::vector<Node*>  root;
+    TextureCube*        activeCubemap;
+    Camera*             activeCamera;
+    Font*               activeFont;
 
 protected:
     SkyData             m_skybox;
@@ -179,11 +157,6 @@ protected:
     size_t              m_streamsPrevs;
     bool                m_streamsPrevsChange;
 
-    Camera*             m_activeCamera;
-    TextureCube*        m_activeCubemap;
-
-    bool                m_enableLights;
-    bool                m_change;
 };
 
 }

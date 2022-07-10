@@ -501,7 +501,7 @@ bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose) {
             name = "lines";
         else
             name = "mesh";
-        _scene->setModel(name, new Model(name, mesh, default_material) );
+        _scene->models[name] = new Model(name, mesh, default_material);
 
         return true;
 

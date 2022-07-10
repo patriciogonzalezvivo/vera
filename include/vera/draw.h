@@ -36,7 +36,6 @@ enum PointShape {
 
 // GENERAL GL STATE
 // ---------------------------------
-
 bool fullscreen();
 void fullscreen(bool _fullscreen);
 
@@ -66,6 +65,8 @@ void stroke( const glm::vec4& _color );
 void noStroke();
 void strokeWeight(float _weight);
 
+// MATRICES
+// -----------------------------
 void resetMatrix();
 void applyMatrix(const glm::mat3& _mat );
 void applyMatrix(const glm::mat4& _mat );
@@ -98,6 +99,7 @@ void pop();
 // noErase()
 
 // POINTS
+// -----------------------------
 void pointSize( float _size );
 void pointShape( PointShape _shape );
 void points(const std::vector<glm::vec2>& _positions, Shader* _program = nullptr);
@@ -131,16 +133,23 @@ void triangles(const std::vector<glm::vec3>& _positions, Shader* _program = null
 void rect(float _x, float _y, float _w, float _h, Shader* _program = nullptr);
 void rect(const glm::vec2& _pos, const glm::vec2& _size, Shader* _program = nullptr);
 
-// 2D Text
-// -----------------------------------
+// FONT
+// -----------------------------
+Font* getFont();
+Font* getFont(const std::string& _name);
+Font* loadFont(const std::string& _file, const std::string& _name = "default");
+void  addFont(Font& _font, const std::string _name);
+void  addFont(Font* _font, const std::string _name);
+
+// TEXT
+// -----------------------------
 // textLeading()
 // textStyle()
 // textWidth()
 // textAscent()
 // textDescent()
 // textWrap()
-Font* getFont();
-Font* loadFont(const std::string& _file, const std::string& _name = "default");
+
 Font* textFont(const std::string& _name);
 void textAlign(FontHorizontalAlign _align, Font* _font = nullptr);
 void textAlign(FontVerticalAlign _align, Font* _font = nullptr);
@@ -158,49 +167,57 @@ void text(const std::string& _text, float _x, float _y, Font* _font = nullptr);
 // torus()
 // p5.Geometry
 
-// Material
-Shader loadShader(const std::string& _fragFile, const std::string& _vertFile);
-Shader createShader(const std::string& _fragSrc = "", const std::string& _vertSrc = "");
-Shader createShader(DefaultShaders _frag, DefaultShaders _vert);
-void shader(Shader& _shader);
-void shader(Shader* _shader);
+// SHADERS
+// -----------------------------
+Shader  loadShader(const std::string& _fragFile, const std::string& _vertFile);
+Shader  createShader(const std::string& _fragSrc = "", const std::string& _vertSrc = "");
+Shader  createShader(DefaultShaders _frag, DefaultShaders _vert);
+
+void    addShader(Shader& _shader, const std::string& _name);
+void    addShader(Shader* _shader, const std::string& _name);
 Shader* getShader();
+Shader* getShader(const std::string& _name);
 Shader* getFillShader();
 Shader* getPointShader();
-void resetShader();
+void    resetShader();
+void    shader(Shader& _shader);
+void    shader(Shader* _shader);
+void    shader(const std::string& _name);
 
+// TEXTURES
+// -----------------------------
 void texture(Texture& _texture, const std::string _name = "");
 void texture(Texture* _texture, const std::string _name = "");
 // textureMode()
 // textureWrap()
 
 // Interaction
-// --------------------------------
+// -----------------------------
 // debugMode()
 // noDebugMode()
 
-// 3D Scene
-// -------------------
-
-// Scene
+// SCENE
+// -----------------------------
 void setScene(Scene& scene);
 void setScene(Scene* scene);
-Scene* createScene();
 Scene* getScene();
 
-// Camera
+// CAMERA
+// -----------------------------
 // camera()
 void perspective(float _fovy, float _aspect, float _near, float _far);
 void ortho(float _left, float _right, float _bottom, float _top,  float _near, float _far);
 // frustum()
-Camera* createCamera();
-
+Camera* createCamera(const std::string& _name = "unnamed");
+void addCamera(Camera& _camera, const std::string& _name = "unnamed");
+void addCamera(Camera* _camera, const std::string& _name = "unnamed");
 void setCamera(Camera& _camera);
 void setCamera(Camera* _camera);
 void resetCamera();
 Camera* getCamera();
 
-// Lights
+// LIGHT
+// -----------------------------
 // ambientLight()
 // specularColor()
 // directionalLight()
@@ -213,18 +230,22 @@ Light* createLight(const std::string& _name = "default");
 void addLight(Light& _light, const std::string& _name = "default");
 void addLight(Light* _light, const std::string& _name = "default");
 
-// Material
+// MATERIAL
+// -----------------------------
 // normalMaterial()
 // ambientMaterial()
 // emissiveMaterial()
 // specularMaterial()
 // shininess()
 
-// void loadModel( const std::string& _filename );
+// MODEL
+// -----------------------------
+void loadModel( const std::string& _filename );
 void model(Vbo& _vbo, Shader* _program = nullptr);
 void model(Vbo* _vbo, Shader* _program = nullptr);
 
-// Labels
+// LABELS
+// -----------------------------
 void addLabel(Label& _label);
 void addLabel(Label* _label);
 void addLabel(const std::string& _text, glm::vec3* _position, LabelType _type = LABEL_CENTER, float _margin = 0.0f);

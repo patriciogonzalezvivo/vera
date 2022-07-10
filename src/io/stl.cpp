@@ -196,7 +196,7 @@ bool loadSTL(const std::string& _filename, Scene* _scene, bool _verbose) {
         return false;
     close_true:
         fclose(stl_file);
-        _scene->setModel( name, new Model(name, mesh, default_material) );
+        _scene->models[name] = new Model(name, mesh, default_material);
         return true;
 
 }
