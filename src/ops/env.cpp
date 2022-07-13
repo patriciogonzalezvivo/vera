@@ -1,6 +1,7 @@
-#include "vera/types/sky.h"
+#include "vera/ops/env.h"
 
 #include "vera/gl/fbo.h"
+#include "vera/gl/cubemapFace.h"
 #include "vera/ops/math.h"
 #include "vera/ops/pixel.h"
 
@@ -28,30 +29,6 @@
 #endif
 
 namespace vera {
-
-const GLenum cubemapFaceId[6] { 
-    GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 
-    GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 
-    GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z 
-};
-
-const glm::vec3 cubemapDir[] = {
-    glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f),
-    glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f),
-    glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, -1.0f)
-};
-
-const glm::vec3 cubemapX[] = {
-    glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 1.0f),
-    glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f),
-    glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f)
-};
-
-const glm::vec3 cubemapY[] = {
-    glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f),
-    glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 0.0f, 1.0f),
-    glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)
-};
 
 const float cubemapUV[6][3][3] = {
     { // +x face
@@ -86,9 +63,6 @@ const float cubemapUV[6][3][3] = {
     }
 };
 
-glm::vec3   getFaceDirection(size_t _id) {
-    return cubemapDir[_id];
-}
 
 /// _u and _v should be center adressing and in [-1.0+invSize..1.0-invSize] range.
 void texelCoordToVec(float* _out3f, float _u, float _v, uint8_t _faceId) {
@@ -110,111 +84,6 @@ void latLongFromVec(float& _u, float& _v, const float _vec[3]) {
 
     _u = (M_PI + phi) * (0.5f / M_PI);
     _v = theta * M_RPI;
-}
-
-template <class T>
-void CubemapFace<T>::flipHorizontal() {
-    int dataSize = width * height * 3;
-    int n = sizeof(T) * 3 * width;
-    T* newData = new T[dataSize];
-
-    for (int i = 0; i < height; i++) {
-        int offset = i * width * 3;
-        int bias = -(i + 1) * 3 * width;
-
-        memcpy(newData + dataSize + bias, data + offset, n);
-    }
-
-    delete[] data;
-    data = newData;
-}
-
-template <class T>
-void CubemapFace<T>::flipVertical() {
-    int dataSize = width * height * 3;
-    int n = sizeof(T) * 3;
-    T* newData = new T[dataSize];
-
-    for(int i = 0; i < height; ++i) {
-        int lineOffset = i * width * 3;
-
-        for(int j = 0; j < width; ++j) {
-            int offset = lineOffset + j * 3;
-            int bias = lineOffset + width * 3 - (j + 1) * 3;
-
-            memcpy(newData + bias, data + offset, n);
-        }
-    }
-
-    delete[] data;
-    data = newData;
-}
-
-template <class T>
-void CubemapFace<T>::upload() {
-    GLenum type = GL_FLOAT;
-
-    if (sizeof(T) == sizeof(char))
-        type = GL_UNSIGNED_BYTE;
-    
-    GLenum internalFormat = GL_RGB;
-    GLenum format = GL_RGB;
-
-#if defined(__EMSCRIPTEN__)
-    if (sizeof(T) == sizeof(float)) {
-        internalFormat = GL_RGB16F;
-        // format = GL_RGB16F;
-        // type = GL_HALF_FLOAT;
-    }
-
-#elif defined (_WIN32)
-    internalFormat = GL_RGB16F;
-#elif !defined(PLATFORM_RPI)
-    internalFormat = GL_RGB;
-#endif
-
-    glTexImage2D(cubemapFaceId[id], 0, internalFormat, width, height, 0, format, type, data);
-}
-
-// By @andsz
-// From https://github.com/ands/spherical_harmonics_playground
-//
-template <class T>
-int CubemapFace<T>::calculateSH(glm::vec3 *_sh) {
-
-    // Calculate SH coefficients:
-    int step = 16;
-    int samples = 0;
-    for (int y = 0; y < height; y += step) {
-        T *p = data + y * width * 3;
-        for (int x = 0; x < width; x += step) {
-            glm::vec3 n = (
-                (   (cubemapX[id] * ( 2.0f * ((float)x / ((float)width - 1.0f)) - 1.0f)) +
-                    (cubemapY[id] * ( -2.0f * ((float)y / ((float)height - 1.0f)) + 1.0f)) ) +
-                    cubemapDir[id]); // texelDirection;
-            float l = glm::length(n);
-            glm::vec3 c_light = glm::vec3((float)p[0], (float)p[1], (float)p[2]);
-            
-            if (sizeof(T) == sizeof(char)) {
-                c_light = c_light / 255.0f;
-            }
-                
-            c_light = c_light * l * l * l; // texelSolidAngle * texel_radiance;
-            n = glm::normalize(n);
-            _sh[0] += (c_light * 0.282095f);
-            _sh[1] += (c_light * -0.488603f * n.y * 2.0f / 3.0f);
-            _sh[2] += (c_light * 0.488603f * n.z * 2.0f / 3.0f);
-            _sh[3] += (c_light * -0.488603f * n.x * 2.0f / 3.0f);
-            _sh[4] += (c_light * 1.092548f * n.x * n.y / 4.0f);
-            _sh[5] += (c_light * -1.092548f * n.y * n.z / 4.0f);
-            _sh[6] += (c_light * 0.315392f * (3.0f * n.z * n.z - 1.0f) / 4.0f);
-            _sh[7] += (c_light * -1.092548f * n.x * n.z / 4.0f);
-            _sh[8] += (c_light * 0.546274f * (n.x * n.x - n.y * n.y) / 4.0f);
-            p += 3 * step;
-            samples++;
-        }
-    }
-    return samples;
 }
 
 template <typename T> 
@@ -518,7 +387,7 @@ void dynamicCubemap(std::function<void(Camera&, glm::vec4&, int&)> _renderFnc, g
     // render views and copy each view to the quilt
     for (int _side = 0; _side < 6; _side++) {
         glm::vec4 vp = getFaceViewport(_viewSize, _side);
-        cubemapCam.lookAt( getFaceDirection(_side) * -10.0f );
+        cubemapCam.lookAt( CubemapFace<float>::getFaceDirection(_side) * -10.0f );
 
         glViewport(vp.x, vp.y, vp.z, vp.w);
 

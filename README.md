@@ -2,7 +2,7 @@
 
 # VERA 
 
-VERA is a C++/OpenGL framework for making visual creative apps for a big spectrum of surfaces:
+VERA is a C++11 && OpenGL ES 2.0 framework for making visual creative apps for a big spectrum of surfaces:
 
 - native Windows, MacOS, Linux app (through GLFW)
 - RaspberryPi stand alone app (no required X11)

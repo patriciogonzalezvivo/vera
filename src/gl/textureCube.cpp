@@ -2,8 +2,10 @@
 #include <cstring>
 
 #include "vera/gl/textureCube.h"
+#include "vera/gl/cubemapFace.h"
 
 #include "vera/ops/fs.h"
+#include "vera/ops/env.h"
 #include "vera/ops/math.h"
 #include "vera/ops/pixel.h"
 

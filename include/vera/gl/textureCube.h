@@ -1,9 +1,10 @@
 
 #pragma once
 
-#include "texture.h"
+#include <string>
 #include "glm/glm.hpp"
 
+#include "texture.h"
 #include "../types/sky.h"
 
 namespace vera {

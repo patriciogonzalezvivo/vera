@@ -1,64 +1,68 @@
+# Main folders
 set(INCLUDE_FOLDER "${PROJECT_SOURCE_DIR}/include")
 set(SOURCE_FOLDER "${PROJECT_SOURCE_DIR}/src")
+set(DEPS_FOLDER "${PROJECT_SOURCE_DIR}/deps")
 
+# HEADERS files
 file(GLOB ROOT_HEADER "${INCLUDE_FOLDER}/vera/*.h")
-file(GLOB DEVICES_HEADER "${INCLUDE_FOLDER}/vera/devices/*.h")
-file(GLOB GEOM_HEADER "${INCLUDE_FOLDER}/vera/geom/*.h")
 file(GLOB GL_HEADER "${INCLUDE_FOLDER}/vera/gl/*.h")
 file(GLOB IO_HEADER "${INCLUDE_FOLDER}/vera/io/*.h")
-file(GLOB SCENE_HEADER "${INCLUDE_FOLDER}/vera/scene/*.h")
+file(GLOB OPS_HEADER "${INCLUDE_FOLDER}/vera/ops/*.h")
+file(GLOB TYPES_HEADER "${INCLUDE_FOLDER}/vera/types/*.h")
+file(GLOB DEVICES_HEADER "${INCLUDE_FOLDER}/vera/devices/*.h")
 file(GLOB SHADERS_HEADER "${INCLUDE_FOLDER}/vera/shaders/*.h")
 
+# SOURCE files
 set(VERA_SOURCES
-    ${PROJECT_SOURCE_DIR}/deps/glob/glob.cpp
-    ${PROJECT_SOURCE_DIR}/deps/phonedepth/extract_depthmap.cpp
-    ${PROJECT_SOURCE_DIR}/deps/skymodel/ArHosekSkyModel.cpp
-    ${PROJECT_SOURCE_DIR}/deps/stb/stb_image_write.cpp
-    ${PROJECT_SOURCE_DIR}/deps/stb/stb_image.cpp
-    app.cpp
-    window.cpp
-    gl/gl.cpp 
-    gl/fbo.cpp
-    gl/vbo.cpp
-    gl/shader.cpp
-    gl/defines.cpp 
-    gl/pingpong.cpp
-    gl/texture.cpp 
-    gl/textureBump.cpp
-    gl/textureCube.cpp 
-    gl/textureProps.cpp 
-    gl/textureStreamAV.cpp
-    gl/textureStreamOMX.cpp
-    gl/textureStreamMMAL.cpp
-    gl/textureStreamAudio.cpp 
-    gl/textureStreamSequence.cpp
-    gl/pyramid.cpp
-    gl/vertexLayout.cpp 
-    io/gltf.cpp
-    io/obj.cpp
-    io/ply.cpp
-    io/stl.cpp
-    ops/draw.cpp
-    ops/fs.cpp 
-    ops/geom.cpp
-    ops/meshes.cpp
-    ops/pixel.cpp 
-    ops/string.cpp
-    ops/time.cpp
-    types/camera.cpp
-    types/font.cpp
-    types/line.cpp
-    types/light.cpp
-    types/label.cpp
-    types/material.cpp
-    types/mesh.cpp 
-    types/model.cpp
-    types/node.cpp
-    types/scene.cpp
-    types/sky.cpp
-    types/triangle.cpp
-    shaders/defaultShaders.cpp
-    devices/holoPlay.cpp 
+    ${DEPS_FOLDER}/glob/glob.cpp
+    ${DEPS_FOLDER}/phonedepth/extract_depthmap.cpp
+    ${DEPS_FOLDER}/skymodel/ArHosekSkyModel.cpp
+    ${DEPS_FOLDER}/stb/stb_image_write.cpp
+    ${DEPS_FOLDER}/stb/stb_image.cpp
+    ${SOURCE_FOLDER}/app.cpp
+    ${SOURCE_FOLDER}/window.cpp
+    ${SOURCE_FOLDER}/gl/gl.cpp 
+    ${SOURCE_FOLDER}/gl/fbo.cpp
+    ${SOURCE_FOLDER}/gl/vbo.cpp
+    ${SOURCE_FOLDER}/gl/shader.cpp
+    ${SOURCE_FOLDER}/gl/defines.cpp 
+    ${SOURCE_FOLDER}/gl/pingpong.cpp
+    ${SOURCE_FOLDER}/gl/pyramid.cpp
+    ${SOURCE_FOLDER}/gl/texture.cpp 
+    ${SOURCE_FOLDER}/gl/textureBump.cpp
+    ${SOURCE_FOLDER}/gl/textureCube.cpp 
+    ${SOURCE_FOLDER}/gl/textureProps.cpp 
+    ${SOURCE_FOLDER}/gl/textureStreamAV.cpp
+    ${SOURCE_FOLDER}/gl/textureStreamOMX.cpp
+    ${SOURCE_FOLDER}/gl/textureStreamMMAL.cpp
+    ${SOURCE_FOLDER}/gl/textureStreamAudio.cpp 
+    ${SOURCE_FOLDER}/gl/textureStreamSequence.cpp
+    ${SOURCE_FOLDER}/gl/vertexLayout.cpp 
+    ${SOURCE_FOLDER}/io/gltf.cpp
+    ${SOURCE_FOLDER}/io/obj.cpp
+    ${SOURCE_FOLDER}/io/ply.cpp
+    ${SOURCE_FOLDER}/io/stl.cpp
+    ${SOURCE_FOLDER}/ops/draw.cpp
+    ${SOURCE_FOLDER}/ops/env.cpp
+    ${SOURCE_FOLDER}/ops/fs.cpp 
+    ${SOURCE_FOLDER}/ops/geom.cpp
+    ${SOURCE_FOLDER}/ops/meshes.cpp
+    ${SOURCE_FOLDER}/ops/pixel.cpp 
+    ${SOURCE_FOLDER}/ops/string.cpp
+    ${SOURCE_FOLDER}/ops/time.cpp
+    ${SOURCE_FOLDER}/types/camera.cpp
+    ${SOURCE_FOLDER}/types/font.cpp
+    ${SOURCE_FOLDER}/types/line.cpp
+    ${SOURCE_FOLDER}/types/light.cpp
+    ${SOURCE_FOLDER}/types/label.cpp
+    ${SOURCE_FOLDER}/types/material.cpp
+    ${SOURCE_FOLDER}/types/mesh.cpp 
+    ${SOURCE_FOLDER}/types/model.cpp
+    ${SOURCE_FOLDER}/types/node.cpp
+    ${SOURCE_FOLDER}/types/scene.cpp
+    ${SOURCE_FOLDER}/types/triangle.cpp
+    ${SOURCE_FOLDER}/devices/holoPlay.cpp 
+    ${SOURCE_FOLDER}/shaders/defaultShaders.cpp
 )
 
 # C++ LIBRAY
@@ -103,8 +107,6 @@ if (MMAL_FOUND)
     target_link_libraries(vera PUBLIC        ${MMAL_LIBRARIES})
     target_compile_definitions(vera PUBLIC   SUPPORT_MMAL)
 endif()
-
-
 
 find_package(FFMPEG)
 if (FFMPEG_FOUND)
@@ -260,7 +262,6 @@ endif()
 
 # We need this directory, and users of our library will need it too
 target_include_directories(vera PUBLIC 
-    ${INCLUDE_FOLDER}
     "${PROJECT_SOURCE_DIR}/deps/glm"
     "${PROJECT_SOURCE_DIR}/deps/stb"
     "${PROJECT_SOURCE_DIR}/deps/glob"
@@ -271,6 +272,7 @@ target_include_directories(vera PUBLIC
     "${PROJECT_SOURCE_DIR}/deps/tinygltf"
     "${PROJECT_SOURCE_DIR}/deps/tinyobjloader"
     "${PROJECT_SOURCE_DIR}/deps/tinyply"
+    ${INCLUDE_FOLDER}
 )
 
 # IDEs should put the headers in a nice place
@@ -279,10 +281,10 @@ target_include_directories(vera PUBLIC
 
 # install(TARGETS ${PROJECT_NAME} DESTINATION lib)
 # install(FILES ${ROOT_HEADER} DESTINATION include/vera)
-# install(FILES ${DEVICES_HEADER} DESTINATION include/vera/devices)
-# install(FILES ${GEOM_HEADER} DESTINATION include/vera/geom)
 # install(FILES ${GL_HEADER} DESTINATION include/vera/gl)
 # install(FILES ${IO_HEADER} DESTINATION include/vera/io)
-# install(FILES ${SCENE_HEADER} DESTINATION include/vera/scene)
+# install(FILES ${OPS_HEADER} DESTINATION include/vera/ops)
+# install(FILES ${TYPES_HEADER} DESTINATION include/vera/types)
+# install(FILES ${DEVICES_HEADER} DESTINATION include/vera/devices)
 # install(FILES ${SHADERS_HEADER} DESTINATION include/vera/shaders)
 
