@@ -869,6 +869,7 @@ int initGL(WindowProperties _prop) {
         enable_extension("OES_standard_derivatives");
         enable_extension("OES_texture_float_linear");
         enable_extension("OES_texture_half_float_linear");
+        enable_extension("EXT_color_buffer_float");
 
         emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, resize_callback);
 

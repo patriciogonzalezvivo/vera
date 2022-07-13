@@ -15,6 +15,13 @@ Model::Model():
     addDefine("LIGHT_SHADOWMAP_SIZE", "1024.0");
 }
 
+Model::Model(const std::string& _name, const Mesh &_mesh):
+    m_model_vbo(nullptr), m_bbox_vbo(nullptr), 
+    m_area(0.0f) {
+    setName(_name);
+    setGeom(_mesh);
+}
+
 Model::Model(const std::string& _name, const Mesh &_mesh, const Material &_mat):
     m_model_vbo(nullptr), m_bbox_vbo(nullptr), 
     m_area(0.0f) {

@@ -54,7 +54,7 @@ set(VERA_SOURCES
     scene/material.cpp
     shaders/defaultShaders.cpp
     devices/holoPlay.cpp 
-    # ${PROJECT_SOURCE_DIR}/deps/glob/glob.cpp
+    ${PROJECT_SOURCE_DIR}/deps/glob/glob.cpp
     ${PROJECT_SOURCE_DIR}/deps/phonedepth/extract_depthmap.cpp
     ${PROJECT_SOURCE_DIR}/deps/skymodel/ArHosekSkyModel.cpp
     ${PROJECT_SOURCE_DIR}/deps/stb/stb_image_write.cpp
@@ -272,9 +272,6 @@ target_include_directories(vera PUBLIC
     "${PROJECT_SOURCE_DIR}/deps/tinyobjloader"
     "${PROJECT_SOURCE_DIR}/deps/tinyply"
 )
-
-## DEPS
-target_link_libraries(vera PUBLIC glob)
 
 # IDEs should put the headers in a nice place
 # source_group(   TREE ${INCLUDE_FOLDER} 

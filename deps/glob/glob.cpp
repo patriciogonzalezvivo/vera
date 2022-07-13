@@ -74,8 +74,7 @@ bool glob::next()
 
 namespace {
 
-std::pair<std::string, std::string> split_path(const std::string &path)
-{
+std::pair<std::string, std::string> split_path(const std::string &path) {
     std::string::size_type last_sep = path.find_last_of("/");
     if (last_sep != std::string::npos) {
         return std::make_pair(
@@ -87,8 +86,7 @@ std::pair<std::string, std::string> split_path(const std::string &path)
 
 } // namespace
 
-class glob_impl
-{
+class glob_impl {
 public:
     glob_impl():
         dir(nullptr),
@@ -101,17 +99,15 @@ public:
 };
 
 glob::glob(const std::string &pattern):
-    impl_(std::make_unique<glob_impl>()) {
+    impl_(std::unique_ptr<glob_impl>(new glob_impl())) {
     open(pattern);
 }
 
-glob::~glob()
-{
+glob::~glob() {
     close();
 }
 
-void glob::open(const std::string &pattern)
-{
+void glob::open(const std::string &pattern) {
     auto dir_and_file = split_path(pattern);
     impl_->dir = opendir(dir_and_file.first.c_str());
     impl_->file_pattern = dir_and_file.second;
@@ -121,21 +117,18 @@ void glob::open(const std::string &pattern)
     }
 }
 
-void glob::close()
-{
+void glob::close() {
     if (impl_->dir != nullptr) {
         closedir(impl_->dir);
         impl_->dir = nullptr;
     }
 }
 
-std::string glob::current_match() const
-{
+std::string glob::current_match() const {
     return impl_->dir_entry->d_name;
 }
 
-bool glob::next()
-{
+bool glob::next() {
     while ((impl_->dir_entry = readdir(impl_->dir)) != nullptr) {
         if (!fnmatch(impl_->file_pattern.c_str(),
                      impl_->dir_entry->d_name,
@@ -146,8 +139,7 @@ bool glob::next()
     return false;
 }
 
-bool glob::is_valid() const
-{
+bool glob::is_valid() const {
     return impl_->dir != nullptr && impl_->dir_entry != nullptr;
 }
 

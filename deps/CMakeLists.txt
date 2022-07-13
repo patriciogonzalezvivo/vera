@@ -27,4 +27,4 @@ if (WIN32)
 endif (WIN32)
 
 ## Glob
-add_subdirectory(glob)
+# add_subdirectory(glob)

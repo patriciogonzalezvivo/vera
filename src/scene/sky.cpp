@@ -163,7 +163,8 @@ void CubemapFace<T>::upload() {
 #if defined(__EMSCRIPTEN__)
     if (sizeof(T) == sizeof(float)) {
         internalFormat = GL_RGB16F;
-        format = GL_RGB16F;
+        // format = GL_RGB16F;
+        // type = GL_HALF_FLOAT;
     }
 
 #elif defined (_WIN32)

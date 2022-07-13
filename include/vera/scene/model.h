@@ -14,6 +14,7 @@ namespace vera {
 class Model : public Node {
 public:
     Model();
+    Model(const std::string& _name, const Mesh& _mesh);
     Model(const std::string& _name, const Mesh& _mesh, const Material& _mat);
     virtual ~Model();
 
