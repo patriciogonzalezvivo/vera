@@ -4,8 +4,8 @@
 #include <fstream>
 #include <string>
 
-#include "vera/geom/ops.h"
-#include "vera/string.h"
+#include "vera/ops/geom.h"
+#include "vera/ops/string.h"
 
 namespace vera {
 

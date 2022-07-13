@@ -4,9 +4,8 @@
 #define EVENTS_AS_CALLBACKS
 #endif
 
-#include "draw.h"
 #include "window.h"
-#include "scene/camera.h"
+#include "ops/draw.h"
 
 #include <math.h>
 

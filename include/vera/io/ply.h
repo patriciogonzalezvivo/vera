@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vera/scene.h"
+#include "vera/types/scene.h"
 
 namespace vera {
 

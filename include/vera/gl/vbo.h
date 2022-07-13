@@ -5,7 +5,7 @@
 #include "gl.h"
 #include "vertexLayout.h"
 
-#include "../geom/mesh.h"
+#include "../types/mesh.h"
 
 namespace vera {
 

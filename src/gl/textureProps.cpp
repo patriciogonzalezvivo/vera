@@ -1,5 +1,5 @@
 #include "vera/window.h"
-#include "vera/pixel.h"
+#include "vera/ops/pixel.h"
 #include "vera/gl/textureProps.h"
 
 namespace vera {

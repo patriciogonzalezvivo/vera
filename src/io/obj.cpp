@@ -6,9 +6,9 @@
 
 // #include "../tools/text.h"
 
-#include "vera/fs.h"
-#include "vera/string.h"
-#include "vera/geom/ops.h"
+#include "vera/ops/fs.h"
+#include "vera/ops/geom.h"
+#include "vera/ops/string.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"

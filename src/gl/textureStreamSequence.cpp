@@ -1,8 +1,8 @@
 #include "vera/gl/textureStreamSequence.h"
 
 #include "vera/window.h"
-#include "vera/fs.h"
-#include "vera/pixel.h"
+#include "vera/ops/fs.h"
+#include "vera/ops/pixel.h"
 
 namespace vera {
 

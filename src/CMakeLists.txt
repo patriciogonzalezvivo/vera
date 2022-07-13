@@ -10,15 +10,13 @@ file(GLOB SCENE_HEADER "${INCLUDE_FOLDER}/vera/scene/*.h")
 file(GLOB SHADERS_HEADER "${INCLUDE_FOLDER}/vera/shaders/*.h")
 
 set(VERA_SOURCES
+    ${PROJECT_SOURCE_DIR}/deps/glob/glob.cpp
+    ${PROJECT_SOURCE_DIR}/deps/phonedepth/extract_depthmap.cpp
+    ${PROJECT_SOURCE_DIR}/deps/skymodel/ArHosekSkyModel.cpp
+    ${PROJECT_SOURCE_DIR}/deps/stb/stb_image_write.cpp
+    ${PROJECT_SOURCE_DIR}/deps/stb/stb_image.cpp
     app.cpp
-    draw.cpp
     window.cpp
-    fs.cpp 
-    time.cpp
-    font.cpp
-    scene.cpp
-    pixel.cpp 
-    string.cpp
     gl/gl.cpp 
     gl/fbo.cpp
     gl/vbo.cpp
@@ -36,29 +34,31 @@ set(VERA_SOURCES
     gl/textureStreamSequence.cpp
     gl/pyramid.cpp
     gl/vertexLayout.cpp 
-    geom/ops.cpp
-    geom/line.cpp
-    geom/mesh.cpp 
-    geom/meshes.cpp
-    geom/triangle.cpp
     io/gltf.cpp
     io/obj.cpp
     io/ply.cpp
     io/stl.cpp
-    scene/sky.cpp
-    scene/node.cpp
-    scene/model.cpp
-    scene/light.cpp
-    scene/label.cpp
-    scene/camera.cpp
-    scene/material.cpp
+    ops/draw.cpp
+    ops/fs.cpp 
+    ops/geom.cpp
+    ops/meshes.cpp
+    ops/pixel.cpp 
+    ops/string.cpp
+    ops/time.cpp
+    types/camera.cpp
+    types/font.cpp
+    types/line.cpp
+    types/light.cpp
+    types/label.cpp
+    types/material.cpp
+    types/mesh.cpp 
+    types/model.cpp
+    types/node.cpp
+    types/scene.cpp
+    types/sky.cpp
+    types/triangle.cpp
     shaders/defaultShaders.cpp
     devices/holoPlay.cpp 
-    ${PROJECT_SOURCE_DIR}/deps/glob/glob.cpp
-    ${PROJECT_SOURCE_DIR}/deps/phonedepth/extract_depthmap.cpp
-    ${PROJECT_SOURCE_DIR}/deps/skymodel/ArHosekSkyModel.cpp
-    ${PROJECT_SOURCE_DIR}/deps/stb/stb_image_write.cpp
-    ${PROJECT_SOURCE_DIR}/deps/stb/stb_image.cpp
 )
 
 # C++ LIBRAY

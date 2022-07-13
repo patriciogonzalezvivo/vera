@@ -17,7 +17,7 @@
 #include "vera/shaders/cubemap.h"
 #include "vera/shaders/draw.h"
 
-#include "vera/string.h"
+#include "vera/ops/string.h"
 
 namespace vera {
 

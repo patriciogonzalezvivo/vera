@@ -3,9 +3,9 @@
 
 #include "vera/gl/textureCube.h"
 
-#include "vera/fs.h"
-#include "vera/math.h"
-#include "vera/pixel.h"
+#include "vera/ops/fs.h"
+#include "vera/ops/math.h"
+#include "vera/ops/pixel.h"
 
 namespace vera {
 

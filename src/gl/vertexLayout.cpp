@@ -1,5 +1,5 @@
 #include "vera/gl/vertexLayout.h"
-#include "vera/string.h"
+#include "vera/ops/string.h"
 
 namespace vera {
 

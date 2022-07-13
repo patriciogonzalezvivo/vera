@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include "vera/window.h"
-#include "vera/string.h"
+#include "vera/ops/string.h"
 #include "vera/gl/shader.h"
 #include "vera/shaders/defaultShaders.h"
 

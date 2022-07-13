@@ -4,7 +4,7 @@
 #include "texture.h"
 #include "glm/glm.hpp"
 
-#include "../scene/sky.h"
+#include "../types/sky.h"
 
 namespace vera {
 

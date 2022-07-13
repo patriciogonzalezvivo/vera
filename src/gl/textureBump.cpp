@@ -6,8 +6,8 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/normal.hpp>
 
-#include "vera/fs.h"
-#include "vera/pixel.h"
+#include "vera/ops/fs.h"
+#include "vera/ops/pixel.h"
 
 namespace vera {
 

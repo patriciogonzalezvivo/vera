@@ -1,12 +1,12 @@
 #pragma once
 
-#include "gl/gl.h"
-#include "glm/glm.hpp"
 #include <string>
-
 #ifdef EVENTS_AS_CALLBACKS
 #include <functional>
 #endif
+
+#include "gl/gl.h"
+#include "glm/glm.hpp"
 
 namespace vera {
 

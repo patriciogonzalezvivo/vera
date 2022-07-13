@@ -5,8 +5,8 @@
 #include <iostream>
 
 #include "vera/window.h"
-#include "vera/geom/meshes.h"
-#include "vera/string.h"
+#include "vera/ops/meshes.h"
+#include "vera/ops/string.h"
 
 #if defined(DRIVER_GBM)
 #include "libdrm/drm_fourcc.h"

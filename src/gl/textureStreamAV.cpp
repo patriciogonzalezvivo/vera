@@ -15,8 +15,8 @@ extern "C" {
 }
 
 #include "vera/window.h"
-#include "vera/string.h"
-#include "vera/pixel.h"
+#include "vera/ops/string.h"
+#include "vera/ops/pixel.h"
 
 #define EPS 0.000025
 

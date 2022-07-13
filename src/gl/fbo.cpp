@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 #include "glm/gtc/round.hpp"
-#include "vera/string.h"
+#include "vera/ops/string.h"
 #include "vera/window.h"
 
 namespace vera {

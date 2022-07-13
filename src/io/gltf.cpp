@@ -7,9 +7,9 @@
 
 
 #include "vera/gl/vbo.h"
-#include "vera/fs.h"
-#include "vera/string.h"
-#include "vera/pixel.h"
+#include "vera/ops/fs.h"
+#include "vera/ops/string.h"
+#include "vera/ops/pixel.h"
 
 #include "stb_image.h"
 #include "stb_image_write.h"

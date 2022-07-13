@@ -13,9 +13,9 @@
     #include <sys/time.h>
 #endif 
 
-#include "vera/fs.h"
-#include "vera/time.h"
-#include "vera/string.h"
+#include "vera/ops/fs.h"
+#include "vera/ops/time.h"
+#include "vera/ops/string.h"
 #include "glm/gtc/matrix_transform.hpp"
 
 // Common global variables

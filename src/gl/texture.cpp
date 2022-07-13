@@ -1,8 +1,8 @@
 #include <iostream>
 
 #include "vera/gl/texture.h"
-#include "vera/fs.h"
-#include "vera/pixel.h"
+#include "vera/ops/fs.h"
+#include "vera/ops/pixel.h"
 
 namespace vera {
 
