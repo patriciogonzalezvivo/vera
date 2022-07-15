@@ -41,7 +41,9 @@ void print(const std::string& _text);
 void frameRate(int _fps);
 // cursor()
 // noCursor()
-// pixelDensity()
+
+float pixelDensity();
+void pixelDensity(float _density);
 
 void clear();
 void clear( float _brightness );

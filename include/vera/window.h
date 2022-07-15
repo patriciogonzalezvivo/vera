@@ -77,6 +77,7 @@ EGLContext  getEGLContext();
 void        updateViewport();
 
 void        setFps(int _fps);
+void        setPixelDensity(float _density);
 void        setViewport(float _width, float _height);
 void        setWindowSize(int _width, int _height);
 void        setWindowTitle(const char* _title);
@@ -86,7 +87,7 @@ bool        isFullscreen();
 void        setFullscreen(bool _fullscreen);
 int         getScreenWidth();
 int         getScreenHeight();
-float       getPixelDensity();
+float       getPixelDensity(bool _compute = false);
 
 const glm::ivec4& getViewport();
 const glm::mat4&  getOrthoMatrix();

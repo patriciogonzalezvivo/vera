@@ -40,6 +40,9 @@ std::stack<glm::mat4> matrix_stack;
 void print(const std::string& _text) { std::cout << _text << std::endl; }
 void frameRate(int _fps) { setFps(_fps); }
 
+float pixelDensity() { return getPixelDensity(); }
+void pixelDensity(float _density) { setPixelDensity(_density); }
+
 bool fullscreen() { return isFullscreen(); }
 void fullscreen(bool _fullscreen) { setFullscreen(_fullscreen); }
 

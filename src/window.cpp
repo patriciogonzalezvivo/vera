@@ -22,11 +22,10 @@
 //----------------------------------------------------
 static glm::ivec4               viewport;
 static glm::ivec4               viewport_last;
-static vera::WindowProperties    properties;
+static vera::WindowProperties   properties;
 struct timespec                 time_start;
 static glm::mat4                orthoMatrix;
 static glm::mat4                orthoFlippedMatrix;
-
 
 typedef struct {
     bool      entered;
@@ -352,8 +351,8 @@ static EM_BOOL mouse_callback(int eventType, const EmscriptenMouseEvent *e, void
     float x = (float)e->targetX;
     float y = viewport.w - (float)e->targetY;
 
-    x *= getPixelDensity();
-    y *= getPixelDensity();
+    x *= getPixelDensity(false);
+    y *= getPixelDensity(false);
 
     if (eventType == EMSCRIPTEN_EVENT_MOUSEDOWN) {
         mouse.x = x;
@@ -766,9 +765,8 @@ int initGL(WindowProperties _prop) {
 
 #ifndef __EMSCRIPTEN__
         glfwSetWindowPosCallback(window, [](GLFWwindow* _window, int x, int y) {
-            if (fPixelDensity != getPixelDensity()) {
+            if (fPixelDensity != getPixelDensity(true))
                 updateViewport();
-            }
         });
 
         glfwSetWindowSizeCallback(window, [](GLFWwindow* _window, int _w, int _h) {
@@ -1087,14 +1085,14 @@ void closeGL(){
 void setWindowSize(int _width, int _height) {
     #if defined(__EMSCRIPTEN__)
     setViewport((float)_width, (float)_height);
-    glfwSetWindowSize(window, _width * getPixelDensity(), _height * getPixelDensity());
+    glfwSetWindowSize(window, _width * getPixelDensity(true), _height * getPixelDensity(true));
     return;
 
     #elif defined(DRIVER_GLFW) 
-    glfwSetWindowSize(window, _width / getPixelDensity(), _height / getPixelDensity());
+    glfwSetWindowSize(window, _width / getPixelDensity(true), _height / getPixelDensity(true));
     #endif
 
-    setViewport((float)_width / getPixelDensity(), (float)_height / getPixelDensity());
+    setViewport((float)_width / getPixelDensity(true), (float)_height / getPixelDensity(true));
 }
 
 void setWindowTitle( const char* _title) {
@@ -1116,8 +1114,7 @@ void setViewport(float _width, float _height) {
 }
 
 void updateViewport() {
-   
-    fPixelDensity = getPixelDensity();
+    fPixelDensity = getPixelDensity(true);
     float width = getWindowWidth();
     float height = getWindowHeight();
 
@@ -1227,17 +1224,26 @@ void setFullscreen(bool _fullscreen) {
     #endif
 }
 
-float getPixelDensity() {
-#if defined(__EMSCRIPTEN__)
-    return emscripten_get_device_pixel_ratio();
-#elif defined(DRIVER_GLFW)
-    int window_width, window_height, framebuffer_width, framebuffer_height;
-    glfwGetWindowSize(window, &window_width, &window_height);
-    glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
-    return float(framebuffer_width)/float(window_width);
-#else
-    return 1.0f;
-#endif
+void setPixelDensity(float _density) {
+    fPixelDensity = _density;
+}
+
+float getPixelDensity(bool _compute) {
+    if (_compute) {
+    #if defined(__EMSCRIPTEN__)
+        return emscripten_get_device_pixel_ratio();
+    #elif defined(DRIVER_GLFW)
+        int window_width, window_height, framebuffer_width, framebuffer_height;
+        glfwGetWindowSize(window, &window_width, &window_height);
+        glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
+        return float(framebuffer_width)/float(window_width);
+    #else
+        return fPixelDensity;
+    #endif
+    }
+    else {
+        return fPixelDensity;
+    }
 }
 
 const glm::ivec4& getViewport() { return viewport; }
