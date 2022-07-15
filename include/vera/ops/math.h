@@ -63,6 +63,15 @@ static float angleBetween(float thetav, float phiv, float theta, float phi) {
     return acosf(cosGamma);
 }
 
+inline float saturate(float value) { 
+    return std::fmax (0.0f, std::fmin (1.0f, value)); 
+}
+
+template <class T>
+inline T square(const T &x) { return x*x; };
+
+template <class T>
+inline int sign(const T &x) { return (x >= 0 ? 1 : -1); };
 
 inline float clamp ( float value , float min , float max ) {
     if (value < min)
@@ -99,5 +108,4 @@ inline float remap(const float& _value, const float& _inputMin, const float& _in
         return outVal;
     }
 }
-
 }

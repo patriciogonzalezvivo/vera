@@ -22,7 +22,7 @@ void Texture::clear() {
 
 bool Texture::load(const std::string& _path, bool _vFlip, TextureFilter _filter, TextureWrap _wrap) {
 
-    if (!vera::urlExists(_path))
+    if (!urlExists(_path))
         return false;
     
     std::string ext = getExt(_path);
@@ -74,6 +74,11 @@ bool Texture::load(const std::string& _path, bool _vFlip, TextureFilter _filter,
     return loaded;
 }
 
+bool Texture::load(const Image& _img, TextureFilter _filter, TextureWrap _wrap) { return load(&_img, _filter, _wrap); }
+bool Texture::load(const Image* _img, TextureFilter _filter, TextureWrap _wrap) {
+    m_path = _img->m_path;
+    return load(_img->m_width, _img->m_height, _img->m_channels, 32, &_img->m_data[0], _filter, _wrap);
+}
 
 bool Texture::load(int _width, int _height, int _channels, int _bits, const void* _data, TextureFilter _filter, TextureWrap _wrap) {
 
@@ -158,12 +163,7 @@ bool Texture::update(int _x, int _y, int _width, int _height, const void* _data)
     return true;
 }
 
-void Texture::bind() {
-    glBindTexture(GL_TEXTURE_2D, m_id);
-}
-
-void Texture::unbind() {
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
+void Texture::bind() { glBindTexture(GL_TEXTURE_2D, m_id); }
+void Texture::unbind() { glBindTexture(GL_TEXTURE_2D, 0); }
 
 }

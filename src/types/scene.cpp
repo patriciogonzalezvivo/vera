@@ -2,8 +2,6 @@
 
 #include <sys/stat.h>
 
-#include "extract_depthmap.h"
-
 #include "vera/ops/fs.h"
 #include "vera/ops/pixel.h"
 #include "vera/ops/string.h"
@@ -153,31 +151,19 @@ bool Scene::addTexture(const std::string& _name, const std::string& _path, bool 
                     std::cout << "uniform vec2        " << _name  << "Resolution;"<< std::endl;
                 }
 
-                if (haveExt(_path,"jpeg")) {
-                    const unsigned char *cv = NULL, *dm = NULL;
-                    size_t cv_size = 0, dm_size = 0;
-                    image_type_t dm_type = TYPE_NONE;
-
-                    //  proceed to check if it have depth data
-                    if (extract_depth(  _path.c_str(), 
-                                        &cv, &cv_size,
-                                        &dm, &dm_size, &dm_type) == 1) {
-
-                        if (dm_type == TYPE_JPEG) {
-                            int width, height;
-                            unsigned char* pixels = loadPixels(dm, dm_size, &width, &height, RGB, _flip);
-
-                            Texture* tex_dm = new Texture();
-                            if (tex_dm->load(width, height, 3, 8, pixels)) {
-                                textures[ _name + "Depth"] = tex_dm;
-
-                                if (_verbose) {
-                                    std::cout << "uniform sampler2D   " << _name  << "Depth;"<< std::endl;
-                                    std::cout << "uniform vec2        " << _name  << "DepthResolution;"<< std::endl;
-                                }
-                            }   
-                            freePixels(pixels);
-                        }
+                if (haveExt(_path, "jpeg")) {
+                    int width, height;
+                    unsigned char* pixels = loadPixelsDepth(_path, &width, &height, _flip);
+                    if (pixels) {
+                        Texture* tex_dm = new Texture();
+                        if (tex_dm->load(width, height, 3, 8, pixels)) {
+                            textures[ _name + "Depth"] = tex_dm;
+                            if (_verbose) {
+                                std::cout << "uniform sampler2D   " << _name  << "Depth;"<< std::endl;
+                                std::cout << "uniform vec2        " << _name  << "DepthResolution;"<< std::endl;
+                            }
+                        }   
+                        freePixels(pixels);
                     }
                 }
 

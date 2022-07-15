@@ -46,12 +46,15 @@ set(VERA_SOURCES
     ${SOURCE_FOLDER}/ops/env.cpp
     ${SOURCE_FOLDER}/ops/fs.cpp 
     ${SOURCE_FOLDER}/ops/geom.cpp
+    ${SOURCE_FOLDER}/ops/image.cpp
+    ${SOURCE_FOLDER}/ops/intersection.cpp
     ${SOURCE_FOLDER}/ops/meshes.cpp
     ${SOURCE_FOLDER}/ops/pixel.cpp 
     ${SOURCE_FOLDER}/ops/string.cpp
     ${SOURCE_FOLDER}/ops/time.cpp
     ${SOURCE_FOLDER}/types/camera.cpp
     ${SOURCE_FOLDER}/types/font.cpp
+    ${SOURCE_FOLDER}/types/image.cpp
     ${SOURCE_FOLDER}/types/line.cpp
     ${SOURCE_FOLDER}/types/light.cpp
     ${SOURCE_FOLDER}/types/label.cpp

@@ -7,11 +7,12 @@
 #include "vera/shaders/defaultShaders.h"
 
 #include "vera/types/boundingBox.h"
-#include "vera/types/mesh.h"
-#include "vera/types/line.h"
-#include "vera/types/triangle.h"
-#include "vera/types/scene.h"
+#include "vera/types/image.h"
 #include "vera/types/font.h"
+#include "vera/types/line.h"
+#include "vera/types/mesh.h"
+#include "vera/types/scene.h"
+#include "vera/types/triangle.h"
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
@@ -129,6 +130,58 @@ void triangles(const std::vector<glm::vec3>& _positions, Shader* _program = null
 
 void rect(float _x, float _y, float _w, float _h, Shader* _program = nullptr);
 void rect(const glm::vec2& _pos, const glm::vec2& _size, Shader* _program = nullptr);
+
+// IMAGES
+// -----------------------------
+Image loadImage(const std::string& _name);
+void image(const std::string &_path);
+void image(const std::string &_path, float _x, float _y, float _width = 0, float _height = 0);
+void image(const Image &_img);
+void image(const Image *_img);
+void image(const Image &_img, float _x, float _y, float _width = 0, float _height = 0);
+void image(const Image *_img, float _x, float _y, float _width = 0, float _height = 0);
+void image(const Texture &_tex);
+void image(const Texture *_tex);
+void image(const Texture &_tex, float _x, float _y, float _width = 0, float _height = 0);
+void image(const Texture *_tex, float _x, float _y, float _width = 0, float _height = 0);
+void image(const TextureStream &_stream);
+void image(const TextureStream *_stream);
+void image(const TextureStream &_stream, float _x, float _y, float _width = 0, float _height = 0, bool _debug = false);
+void image(const TextureStream *_stream, float _x, float _y, float _width = 0, float _height = 0, bool _debug = false);
+void image(const Fbo &_fbo);
+void image(const Fbo *_fbo);
+void image(const Fbo &_fbo, float _x, float _y, float _width = 0, float _height = 0);
+void image(const Fbo *_fbo, float _x, float _y, float _width = 0, float _height = 0);
+void imageDepth(const Fbo &_fbo, float _x, float _y, float _width = 0, float _height = 0, Camera* _cam = nullptr);
+void imageDepth(const Fbo *_fbo, float _x, float _y, float _width = 0, float _height = 0, Camera* _cam = nullptr);
+Vbo* getBillboard();
+
+// tint(v1, v2, v3, [alpha])
+// tint(value)
+// tint(gray, [alpha])
+// tint(values)
+// tint(color)
+// noTint()
+// imageMode(mode)
+
+// PIXELS
+// -----------------------------
+// pixels
+// 
+// blend(srcImage, sx, sy, sw, sh, dx, dy, dw, dh, blendMode)
+// blend(sx, sy, sw, sh, dx, dy, dw, dh, blendMode)
+// 
+// copy(srcImage, sx, sy, sw, sh, dx, dy, dw, dh)
+// copy(sx, sy, sw, sh, dx, dy, dw, dh)
+//
+// filter(filterType, [filterParam])
+// filterType Constant: either THRESHOLD, GRAY, OPAQUE, INVERT, POSTERIZE, BLUR, ERODE, DILATE or BLUR. See Filters.js for docs on each available filter
+// filterParam Number: an optional parameter unique to each filter, see above (Optional)
+//
+// loadPixels()
+// get(int _x = 0, int _y = 0, int _width = 0, int _height = 0)
+// set(int _x = 0, int _y = 0, const glm::vec4& _color)
+// updatePixels(int _x = 0, int _y = 0, int _width = 0, int _height)
 
 // FONT
 // -----------------------------

@@ -4,14 +4,15 @@
 
 #include "gl.h"
 #include "textureProps.h"
+#include "../types/image.h"
 
 namespace vera {
 
 enum TextureType {
-    JUST_TEXTURE = 0, BUMP_TEXTURE, 
-    CUBE_TEXTURE, 
-    STREAM_SEQUENCE_TEXTURE, STREAM_VIDEO_TEXTURE, 
-    STREAM_AUDIO_TEXTURE, 
+    JUST_TEXTURE = 0, BUMP_TEXTURE,
+    CUBE_TEXTURE,
+    STREAM_SEQUENCE_TEXTURE, STREAM_VIDEO_TEXTURE,
+    STREAM_AUDIO_TEXTURE,
 };
 
 class Texture {
@@ -19,8 +20,11 @@ public:
     Texture();
     virtual ~Texture();
 
+    virtual bool    load(const Image& _img, TextureFilter _filter = LINEAR, TextureWrap _wrap = REPEAT);
+    virtual bool    load(const Image* _img, TextureFilter _filter = LINEAR, TextureWrap _wrap = REPEAT);
     virtual bool    load(const std::string& _filepath, bool _vFlip = false, TextureFilter _filter = LINEAR, TextureWrap _wrap = REPEAT);
     virtual bool    load(int _width, int _height, int _component, int _bits, const void* _data, TextureFilter _filter = LINEAR, TextureWrap _wrap = REPEAT);
+
     virtual bool    update(int _x, int _y, int _width, int _height, const void* _data);
 
     virtual void    clear();

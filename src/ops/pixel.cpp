@@ -8,6 +8,7 @@
 
 #include "stb_image.h"
 #include "stb_image_write.h"
+#include "extract_depthmap.h"
 
 namespace vera {
 
@@ -36,6 +37,25 @@ float* loadPixelsHDR(const std::string& _path, int *_width, int *_height, bool _
     int comp;
     float* pixels = stbi_loadf(_path.c_str(), _width, _height, &comp, 0);
     return pixels;
+}
+
+unsigned char* loadPixelsDepth(const std::string& _path, int *_width, int *_height, bool _vFlip) {
+    const unsigned char *cv = NULL, *dm = NULL;
+    size_t cv_size = 0, dm_size = 0;
+    image_type_t dm_type = TYPE_NONE;
+
+    //  proceed to check if it have depth data
+    if (extract_depth(  _path.c_str(), 
+                        &cv, &cv_size,
+                        &dm, &dm_size, &dm_type) == 1) {
+
+        if (dm_type == TYPE_JPEG) {
+            int width, height;
+            return loadPixels(dm, dm_size, &width, &height, RGB, _vFlip);
+        }
+    }
+
+    return nullptr;
 }
 
 bool savePixels(const std::string& _path, unsigned char* _pixels, int _width, int _height) {

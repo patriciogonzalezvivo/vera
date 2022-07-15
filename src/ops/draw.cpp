@@ -1,4 +1,6 @@
 #include "vera/ops/draw.h"
+
+#include "vera/ops/meshes.h"
 #include "vera/ops/fs.h"
 #include "vera/ops/string.h"
 #include "vera/window.h"
@@ -24,6 +26,9 @@ Shader*     points_shader   = nullptr;
 
 glm::vec4   stroke_color    = glm::vec4(1.0f);
 bool        stroke_enabled  = true;
+
+Shader*     billboard_shader = nullptr;
+Vbo*        billboard_vbo    = new Vbo( rectMesh(0.0,0.0,1.0,1.0) );
 
 Scene*      scene           = new Scene();
 
@@ -395,6 +400,225 @@ void lineBoundingBox(const glm::vec4& _bbox, Shader* _program) {
     line(positions, _program);
 }
 
+// IMAGE
+// 
+Vbo* getBillboard() { return billboard_vbo; }
+
+Image loadImage(const std::string& _name) {
+    Image img;
+    img.load(_name);
+    return img;
+}
+
+void image(const Image &_img) { image(&_img); }
+void image(const Image *_img) {
+    std::string name = _img->getFilePath();
+    TexturesMap::iterator it = scene->textures.find( name );
+    if (it == scene->textures.end())
+        scene->textures[ name ] = new Texture();
+    scene->textures[ name ]->load( _img );
+    image( scene->textures[ name ] );
+}
+
+void image(const Image &_img, float _x, float _y, float _width, float _height) { image(&_img, _x, _y, _width, _height); }
+void image(const Image *_img, float _x, float _y, float _width, float _height) {
+    std::string name = _img->getFilePath();
+    TexturesMap::iterator it = scene->textures.find( name );
+    if (it == scene->textures.end())
+        scene->textures[ name ] = new Texture();
+    scene->textures[ name ]->load( _img );
+    image( scene->textures[ name ], _x, _y, _width, _height );
+}
+
+void image(const std::string &_path) {
+    TexturesMap::iterator it = scene->textures.find( _path );
+    if (it == scene->textures.end()) {
+        Texture* tex = new Texture();
+        tex->load( _path );
+        scene->textures[ _path ] = tex;
+    }
+    image( scene->textures[ _path ] );
+}
+
+void image(const std::string &_path, float _x, float _y, float _width, float _height) {
+    TexturesMap::iterator it = scene->textures.find( _path );
+    if (it == scene->textures.end()) {
+        Texture* tex = new Texture();
+        tex->load( _path );
+        scene->textures[ _path ] = tex;
+    }
+    image( scene->textures[ _path ], _x, _y, _width, _height );
+}
+
+
+void image(const Texture &_tex) { image(&_tex); }
+void image(const Texture *_tex) {
+    if (!_tex)
+        return;
+
+    if (billboard_shader == nullptr) {
+        billboard_shader = new Shader();
+        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD), false );
+    }
+
+    billboard_shader->use();
+    billboard_shader->setUniform("u_depth", 0.0f);
+    billboard_shader->setUniform("u_scale", 1.0f, 1.0f);
+    billboard_shader->setUniform("u_translate", 0.0f, 0.0f);
+    billboard_shader->setUniform("u_modelViewProjectionMatrix", glm::mat4(1.0) );
+    billboard_shader->setUniformTexture("u_tex0", _tex, 0);
+    billboard_vbo->render( billboard_shader );
+}
+
+void image(const Texture &_tex, float _x, float _y, float _width, float _height) { image(&_tex, _x, _y, _width, _height); }
+void image(const Texture *_tex, float _x, float _y, float _width, float _height) {
+    if (!_tex)
+        return;
+
+    if (billboard_shader == nullptr) {
+        billboard_shader = new Shader();
+        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD), false );
+    }
+
+    if (_width == 0)
+        _width = _tex->getWidth();
+
+    if (_height == 0)
+        _height = _tex->getHeight();
+
+    billboard_shader->use();
+    billboard_shader->setUniform("u_depth", 0.0f);
+    billboard_shader->setUniform("u_translate", _x, _y);
+    billboard_shader->setUniform("u_scale", _width, _height);
+    billboard_shader->setUniform("u_modelViewProjectionMatrix", vera::getOrthoMatrix() );
+    billboard_shader->setUniformTexture("u_tex0", _tex, 0);
+    billboard_shader->setUniform("u_tex0CurrentFrame", 0.0f );
+    billboard_shader->setUniform("u_tex0TotalFrames", 0.0f );
+    billboard_vbo->render( billboard_shader );
+}
+
+void image(const TextureStream &_stream) { image(&_stream); }
+void image(const TextureStream *_stream) {
+    if (billboard_shader == nullptr) {
+        billboard_shader = new Shader();
+        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD), false );
+    }
+
+    billboard_shader->use();
+    billboard_shader->setUniform("u_depth", 0.0f);
+    billboard_shader->setUniform("u_scale", 1.0f, 1.0f);
+    billboard_shader->setUniform("u_translate", 0.0f, 0.0f);
+    billboard_shader->setUniform("u_modelViewProjectionMatrix", glm::mat4(1.0) );
+    billboard_shader->setUniformTexture("u_tex0", _stream, 0);
+    billboard_vbo->render( billboard_shader );
+}
+
+void image(const TextureStream &_stream, float _x, float _y, float _width, float _height, bool _debug) { image(&_stream, _x, _y, _width, _height, _debug); }
+void image(const TextureStream *_stream, float _x, float _y, float _width, float _height, bool _debug) {
+    if (billboard_shader == nullptr) {
+        billboard_shader = new Shader();
+        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD), false);
+    }
+
+    if (_width == 0)
+        _width = _stream->getWidth();
+
+    if (_height == 0)
+        _height = _stream->getHeight();
+
+    billboard_shader->use();
+    billboard_shader->setUniform("u_depth", 0.0f);
+    billboard_shader->setUniform("u_translate", _x, _y);
+    billboard_shader->setUniform("u_scale", _width, _height);
+    billboard_shader->setUniform("u_modelViewProjectionMatrix", vera::getOrthoMatrix() );
+    billboard_shader->setUniformTexture("u_tex0", _stream, 0);
+    if (_debug) {
+        billboard_shader->setUniform("u_tex0CurrentFrame", _stream->getCurrentFrame() );
+        billboard_shader->setUniform("u_tex0TotalFrames", _stream->getTotalFrames() );
+    }
+    else {
+        billboard_shader->setUniform("u_tex0CurrentFrame", 0.0f);
+        billboard_shader->setUniform("u_tex0TotalFrames", 0.0f);
+    }
+    billboard_vbo->render( billboard_shader );
+}
+
+void image(const Fbo &_fbo) { image(&_fbo); }
+void image(const Fbo *_fbo) {
+    if (billboard_shader == nullptr) {
+        billboard_shader = new Shader();
+        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD), false );
+    }
+
+    billboard_shader->use();
+    billboard_shader->setUniform("u_depth", 0.0f);
+    billboard_shader->setUniform("u_scale", 1.0f, 1.0f);
+    billboard_shader->setUniform("u_translate", 0.0f, 0.0f);
+    billboard_shader->setUniform("u_modelViewProjectionMatrix", glm::mat4(1.0) );
+    billboard_shader->setUniformTexture("u_tex0", _fbo, 0);
+    billboard_vbo->render( billboard_shader );
+}
+
+void image(const Fbo &_fbo, float _x, float _y, float _width, float _height) { image(&_fbo, _x, _y, _width, _height); }
+void image(const Fbo *_fbo, float _x, float _y, float _width, float _height) { 
+    if (billboard_shader == nullptr) {
+        billboard_shader = new Shader();
+        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD), false );
+    }
+
+    if (_width == 0)
+        _width = _fbo->getWidth();
+
+    if (_height == 0)
+        _height = _fbo->getHeight();
+
+    billboard_shader->use();
+    billboard_shader->setUniform("u_depth", 0.0f);
+    billboard_shader->setUniform("u_translate", _x, _y);
+    billboard_shader->setUniform("u_scale", _width, _height);
+    billboard_shader->setUniform("u_modelViewProjectionMatrix", vera::getOrthoMatrix() );
+    billboard_shader->setUniformTexture("u_tex0", _fbo, 0);
+    billboard_shader->setUniform("u_tex0CurrentFrame", 0.0f );
+    billboard_shader->setUniform("u_tex0TotalFrames", 0.0f );
+    billboard_vbo->render( billboard_shader );
+}
+
+void imageDepth(const Fbo &_fbo, float _x, float _y, float _width, float _height, Camera* _cam) { imageDepth(&_fbo, _x, _y, _width, _height); }
+void imageDepth(const Fbo *_fbo, float _x, float _y, float _width, float _height, Camera* _cam) { 
+    if (billboard_shader == nullptr) {
+        billboard_shader = new Shader();
+        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD), false );
+    }
+
+    if (_width == 0)
+        _width = _fbo->getWidth();
+
+    if (_height == 0)
+        _height = _fbo->getHeight();
+
+    billboard_shader->use();
+    billboard_shader->setUniform("u_depth", 1.0f);
+    billboard_shader->setUniform("u_translate", _x, _y);
+    billboard_shader->setUniform("u_scale", _width, _height);
+    billboard_shader->setUniform("u_modelViewProjectionMatrix", vera::getOrthoMatrix() );
+    billboard_shader->setUniformDepthTexture("u_tex0", _fbo, 0);
+    billboard_shader->setUniform("u_tex0CurrentFrame", 0.0f );
+    billboard_shader->setUniform("u_tex0TotalFrames", 0.0f );
+
+    if (_cam) {
+        billboard_shader->setUniform("u_cameraNearClip", _cam->getNearClip());
+        billboard_shader->setUniform("u_cameraFarClip", _cam->getFarClip());
+        billboard_shader->setUniform("u_cameraDistance", _cam->getDistance() );
+    }
+    else {
+        billboard_shader->setUniform("u_cameraNearClip", 0.001f);
+        billboard_shader->setUniform("u_cameraFarClip", 100.0f);
+        billboard_shader->setUniform("u_cameraDistance", 0.0f);
+    }
+
+    billboard_vbo->render( billboard_shader );
+}
+
 // FONT
 //
 Font* getDefaultFont() { return scene->getDefaultFont(); }
@@ -405,7 +629,12 @@ Font* loadFont(const std::string& _file, const std::string& _name) {
 void  addFont(Font& _font, const std::string _name) { addFont(&_font, _name); }
 void  addFont(Font* _font, const std::string _name) { scene->fonts[_name] = _font; }
 
-Font* getFont() { return scene->activeFont; }
+Font* getFont() { 
+    if (!scene->activeFont)
+        scene->activeFont = scene->getDefaultFont();
+
+    return scene->activeFont; 
+}
 Font* getFont(const std::string& _name) { 
     FontsMap::iterator it = scene->fonts.find(_name);
     if (it != scene->fonts.end())
@@ -419,9 +648,10 @@ Font* textFont(const std::string& _name) {
     if (_name == "default")
         scene->getDefaultFont();
 
-    FontsMap::iterator it = scene->fonts.find("default");
+    FontsMap::iterator it = scene->fonts.find(_name);
     if (it != scene->fonts.end())
         scene->activeFont = it->second;
+
     return scene->activeFont; 
 }
 
@@ -674,7 +904,8 @@ void texture(Texture* _texture, const std::string _name) {
 }
 
 void loadModel( const std::string& _filename ) {
-    // scene->
+    // TODO:
+    // 
 }
 
 void model(Vbo& _vbo, Shader* _program) { model(&_vbo, _program); }
