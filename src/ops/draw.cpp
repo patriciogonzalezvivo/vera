@@ -679,7 +679,7 @@ void textAngle(float _angle, Font* _font) {
 void textSize(float _size, Font* _font) { 
     if (_font == nullptr)
         _font = getFont();
-    _font->setSize(_size / vera::getPixelDensity());
+    _font->setSize(_size * vera::getPixelDensity());
 }
 
 void text(const std::string& _text, const glm::vec2& _pos, Font* _font) { text(_text, _pos.x, _pos.y, _font); }
