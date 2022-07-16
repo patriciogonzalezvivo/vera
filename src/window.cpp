@@ -650,7 +650,7 @@ int initGL(WindowProperties _prop) {
             glfwWindowHint(GLFW_DECORATED, GL_FALSE);
             glfwWindowHint(GLFW_FLOATING, GL_TRUE);
         }
-        
+
         if (properties.style == FULLSCREEN) {
             GLFWmonitor* monitor = glfwGetPrimaryMonitor();
             const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -700,15 +700,7 @@ int initGL(WindowProperties _prop) {
                 window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", NULL, NULL);
             }
 
-            #if !defined(__EMSCRIPTEN__)
-            if (properties.screen_x == -1)
-                properties.screen_x = getScreenWidth() / 2 - properties.screen_width / 2;
-
-            if (properties.screen_y == -1)
-                properties.screen_y = getScreenHeight() / 2 - properties.screen_height / 2;
-
             glfwSetWindowPos(window, properties.screen_x, properties.screen_y);
-            #endif
         }
         else {
             window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", NULL, NULL);

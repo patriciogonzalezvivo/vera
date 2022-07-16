@@ -1,4 +1,4 @@
-#include "vera/devices/holoPlay.h"
+#include "vera/xr/holoPlay.h"
 #include "vera/gl/gl.h"
 
 #include <fstream> 
@@ -90,7 +90,7 @@ void setLenticularProperties(const std::string& _path) {
     nlohmann::json manifest;
     file >> manifest;
 
-    std::cout << manifest["serial"] << std::endl;
+    std::cout << "// LGF Holo Device found ("<< manifest["serial"] << ")" << std::endl;
 
     lenticular.dpi      = manifest["DPI"]["value"];
     lenticular.pitch    = manifest["pitch"]["value"];
