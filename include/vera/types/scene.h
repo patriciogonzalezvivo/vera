@@ -27,11 +27,6 @@ typedef std::map<std::string, Texture*>         TexturesMap;
 typedef std::map<std::string, TextureStream*>   TextureStreamsMap;
 typedef std::map<std::string, TextureCube*>     TextureCubesMap;
 
-// Buffers
-typedef std::vector<Fbo>                        BuffersList;
-typedef std::vector<PingPong>                   DoubleBuffersList;
-typedef std::vector<Pyramid>                    PyramidsList;
-
 // 3D Scene
 typedef std::map<std::string, Light*>           LightsMap;
 typedef std::map<std::string, Camera*>          CamerasMap;
@@ -51,13 +46,6 @@ public:
     virtual void        load(const std::string& _name, bool _verbose = false);
     virtual void        update();
     virtual void        clear();
-
-    // Buffers
-    BuffersList         buffers;
-    DoubleBuffersList   doubleBuffers;
-    PyramidsList        pyramids;
-    virtual void        printBuffers();
-    virtual void        clearBuffers();
 
     // Textures
     TexturesMap         textures;

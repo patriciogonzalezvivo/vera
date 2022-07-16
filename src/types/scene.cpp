@@ -91,8 +91,6 @@ void Scene::clear() {
     clearTextures();
     clearStreams();
 
-    clearBuffers();
-
     clearCubemaps();
     
     clearLights();
@@ -104,26 +102,6 @@ void Scene::clear() {
     
     clearLabels();
 }
-
-// BUFFERS
-//
-void Scene::printBuffers() {
-    for (size_t i = 0; i < buffers.size(); i++)
-        std::cout << "uniform sampler2D u_buffer" << i << ";" << std::endl;
-
-    for (size_t i = 0; i < doubleBuffers.size(); i++)
-        std::cout << "uniform sampler2D u_doubleBuffer" << i << ";" << std::endl;
-
-    for (size_t i = 0; i < pyramids.size(); i++)
-        std::cout << "uniform sampler2D u_pyramid" << i << ";" << std::endl;    
-}
-
-void Scene::clearBuffers() {
-    buffers.clear();
-    doubleBuffers.clear();
-    pyramids.clear();
-}
-
 
 // TEXTURES
 //

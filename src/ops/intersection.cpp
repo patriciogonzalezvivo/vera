@@ -16,14 +16,6 @@
 
 namespace vera {
 
-#ifdef DEBUG_INTERSECTIONS
-static uint64_t numRayBoxTests = 0;
-static uint64_t numRayTrianglesTests = 0;
-static uint64_t numRayTrianglesIsect = 0;
-static uint64_t numLineLineTests = 0;
-static uint64_t numLineLineIsect = 0;
-#endif
-
 const float infinity = std::numeric_limits<float>::infinity();
 
 // http://www.geeksforgeeks.org/how-to-check-if-a-given-point-lies-inside-a-polygon/
@@ -108,10 +100,6 @@ IntersectionData intersection(const Ray& _ray, const Plane& _plane) {
 // By Andrew Kensler
 //
 bool intersection(const Ray& _ray, const BoundingBox& _bbox, float &_tmin, float &_tmax) {
-    #ifdef DEBUG_INTERSECTIONS
-    __sync_fetch_and_add(&numRayBoxTests, 1); 
-    #endif
-
     for (int a = 0; a < 3; a++) {
         float invD = _ray.getInvertDirection()[a];
         float t0 = (_bbox.min[a] - _ray.getOrigin()[a]) * invD;
@@ -144,9 +132,6 @@ IntersectionData intersection(const Ray& _ray, const BoundingBox& _bbox) {
 // MOLLER_TRUMBORE
 // #define CULLING
 bool intersection(const Ray& _ray, const Triangle& _triangle, float& _t, float& _u, float& _v) {
-#ifdef DEBUG_INTERSECTIONS
-    __sync_fetch_and_add(&numRayTrianglesTests, 1); 
-#endif
     glm::vec3 v0v1 = _triangle[1] - _triangle[0]; 
     glm::vec3 v0v2 = _triangle[2] - _triangle[0]; 
     glm::vec3 pvec = glm::cross(_ray.getDirection(), v0v2); 
@@ -173,32 +158,8 @@ bool intersection(const Ray& _ray, const Triangle& _triangle, float& _t, float& 
  
     _t = glm::dot(v0v2, qvec) * invDet; 
  
-#ifdef DEBUG_INTERSECTIONS
-    __sync_fetch_and_add(&numRayTrianglesIsect, 1); 
-#endif
-
     return true; // this ray hits the triangle 
-} 
-
-#ifdef DEBUG_INTERSECTIONS
-uint64_t getTotalRayBoundingBoxTests() {
-    return numRayBoxTests;
 }
-uint64_t getTotalRayTriangleTests() {
-    return numRayTrianglesTests;
-}
-
-uint64_t getTotalRayTrianglesIntersections() {
-    return numRayTrianglesIsect;
-}
-
-uint64_t getTotalLineLineTests() {
-    return numLineLineTests;
-}
-uint64_t getTotalLineLineIntersections() {
-    return numLineLineIsect;
-}
-#endif
 
 IntersectionData intersection(const Ray& _ray, const Triangle& _triangle) {
 
@@ -265,10 +226,6 @@ IntersectionData intersection(const Line& _line, const Plane& _plane) {
 // in 3d; will also work in 2d if z components are 0
 
 bool intersection(const Line& _A, const Line& _B, glm::vec3& _p) {
-#ifdef DEBUG_INTERSECTIONS
-    __sync_fetch_and_add(&numLineLineTests, 1); 
-#endif
-
     // Unnormalized direction of the ray
     glm::vec3 da = _A.getDireciton(); 
     glm::vec3 db = _B.getDireciton();
@@ -282,10 +239,6 @@ bool intersection(const Line& _A, const Line& _B, glm::vec3& _p) {
     float s = glm::dot( glm::cross(dc,db),  cross_da_db) / glm::length2(  cross_da_db );
     if (s >= 0.0 && s <= 1.0) {
         _p = _A[0] + da * s;
-
-#ifdef DEBUG_INTERSECTIONS
-    __sync_fetch_and_add(&numLineLineIsect, 1); 
-#endif
         return true;
     }
 
@@ -294,11 +247,6 @@ bool intersection(const Line& _A, const Line& _B, glm::vec3& _p) {
 
 const double lengthErrorThreshold = 1e-3;
 bool intersection(const Line& _A, const Line& _B, glm::vec3& _p, float _threshold ) {
-
-#ifdef DEBUG_INTERSECTIONS
-    __sync_fetch_and_add(&numLineLineTests, 1); 
-#endif
-
     // Unnormalized direction of the ray
     glm::vec3 da = _A.getDireciton();
     glm::vec3 db = _B.getDireciton();
@@ -315,24 +263,14 @@ bool intersection(const Line& _A, const Line& _B, glm::vec3& _p, float _threshol
         _p = _A[0] + da * s;
         
         // See if this lies on the segment
-        if ( (glm::length2(_p - _B[0]) + glm::length2(_p - _B[1])) <= (glm::length2(_B.getDireciton()) + lengthErrorThreshold) ) 
-        {
-
-#ifdef DEBUG_INTERSECTIONS
-    __sync_fetch_and_add(&numLineLineIsect, 1); 
-#endif
+        if ( (glm::length2(_p - _B[0]) + glm::length2(_p - _B[1])) <= (glm::length2(_B.getDireciton()) + lengthErrorThreshold) )
             return true;
-        }
     }
 
     return false;
 }
 
 IntersectionData intersection(const Line& _line1, const Line& _line2) {
-
-#ifdef DEBUG_INTERSECTIONS
-    __sync_fetch_and_add(&numLineLineTests, 1); 
-#endif
     IntersectionData idata;
     
     glm::vec3 p13,p43,p21;
@@ -395,10 +333,6 @@ IntersectionData intersection(const Line& _line1, const Line& _line2) {
     idata.position = pa;
     idata.direction = pb - pa;
 
-
-#ifdef DEBUG_INTERSECTIONS
-    __sync_fetch_and_add(&numLineLineIsect, 1); 
-#endif
     return idata;
 }
 

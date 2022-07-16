@@ -681,27 +681,39 @@ int initGL(WindowProperties _prop) {
                 if (monitorID == -1) //could not find the looking glass screen
                     monitorID = 1;
             }
-
-            const GLFWvidmode* mode = glfwGetVideoMode(monitors[monitorID]);
-            properties.screen_width = mode->width;
-            properties.screen_height = mode->height;
-
-            int xpos, ypos;
-            glfwGetMonitorPos(monitors[monitorID], &xpos, &ypos);
-            window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", NULL, NULL);
             
-            if (properties.screen_x != 0 || properties.screen_y != 0) {
-                properties.screen_x += xpos;
-                properties.screen_y += ypos;
+            if (count > 1) {
+                const GLFWvidmode* mode = glfwGetVideoMode(monitors[monitorID]);
+                properties.screen_width = mode->width;
+                properties.screen_height = mode->height;
+
+                int xpos, ypos;
+                glfwGetMonitorPos(monitors[monitorID], &xpos, &ypos);
+                window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", NULL, NULL);
+                
+                if (properties.screen_x != 0 || properties.screen_y != 0) {
+                    properties.screen_x += xpos;
+                    properties.screen_y += ypos;
+                }
+            }
+            else {
+                window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", NULL, NULL);
             }
 
+            #if !defined(__EMSCRIPTEN__)
+            if (properties.screen_x == -1)
+                properties.screen_x = getScreenWidth() / 2 - properties.screen_width / 2;
+
+            if (properties.screen_y == -1)
+                properties.screen_y = getScreenHeight() / 2 - properties.screen_height / 2;
+
             glfwSetWindowPos(window, properties.screen_x, properties.screen_y);
+            #endif
         }
         else {
             window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", NULL, NULL);
 
             #if !defined(__EMSCRIPTEN__)
-
             if (properties.screen_x == -1)
                 properties.screen_x = getScreenWidth() / 2 - properties.screen_width / 2;
 

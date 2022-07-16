@@ -43,7 +43,7 @@ void frameRate(int _fps);
 // noCursor()
 
 float pixelDensity();
-void pixelDensity(float _density);
+void  pixelDensity(float _density);
 
 void clear();
 void clear( float _brightness );

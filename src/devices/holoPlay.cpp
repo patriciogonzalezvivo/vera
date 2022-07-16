@@ -1,6 +1,10 @@
 #include "vera/devices/holoPlay.h"
 #include "vera/gl/gl.h"
 
+#include <fstream> 
+
+#include "json.hpp"
+
 namespace vera {
 
 //  QUILT 
@@ -82,15 +86,25 @@ static LenticularProperties lenticular;
 
 void setLenticularProperties(const LenticularProperties& _lenticular) { lenticular = _lenticular; }
 void setLenticularProperties(const std::string& _path) {
-    // TODO:
-    //  - parse _path JSON file and extract values for 
+    std::ifstream file(_path.c_str(), std::ifstream::in);
+    nlohmann::json manifest;
+    file >> manifest;
 
-    // dpi       = 324.0
-    // pitch     = 52.58737671470091
-    // slope     = -7.196136200157333
-    // center    = 0.4321881363063158
-    // ri        = 0
-    // bi        = 2
+    std::cout << manifest["serial"] << std::endl;
+
+    lenticular.dpi      = manifest["DPI"]["value"];
+    lenticular.pitch    = manifest["pitch"]["value"];
+    lenticular.slope    = manifest["slope"]["value"];
+    lenticular.center   = manifest["center"]["value"];
+
+    if (manifest["flipSubp"]["value"] == 0.0) {
+        lenticular.ri       = 0;
+        lenticular.bi       = 2;
+    }
+    else {
+        lenticular.ri       = 2;
+        lenticular.bi       = 0;
+    }
 }
 
 const std::string lenticular_frag = R"(

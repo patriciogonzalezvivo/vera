@@ -8,8 +8,6 @@
 
 #include <string>
 
-#define DEBUG_INTERSECTIONS
-
 // Based on
 // https://github.com/robandrose/ofxIntersection
 // http://paulbourke.net/geometry/pointlineplane/
@@ -59,11 +57,4 @@ bool                intersection(const Line& _line1, const Line& _line2, glm::ve
 IntersectionData    intersection(const Plane& _plane1, const Plane& _plane2);
 IntersectionData    intersection(const Plane& _plane, const Triangle& _triangle);
 
-#ifdef DEBUG_INTERSECTIONS
-uint64_t            getTotalRayBoundingBoxTests();
-uint64_t            getTotalRayTriangleTests();
-uint64_t            getTotalRayTrianglesIntersections();
-uint64_t            getTotalLineLineTests();
-uint64_t            getTotalLineLineIntersections();
-#endif
 }
