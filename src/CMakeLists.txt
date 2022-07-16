@@ -236,9 +236,10 @@ else()
 
     elseif (EMSCRIPTEN)
         message(STATUS "PLATFORM EMSCRIPTEN")
-        target_compile_definitions(vera PUBLIC   PLATFORM_EMSCRIPTEN)
+        target_compile_definitions(vera PUBLIC PLATFORM_EMSCRIPTEN)
         target_link_libraries(vera PUBLIC 
-            ${OPENGL_LIBRARIES}
+            ${OPENGL_LIBRARIES} 
+            webxr
         )
         
     # #   UNCOMMENT FOR MULTIPLE THREAD SUPPORT FOR WASM

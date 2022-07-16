@@ -26,5 +26,6 @@ if (WIN32)
     add_subdirectory(glew)
 endif (WIN32)
 
-## Glob
-# add_subdirectory(glob)
+if (EMSCRIPTEN)
+    add_subdirectory(emscripten-webxr)
+endif (EMSCRIPTEN)
