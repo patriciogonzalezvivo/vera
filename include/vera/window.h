@@ -1,9 +1,7 @@
 #pragma once
 
 #include <string>
-#ifdef EVENTS_AS_CALLBACKS
 #include <functional>
-#endif
 
 #include "gl/gl.h"
 #include "glm/glm.hpp"
@@ -124,10 +122,8 @@ bool        getMouseEntered();
 bool        isShiftPressed();
 bool        isControlPressed();
 
-// EVENTS
+// EVENTS CALLBACKS
 //----------------------------------------------
-
-#ifdef EVENTS_AS_CALLBACKS
 void    setViewportResizeCallback(std::function<void(int,int)>);
 void    setKeyPressCallback(std::function<void(int)>);
 void    setMouseMoveCallback(std::function<void(float, float)>);
@@ -135,17 +131,5 @@ void    setMousePressCallback(std::function<void(float, float, int)>);
 void    setMouseReleaseCallback(std::function<void(float, float, int)>);
 void    setMouseDragCallback(std::function<void(float, float, int)>);
 void    setScrollCallback(std::function<void(float)>);
-
-#else
-void    onViewportResize(int _width, int _height);
-void    onKeyPress(int _key);
-void    onMouseMove(float _x, float _y);
-void    onMousePress(float _x, float _y, int _button);
-void    onMouseRelease(float _x, float _y, int _button);
-void    onMouseDrag(float _x, float _y, int _button);
-void    onScroll(float _yoffset);
-
-#endif
-
 
 }

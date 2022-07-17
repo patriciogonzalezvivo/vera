@@ -50,29 +50,29 @@ static bool             bControl = false;
 
 #if defined(DRIVER_GLFW)
 
-    #if defined(__APPLE__)
-        #define GL_PROGRAM_BINARY_LENGTH 0x8741
-        #include <GLFW/glfw3.h>
-        #include <OpenGL/gl.h>
-        #include <OpenGL/glext.h>
+#if defined(__APPLE__)
+    #define GL_PROGRAM_BINARY_LENGTH 0x8741
+    #include <GLFW/glfw3.h>
+    #include <OpenGL/gl.h>
+    #include <OpenGL/glext.h>
 
-    #elif defined(_WIN32)
-        #include <GL/glew.h>
-        #include "GLFW/glfw3.h"
-        #define APIENTRY __stdcall
+#elif defined(_WIN32)
+    #include <GL/glew.h>
+    #include "GLFW/glfw3.h"
+    #define APIENTRY __stdcall
 
-    #elif defined(__EMSCRIPTEN__)
-        #include <emscripten.h>
-        #include <emscripten/html5.h>
-        #define GL_GLEXT_PROTOTYPES
-        #define EGL_EGLEXT_PROTOTYPES
-        #include <GLFW/glfw3.h>
+#elif defined(__EMSCRIPTEN__)
+    #include <emscripten.h>
+    #include <emscripten/html5.h>
+    #define GL_GLEXT_PROTOTYPES
+    #define EGL_EGLEXT_PROTOTYPES
+    #include <GLFW/glfw3.h>
 
-    #else
-        // ANY LINUX using GLFW 
-        #define GL_GLEXT_PROTOTYPES
-        #include "GLFW/glfw3.h"
-    #endif
+#else
+    // ANY LINUX using GLFW 
+    #define GL_GLEXT_PROTOTYPES
+    #include "GLFW/glfw3.h"
+#endif
 
 namespace vera {
 //----------------------------------------------------
@@ -87,14 +87,14 @@ static GLFWwindow*      window;
 
 #else
 
-    #if defined(DRIVER_BROADCOM)
-        #include "bcm_host.h"
-        #undef countof
-    #elif defined(DRIVER_GBM)
-        #include <xf86drm.h>
-        #include <xf86drmMode.h>
-        #include <gbm.h>
-    #endif
+#if defined(DRIVER_BROADCOM)
+    #include "bcm_host.h"
+    #undef countof
+#elif defined(DRIVER_GBM)
+    #include <xf86drm.h>
+    #include <xf86drmMode.h>
+    #include <gbm.h>
+#endif
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -106,7 +106,6 @@ static GLFWwindow*      window;
 #include <termios.h>
 #include <stdio.h> 
 #include <unistd.h>
-
 
 namespace vera {
 
@@ -173,7 +172,6 @@ static const char *eglGetErrorStr() {
 }
 #endif
 
-#if defined(EVENTS_AS_CALLBACKS)
 std::function<void(int,int)>            onViewportResize;
 std::function<void(int)>                onKeyPress;
 std::function<void(float, float)>       onMouseMove;
@@ -189,7 +187,6 @@ void setMousePressCallback(std::function<void(float, float, int)> _callback) { o
 void setMouseDragCallback(std::function<void(float, float, int)> _callback) { onMouseDrag = _callback; }
 void setMouseReleaseCallback(std::function<void(float, float, int)> _callback) { onMouseRelease = _callback; }
 void setScrollCallback(std::function<void(float)>_callback) { onScroll = _callback; }
-#endif
 
 #if defined(DRIVER_BROADCOM)
     DISPMANX_DISPLAY_HANDLE_T dispman_display;
@@ -317,519 +314,66 @@ void setScrollCallback(std::function<void(float)>_callback) { onScroll = _callba
 
 #if defined(__EMSCRIPTEN__)
 
-static void update_canvas_size() {
-    double width, height;
-    emscripten_get_element_css_size("#canvas", &width, &height);
-    width *= emscripten_get_device_pixel_ratio();
-    height *= emscripten_get_device_pixel_ratio();
-    setWindowSize(width, height);
-} 
-
-static EM_BOOL on_canvassize_changed(int eventType, const void *reserved, void *userData) {
-    update_canvas_size();
-    return EM_FALSE;
-}
-
-bool enable_extension(const char* name) {
-    auto ctx = emscripten_webgl_get_current_context();
-    return emscripten_webgl_enable_extension(ctx, name);
-}
-
-static EM_BOOL resize_callback(int eventType, const EmscriptenUiEvent *e, void* userData) {
-    update_canvas_size();
-    return EM_TRUE;
-}
-
-static EM_BOOL key_callback(int eventType, const EmscriptenKeyboardEvent *e, void* userData) {
-    if (eventType == EMSCRIPTEN_EVENT_KEYDOWN)
-        onKeyPress(e->keyCode);
-    
-    return EM_TRUE;
-}
-
-static EM_BOOL mouse_callback(int eventType, const EmscriptenMouseEvent *e, void* userData) {
-    float x = (float)e->targetX;
-    float y = viewport.w - (float)e->targetY;
-
-    x *= getPixelDensity(false);
-    y *= getPixelDensity(false);
-
-    if (eventType == EMSCRIPTEN_EVENT_MOUSEDOWN) {
-        mouse.x = x;
-        mouse.y = y;
-        mouse.drag.x = mouse.x;
-        mouse.drag.y = mouse.y;
-        mouse.entered = true;
-        mouse.button = 0;
-        onMousePress(mouse.x, mouse.y, mouse.button);
+    static void update_canvas_size() {
+        double width, height;
+        emscripten_get_element_css_size("#canvas", &width, &height);
+        width *= emscripten_get_device_pixel_ratio();
+        height *= emscripten_get_device_pixel_ratio();
+        setWindowSize(width, height);
     } 
-    else if (eventType == EMSCRIPTEN_EVENT_MOUSEUP) {
-        mouse.entered = false;
-        mouse.button = 0;
-        onMouseRelease(mouse.x, mouse.y, mouse.button);
-    } 
-    else if (eventType == EMSCRIPTEN_EVENT_MOUSEMOVE) {
-        mouse.velX = x - mouse.drag.x;
-        mouse.velY = y - mouse.drag.y;
-        mouse.drag.x = x;
-        mouse.drag.y = y;
 
-        mouse.x = x;
-        mouse.y = y;
-
-        int action1 = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1);
-        int action2 = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_2);
-        int button = 0;
-
-        if (action1 == GLFW_PRESS) button = 1;
-        else if (action2 == GLFW_PRESS) button = 2;
-
-        // Lunch events
-        if (mouse.button == 0 && button != mouse.button) {
-            mouse.button = button;
-            onMousePress(mouse.x, mouse.y, mouse.button);
-        }
-        else {
-            mouse.button = button;
-        }
-
-        if (mouse.velX != 0.0 || mouse.velY != 0.0) {
-            if (button != 0) onMouseDrag(mouse.x, mouse.y, mouse.button);
-            else onMouseMove(mouse.x, mouse.y);
-        }
-    } 
-    else {
-        printf("eventType is invalid. (%d)\n", eventType);
-        return false;
+    static EM_BOOL on_canvassize_changed(int eventType, const void *reserved, void *userData) {
+        update_canvas_size();
+        return EM_FALSE;
     }
 
-    return EM_TRUE;
-}
-
-static EM_BOOL touch_callback(int eventType, const EmscriptenTouchEvent *e, void *userData) {
-    float x = e->touches[0].targetX;
-    float y = viewport.w - e->touches[0].targetY;
-
-    if (eventType == EMSCRIPTEN_EVENT_TOUCHSTART) {
-        mouse.x = x;
-        mouse.y = y;
-        mouse.drag.x = mouse.x;
-        mouse.drag.y = mouse.y;
-        mouse.entered = true;
-        mouse.button = 1;
-        onMousePress(mouse.x, mouse.y, mouse.button);
-    } 
-    else if (eventType == EMSCRIPTEN_EVENT_TOUCHEND) {
-        mouse.entered = false;
-        mouse.button = 0;
-        onMouseRelease(mouse.x, mouse.y, mouse.button);
-    } 
-    else if (eventType == EMSCRIPTEN_EVENT_TOUCHMOVE) {
-        mouse.velX = x - mouse.drag.x;
-        mouse.velY = y - mouse.drag.y;
-        mouse.drag.x = x;
-        mouse.drag.y = y;
-
-        mouse.x = x;
-        mouse.y = y;
-
-        if (mouse.velX != 0.0 || mouse.velY != 0.0) {
-            if (mouse.button != 0) onMouseDrag(mouse.x, mouse.y, mouse.button);
-            else onMouseMove(mouse.x, mouse.y);
-        }
-    } 
-    else if (eventType == EMSCRIPTEN_EVENT_TOUCHCANCEL) {
-        mouse.entered = false;
-        mouse.button = 0;
-        onMouseRelease(mouse.x, mouse.y, mouse.button);
-
-    } 
-    else {
-        printf("eventType is invalid. (%d)\n", eventType);
-        return false;
+    bool enable_extension(const char* name) {
+        auto ctx = emscripten_webgl_get_current_context();
+        return emscripten_webgl_enable_extension(ctx, name);
     }
 
-    return EM_TRUE;
-}
-#endif
+    static EM_BOOL resize_callback(int eventType, const EmscriptenUiEvent *e, void* userData) {
+        update_canvas_size();
+        return EM_TRUE;
+    }
 
-#if defined(PLATFORM_WINDOWS)
-const int CLOCK_MONOTONIC = 0;
-int clock_gettime(int, struct timespec* spec)      //C-file part
-{
-    __int64 wintime; GetSystemTimeAsFileTime((FILETIME*)&wintime);
-    wintime -= 116444736000000000i64;  //1jan1601 to 1jan1970
-    spec->tv_sec = wintime / 10000000i64;           //seconds
-    spec->tv_nsec = wintime % 10000000i64 * 100;      //nano-seconds
-    return 0;
-}
-#endif
-
-int initGL(WindowProperties _prop) {
-    clock_gettime(CLOCK_MONOTONIC, &time_start);
-    properties = _prop;
-
-    // NON GLFW
-    #if !defined(DRIVER_GLFW)
-
-        if (properties.screen_x == -1)
-            properties.screen_x = 0;
-
-        if (properties.screen_y == -1)
-            properties.screen_y = 0;
-
-        if (properties.screen_width == -1)
-            properties.screen_width = getScreenWidth();
-
-        if (properties.screen_height == -1)
-            properties.screen_height = getScreenHeight();
-
-        // Clear application state
-        EGLBoolean result;
-
-        display = getDisplay();
-        assert(display != EGL_NO_DISPLAY);
-        check();
-
-        result = eglInitialize(display, NULL, NULL);
-        assert(EGL_FALSE != result);
-        check();
-
-        // Make sure that we can use OpenGL in this EGL app.
-        // result = eglBindAPI(EGL_OPENGL_API);
-        result = eglBindAPI(EGL_OPENGL_ES_API);
-        assert(EGL_FALSE != result);
-        check();
-       
-        static const EGLint configAttribs[] = {
-            EGL_RED_SIZE, 8,
-            EGL_GREEN_SIZE, 8,
-            EGL_BLUE_SIZE, 8,
-            EGL_ALPHA_SIZE, 8,
-            EGL_SAMPLE_BUFFERS, 1, EGL_SAMPLES, 4,
-            EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-            EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-            EGL_DEPTH_SIZE, 16,
-            EGL_NONE
-        };
-
-        static const EGLint contextAttribs[] = {
-            EGL_CONTEXT_CLIENT_VERSION, 2,
-            EGL_NONE
-        };
-
-        EGLConfig config;
-        EGLint numConfigs;
-
-        // get an appropriate EGL frame buffer configuration
-        if (eglChooseConfig(display, configAttribs, &config, 1, &numConfigs) == EGL_FALSE) {
-            std::cerr << "Failed to get EGL configs! Error: " << eglGetErrorStr() << std::endl;
-            eglTerminate(display);
-            #if defined(DRIVER_GBM)
-            gbmClean();
-            #endif
-            return EXIT_FAILURE;
-        }
-
-        // create an EGL rendering context
-        context = eglCreateContext(display, config, EGL_NO_CONTEXT, contextAttribs);
-        if (context == EGL_NO_CONTEXT) {
-            std::cerr << "Failed to create EGL context! Error: " << eglGetErrorStr() << std::endl;
-            eglTerminate(display);
-            #if defined(DRIVER_GBM)
-            gbmClean();
-            #endif
-            return EXIT_FAILURE;
-        }
-
-        #if defined(DRIVER_BROADCOM)
-            static EGL_DISPMANX_WINDOW_T nativeviewport;
-
-            VC_RECT_T dst_rect;
-            VC_RECT_T src_rect;
-
-            //  Initially the viewport is for all the screen
-            dst_rect.x = properties.screen_x;
-            dst_rect.y = properties.screen_y;
-            dst_rect.width = properties.screen_width;
-            dst_rect.height = properties.screen_height;
-
-            src_rect.x = 0;
-            src_rect.y = 0;
-            src_rect.width = properties.screen_width << 16;
-            src_rect.height = properties.screen_height << 16;
-
-            DISPMANX_ELEMENT_HANDLE_T dispman_element;
-            DISPMANX_UPDATE_HANDLE_T dispman_update;
-
-            if (properties.style == HEADLESS) {
-                uint32_t dest_image_handle;
-                DISPMANX_RESOURCE_HANDLE_T dispman_resource;
-                dispman_resource = vc_dispmanx_resource_create(VC_IMAGE_RGBA32, properties.screen_width, properties.screen_height, &dest_image_handle);
-                dispman_display = vc_dispmanx_display_open_offscreen(dispman_resource, DISPMANX_NO_ROTATE);
-            } 
-            else
-                dispman_display = vc_dispmanx_display_open(0); // LCD
-
-            // VC_DISPMANX_ALPHA_T alpha = { 
-            //     DISPMANX_FLAGS_ALPHA_FROM_SOURCE | DISPMANX_FLAGS_ALPHA_FIXED_ALL_PIXELS, 
-            //     0, //255, 
-            //     0 
-            // };
-
-            dispman_update = vc_dispmanx_update_start(0);
-            dispman_element = vc_dispmanx_element_add(  dispman_update, dispman_display,
-                                                        0/*layer*/, &dst_rect, 0/*src*/,
-                                                        &src_rect, DISPMANX_PROTECTION_NONE,
-                                                        0 /*&alpha*/ , 0/*clamp*/, (DISPMANX_TRANSFORM_T)0/*transform*/);
-
-            nativeviewport.element = dispman_element;
-            nativeviewport.width = properties.screen_width;
-            nativeviewport.height = properties.screen_height;
-            vc_dispmanx_update_submit_sync( dispman_update );
-            check();
-
-            surface = eglCreateWindowSurface( display, config, &nativeviewport, NULL );
-            assert(surface != EGL_NO_SURFACE);
-            check();
-
-        #elif defined(DRIVER_GBM)
-            surface = eglCreateWindowSurface(display, config, gbmSurface, NULL);
-            if (surface == EGL_NO_SURFACE) {
-                std::cerr << "Failed to create EGL surface! Error: " << eglGetErrorStr() << std::endl;
-                eglDestroyContext(display, context);
-                eglTerminate(display);
-                gbmClean();
-                return EXIT_FAILURE;
-            }
-        #endif
-
-        // connect the context to the surface
-        result = eglMakeCurrent(display, surface, surface, context);
-        assert(EGL_FALSE != result);
-        check();
-
-    // GLFW
-    #else
-
-        if (properties.screen_width == -1)
-            properties.screen_width = 512;
-
-        if (properties.screen_height == -1)
-            properties.screen_height = 512;
-
-        glfwSetErrorCallback([](int err, const char* msg)->void {
-            std::cerr << "GLFW error 0x"<<std::hex<<err<<std::dec<<": "<<msg<<"\n";
-        });
+    static EM_BOOL key_callback(int eventType, const EmscriptenKeyboardEvent *e, void* userData) {
+        if (eventType == EMSCRIPTEN_EVENT_KEYDOWN)
+            onKeyPress(e->keyCode);
         
-        if(!glfwInit()) {
-            std::cerr << "ABORT: GLFW init failed" << std::endl;
-            exit(-1);
-        }
+        return EM_TRUE;
+    }
 
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, properties.major);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, properties.minor);
-        if (properties.major >= 3 && properties.minor >= 2) {
-            glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-            glfwWindowHint(GLFW_OPENGL_PROFILE,GLFW_OPENGL_CORE_PROFILE);
-        }
+    static EM_BOOL mouse_callback(int eventType, const EmscriptenMouseEvent *e, void* userData) {
+        float x = (float)e->targetX;
+        float y = viewport.w - (float)e->targetY;
 
-        if (properties.msaa != 0)
-            glfwWindowHint(GLFW_SAMPLES, properties.msaa);
+        x *= getPixelDensity(false);
+        y *= getPixelDensity(false);
 
-        if (properties.style == HEADLESS)
-            glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-
-        else if (properties.style == UNDECORATED )
-            glfwWindowHint(GLFW_DECORATED, GL_FALSE);
-            
-        else if (properties.style == ALLWAYS_ON_TOP )
-            glfwWindowHint(GLFW_FLOATING, GL_TRUE);
-
-        else if (properties.style == UNDECORATED_ALLWAYS_ON_TOP) {
-            glfwWindowHint(GLFW_DECORATED, GL_FALSE);
-            glfwWindowHint(GLFW_FLOATING, GL_TRUE);
-        }
-
-        if (properties.style == FULLSCREEN) {
-            GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-            const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-            properties.screen_width = mode->width;
-            properties.screen_height = mode->height;
-            glfwWindowHint(GLFW_RED_BITS, mode->redBits);
-            glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
-            glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
-            glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
-            window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", monitor, NULL);
-        }
-        else if (properties.style == LENTICULAR) {
-            glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-            glfwWindowHint(GLFW_DECORATED, GL_FALSE);
-
-            int count = 0;
-            int monitorID = 1;
-            GLFWmonitor **monitors = glfwGetMonitors(&count);
-
-            if (count > 2) { //if we have more than 2 screens, try and find the looking glass screen ID 
-                monitorID = -1;
-                for (int i = 0; i < count; i++){
-                    const char* name = glfwGetMonitorName(monitors[i]);
-                    if (name && strlen(name) >= 3) // if monitor name is > than 3 chars
-                        if(name[0] == 'L' && name[1] == 'K' && name[2] == 'G') // found a match for the looking glass screen
-                            monitorID = i;
-                }
-                if (monitorID == -1) //could not find the looking glass screen
-                    monitorID = 1;
-            }
-            
-            if (count > 1) {
-                const GLFWvidmode* mode = glfwGetVideoMode(monitors[monitorID]);
-                properties.screen_width = mode->width;
-                properties.screen_height = mode->height;
-
-                int xpos, ypos;
-                glfwGetMonitorPos(monitors[monitorID], &xpos, &ypos);
-                window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", NULL, NULL);
-                
-                if (properties.screen_x != 0 || properties.screen_y != 0) {
-                    properties.screen_x += xpos;
-                    properties.screen_y += ypos;
-                }
-            }
-            else {
-                window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", NULL, NULL);
-            }
-
-            glfwSetWindowPos(window, properties.screen_x, properties.screen_y);
-        }
-        else {
-            window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", NULL, NULL);
-
-            #if !defined(__EMSCRIPTEN__)
-            if (properties.screen_x == -1)
-                properties.screen_x = getScreenWidth() / 2 - properties.screen_width / 2;
-
-            if (properties.screen_y == -1)
-                properties.screen_y = getScreenHeight() / 2 - properties.screen_height / 2;
-
-            glfwSetWindowPos(window, properties.screen_x, properties.screen_y);
-            #endif
-        }
-
-        if (!window) {
-            glfwTerminate();
-            std::cerr << "ABORT: GLFW create window failed" << std::endl;
-            exit(-1);
-        }
-
-        glfwMakeContextCurrent(window);
-        #if defined(_WIN32)
-            glewInit();
-        #endif
-
-        glfwSetKeyCallback(window, [](GLFWwindow* _window, int _key, int _scancode, int _action, int _mods) {
-            if (_action == GLFW_PRESS && (_key == GLFW_KEY_LEFT_SHIFT || GLFW_KEY_RIGHT_SHIFT) )
-                bShift = true;
-            else if (_action == GLFW_RELEASE && (_key == GLFW_KEY_LEFT_SHIFT || GLFW_KEY_RIGHT_SHIFT) )
-                bShift = false;
-
-            else if (_action == GLFW_PRESS && (_key == GLFW_KEY_LEFT_CONTROL || GLFW_KEY_RIGHT_CONTROL) )
-                bControl = true;
-            else if (_action == GLFW_RELEASE && (_key == GLFW_KEY_LEFT_CONTROL || GLFW_KEY_RIGHT_CONTROL) )
-                bControl = false;
-
-            if (_action == GLFW_PRESS) {
-                #if defined(EVENTS_AS_CALLBACKS)
-                if (onKeyPress)
-                #endif 
-                onKeyPress(_key);
-            }
-        });
-
-        // callback when a mouse button is pressed or released
-        glfwSetMouseButtonCallback(window, [](GLFWwindow* _window, int button, int action, int mods) {
-            if (button == GLFW_MOUSE_BUTTON_1) {
-                if (action == GLFW_PRESS && !left_mouse_button_down)
-                    left_mouse_button_down = true;
-                else if (action == GLFW_RELEASE && left_mouse_button_down)
-                    left_mouse_button_down = false;
-            }
-            if (action == GLFW_PRESS) {
-                mouse.drag.x = mouse.x;
-                mouse.drag.y = mouse.y;
-            }
-        });
-
-        #if defined(EVENTS_AS_CALLBACKS)
-        if (onScroll)
-        #endif 
-        glfwSetScrollCallback(window, [](GLFWwindow* _window, double xoffset, double yoffset) {
-            onScroll(-yoffset * fPixelDensity);
-        });
-
-#ifndef __EMSCRIPTEN__
-        glfwSetWindowPosCallback(window, [](GLFWwindow* _window, int x, int y) {
-            if (fPixelDensity != getPixelDensity(true))
-                updateViewport();
-        });
-
-        glfwSetWindowSizeCallback(window, [](GLFWwindow* _window, int _w, int _h) {
-            setViewport(_w,_h);
-        });
-
-        // callback when the mouse cursor enters/leaves
-        glfwSetCursorEnterCallback(window, [](GLFWwindow* _window, int entered) {
-            mouse.entered = (bool)entered;
-        });
-
-
-        glfwSetMouseButtonCallback(window, [](GLFWwindow* _window, int _button, int _action, int _mods) {
-            mouse.button = _button;
-            if (_action == GLFW_PRESS) {
-                #if defined(EVENTS_AS_CALLBACKS)
-                if (onMousePress)
-                #endif 
-                onMousePress(mouse.x, mouse.y, mouse.button);
-            }
-            else {
-                #if defined(EVENTS_AS_CALLBACKS)
-                if (onMouseRelease)
-                #endif
-                onMouseRelease(mouse.x, mouse.y, mouse.button);
-            }
-        });	
-
-        // callback when the mouse cursor moves
-        glfwSetCursorPosCallback(window, [](GLFWwindow* _window, double x, double y) {
-            // Convert x,y to pixel coordinates relative to viewport.
-            // (0,0) is lower left corner.
-            y = viewport.w - y;
-            x *= fPixelDensity;
-            y *= fPixelDensity;
-            // mouse.velX,mouse.velY is the distance the mouse cursor has moved
-            // since the last callback, during a drag gesture.
-            // mouse.drag is the previous mouse position, during a drag gesture.
-            // Note that mouse.drag is *not* constrained to the viewport.
+        if (eventType == EMSCRIPTEN_EVENT_MOUSEDOWN) {
+            mouse.x = x;
+            mouse.y = y;
+            mouse.drag.x = mouse.x;
+            mouse.drag.y = mouse.y;
+            mouse.entered = true;
+            mouse.button = 0;
+            onMousePress(mouse.x, mouse.y, mouse.button);
+        } 
+        else if (eventType == EMSCRIPTEN_EVENT_MOUSEUP) {
+            mouse.entered = false;
+            mouse.button = 0;
+            onMouseRelease(mouse.x, mouse.y, mouse.button);
+        } 
+        else if (eventType == EMSCRIPTEN_EVENT_MOUSEMOVE) {
             mouse.velX = x - mouse.drag.x;
             mouse.velY = y - mouse.drag.y;
             mouse.drag.x = x;
             mouse.drag.y = y;
 
-            // mouse.x,mouse.y is the current cursor position, constrained
-            // to the viewport.
             mouse.x = x;
             mouse.y = y;
-            if (mouse.x < 0) mouse.x = 0;
-            if (mouse.y < 0) mouse.y = 0;
-            if (mouse.x > getWindowWidth()) mouse.x = getWindowWidth();
-            if (mouse.y > getWindowHeight()) mouse.y = getWindowHeight();
 
-            /*
-             * TODO: the following code would best be moved into the
-             * mouse button callback. If you click the mouse button without
-             * moving the mouse, then using this code, the mouse click doesn't
-             * register until the cursor is moved. (@doug-moen)
-             */
             int action1 = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1);
             int action2 = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_2);
             int button = 0;
@@ -840,9 +384,6 @@ int initGL(WindowProperties _prop) {
             // Lunch events
             if (mouse.button == 0 && button != mouse.button) {
                 mouse.button = button;
-                #if defined(EVENTS_AS_CALLBACKS)
-                if (onMousePress)
-                #endif 
                 onMousePress(mouse.x, mouse.y, mouse.button);
             }
             else {
@@ -850,54 +391,496 @@ int initGL(WindowProperties _prop) {
             }
 
             if (mouse.velX != 0.0 || mouse.velY != 0.0) {
-                if (button != 0) {
-                    #if defined(EVENTS_AS_CALLBACKS)
-                    if (onMouseDrag)
-                    #endif 
-                    onMouseDrag(mouse.x, mouse.y, mouse.button);
-                }
-                else {
-                    #if defined(EVENTS_AS_CALLBACKS)
-                    if (onMouseMove)
-                    #endif 
-                    onMouseMove(mouse.x, mouse.y);
-                }
+                if (button != 0) onMouseDrag(mouse.x, mouse.y, mouse.button);
+                else onMouseMove(mouse.x, mouse.y);
             }
+        } 
+        else {
+            printf("eventType is invalid. (%d)\n", eventType);
+            return false;
+        }
+
+        return EM_TRUE;
+    }
+
+    static EM_BOOL touch_callback(int eventType, const EmscriptenTouchEvent *e, void *userData) {
+        float x = e->touches[0].targetX;
+        float y = viewport.w - e->touches[0].targetY;
+
+        if (eventType == EMSCRIPTEN_EVENT_TOUCHSTART) {
+            mouse.x = x;
+            mouse.y = y;
+            mouse.drag.x = mouse.x;
+            mouse.drag.y = mouse.y;
+            mouse.entered = true;
+            mouse.button = 1;
+            onMousePress(mouse.x, mouse.y, mouse.button);
+        } 
+        else if (eventType == EMSCRIPTEN_EVENT_TOUCHEND) {
+            mouse.entered = false;
+            mouse.button = 0;
+            onMouseRelease(mouse.x, mouse.y, mouse.button);
+        } 
+        else if (eventType == EMSCRIPTEN_EVENT_TOUCHMOVE) {
+            mouse.velX = x - mouse.drag.x;
+            mouse.velY = y - mouse.drag.y;
+            mouse.drag.x = x;
+            mouse.drag.y = y;
+
+            mouse.x = x;
+            mouse.y = y;
+
+            if (mouse.velX != 0.0 || mouse.velY != 0.0) {
+                if (mouse.button != 0) onMouseDrag(mouse.x, mouse.y, mouse.button);
+                else onMouseMove(mouse.x, mouse.y);
+            }
+        } 
+        else if (eventType == EMSCRIPTEN_EVENT_TOUCHCANCEL) {
+            mouse.entered = false;
+            mouse.button = 0;
+            onMouseRelease(mouse.x, mouse.y, mouse.button);
+
+        } 
+        else {
+            printf("eventType is invalid. (%d)\n", eventType);
+            return false;
+        }
+
+        return EM_TRUE;
+    }
+#endif
+
+#if defined(PLATFORM_WINDOWS)
+    const int CLOCK_MONOTONIC = 0;
+    int clock_gettime(int, struct timespec* spec) {
+        __int64 wintime; GetSystemTimeAsFileTime((FILETIME*)&wintime);
+        wintime -= 116444736000000000i64;  //1jan1601 to 1jan1970
+        spec->tv_sec = wintime / 10000000i64;           //seconds
+        spec->tv_nsec = wintime % 10000000i64 * 100;      //nano-seconds
+        return 0;
+    }
+#endif
+
+int initGL(WindowProperties _prop) {
+    clock_gettime(CLOCK_MONOTONIC, &time_start);
+    properties = _prop;
+
+// NON GLFW
+#if !defined(DRIVER_GLFW)
+
+    if (properties.screen_x == -1)
+        properties.screen_x = 0;
+
+    if (properties.screen_y == -1)
+        properties.screen_y = 0;
+
+    if (properties.screen_width == -1)
+        properties.screen_width = getScreenWidth();
+
+    if (properties.screen_height == -1)
+        properties.screen_height = getScreenHeight();
+
+    // Clear application state
+    EGLBoolean result;
+
+    display = getDisplay();
+    assert(display != EGL_NO_DISPLAY);
+    check();
+
+    result = eglInitialize(display, NULL, NULL);
+    assert(EGL_FALSE != result);
+    check();
+
+    // Make sure that we can use OpenGL in this EGL app.
+    // result = eglBindAPI(EGL_OPENGL_API);
+    result = eglBindAPI(EGL_OPENGL_ES_API);
+    assert(EGL_FALSE != result);
+    check();
+    
+    static const EGLint configAttribs[] = {
+        EGL_RED_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_BLUE_SIZE, 8,
+        EGL_ALPHA_SIZE, 8,
+        EGL_SAMPLE_BUFFERS, 1, EGL_SAMPLES, 4,
+        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+        EGL_DEPTH_SIZE, 16,
+        EGL_NONE
+    };
+
+    static const EGLint contextAttribs[] = {
+        EGL_CONTEXT_CLIENT_VERSION, 2,
+        EGL_NONE
+    };
+
+    EGLConfig config;
+    EGLint numConfigs;
+
+    // get an appropriate EGL frame buffer configuration
+    if (eglChooseConfig(display, configAttribs, &config, 1, &numConfigs) == EGL_FALSE) {
+        std::cerr << "Failed to get EGL configs! Error: " << eglGetErrorStr() << std::endl;
+        eglTerminate(display);
+        #if defined(DRIVER_GBM)
+        gbmClean();
+        #endif
+        return EXIT_FAILURE;
+    }
+
+    // create an EGL rendering context
+    context = eglCreateContext(display, config, EGL_NO_CONTEXT, contextAttribs);
+    if (context == EGL_NO_CONTEXT) {
+        std::cerr << "Failed to create EGL context! Error: " << eglGetErrorStr() << std::endl;
+        eglTerminate(display);
+        #if defined(DRIVER_GBM)
+        gbmClean();
+        #endif
+        return EXIT_FAILURE;
+    }
+
+    #if defined(DRIVER_BROADCOM)
+        static EGL_DISPMANX_WINDOW_T nativeviewport;
+
+        VC_RECT_T dst_rect;
+        VC_RECT_T src_rect;
+
+        //  Initially the viewport is for all the screen
+        dst_rect.x = properties.screen_x;
+        dst_rect.y = properties.screen_y;
+        dst_rect.width = properties.screen_width;
+        dst_rect.height = properties.screen_height;
+
+        src_rect.x = 0;
+        src_rect.y = 0;
+        src_rect.width = properties.screen_width << 16;
+        src_rect.height = properties.screen_height << 16;
+
+        DISPMANX_ELEMENT_HANDLE_T dispman_element;
+        DISPMANX_UPDATE_HANDLE_T dispman_update;
+
+        if (properties.style == HEADLESS) {
+            uint32_t dest_image_handle;
+            DISPMANX_RESOURCE_HANDLE_T dispman_resource;
+            dispman_resource = vc_dispmanx_resource_create(VC_IMAGE_RGBA32, properties.screen_width, properties.screen_height, &dest_image_handle);
+            dispman_display = vc_dispmanx_display_open_offscreen(dispman_resource, DISPMANX_NO_ROTATE);
+        } 
+        else
+            dispman_display = vc_dispmanx_display_open(0); // LCD
+
+        // VC_DISPMANX_ALPHA_T alpha = { 
+        //     DISPMANX_FLAGS_ALPHA_FROM_SOURCE | DISPMANX_FLAGS_ALPHA_FIXED_ALL_PIXELS, 
+        //     0, //255, 
+        //     0 
+        // };
+
+        dispman_update = vc_dispmanx_update_start(0);
+        dispman_element = vc_dispmanx_element_add(  dispman_update, dispman_display,
+                                                    0/*layer*/, &dst_rect, 0/*src*/,
+                                                    &src_rect, DISPMANX_PROTECTION_NONE,
+                                                    0 /*&alpha*/ , 0/*clamp*/, (DISPMANX_TRANSFORM_T)0/*transform*/);
+
+        nativeviewport.element = dispman_element;
+        nativeviewport.width = properties.screen_width;
+        nativeviewport.height = properties.screen_height;
+        vc_dispmanx_update_submit_sync( dispman_update );
+        check();
+
+        surface = eglCreateWindowSurface( display, config, &nativeviewport, NULL );
+        assert(surface != EGL_NO_SURFACE);
+        check();
+
+    #elif defined(DRIVER_GBM)
+        surface = eglCreateWindowSurface(display, config, gbmSurface, NULL);
+        if (surface == EGL_NO_SURFACE) {
+            std::cerr << "Failed to create EGL surface! Error: " << eglGetErrorStr() << std::endl;
+            eglDestroyContext(display, context);
+            eglTerminate(display);
+            gbmClean();
+            return EXIT_FAILURE;
+        }
+    #endif
+
+    // connect the context to the surface
+    result = eglMakeCurrent(display, surface, surface, context);
+    assert(EGL_FALSE != result);
+    check();
+
+// GLFW
+#else
+
+    if (properties.screen_width == -1)
+        properties.screen_width = 512;
+
+    if (properties.screen_height == -1)
+        properties.screen_height = 512;
+
+    glfwSetErrorCallback([](int err, const char* msg)->void {
+        std::cerr << "GLFW error 0x"<<std::hex<<err<<std::dec<<": "<<msg<<"\n";
+    });
+    
+    if(!glfwInit()) {
+        std::cerr << "ABORT: GLFW init failed" << std::endl;
+        exit(-1);
+    }
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, properties.major);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, properties.minor);
+    if (properties.major >= 3 && properties.minor >= 2) {
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+        glfwWindowHint(GLFW_OPENGL_PROFILE,GLFW_OPENGL_CORE_PROFILE);
+    }
+
+    if (properties.msaa != 0)
+        glfwWindowHint(GLFW_SAMPLES, properties.msaa);
+
+    if (properties.style == HEADLESS)
+        glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
+
+    else if (properties.style == UNDECORATED )
+        glfwWindowHint(GLFW_DECORATED, GL_FALSE);
+        
+    else if (properties.style == ALLWAYS_ON_TOP )
+        glfwWindowHint(GLFW_FLOATING, GL_TRUE);
+
+    else if (properties.style == UNDECORATED_ALLWAYS_ON_TOP) {
+        glfwWindowHint(GLFW_DECORATED, GL_FALSE);
+        glfwWindowHint(GLFW_FLOATING, GL_TRUE);
+    }
+
+    if (properties.style == FULLSCREEN) {
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        properties.screen_width = mode->width;
+        properties.screen_height = mode->height;
+        glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+        glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+        glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+        glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+        window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", monitor, NULL);
+    }
+    else if (properties.style == LENTICULAR) {
+        glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+        glfwWindowHint(GLFW_DECORATED, GL_FALSE);
+
+        int count = 0;
+        int monitorID = 1;
+        GLFWmonitor **monitors = glfwGetMonitors(&count);
+
+        if (count > 2) { //if we have more than 2 screens, try and find the looking glass screen ID 
+            monitorID = -1;
+            for (int i = 0; i < count; i++){
+                const char* name = glfwGetMonitorName(monitors[i]);
+                if (name && strlen(name) >= 3) // if monitor name is > than 3 chars
+                    if(name[0] == 'L' && name[1] == 'K' && name[2] == 'G') // found a match for the looking glass screen
+                        monitorID = i;
+            }
+            if (monitorID == -1) //could not find the looking glass screen
+                monitorID = 1;
+        }
+        
+        if (count > 1) {
+            const GLFWvidmode* mode = glfwGetVideoMode(monitors[monitorID]);
+            properties.screen_width = mode->width;
+            properties.screen_height = mode->height;
+
+            int xpos, ypos;
+            glfwGetMonitorPos(monitors[monitorID], &xpos, &ypos);
+            window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", NULL, NULL);
+            
+            if (properties.screen_x != 0 || properties.screen_y != 0) {
+                properties.screen_x += xpos;
+                properties.screen_y += ypos;
+            }
+        }
+        else {
+            window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", NULL, NULL);
+        }
+
+        glfwSetWindowPos(window, properties.screen_x, properties.screen_y);
+    }
+    else {
+        window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", NULL, NULL);
+
+        #if !defined(__EMSCRIPTEN__)
+        if (properties.screen_x == -1)
+            properties.screen_x = getScreenWidth() / 2 - properties.screen_width / 2;
+
+        if (properties.screen_y == -1)
+            properties.screen_y = getScreenHeight() / 2 - properties.screen_height / 2;
+
+        glfwSetWindowPos(window, properties.screen_x, properties.screen_y);
+        #endif
+    }
+
+    if (!window) {
+        glfwTerminate();
+        std::cerr << "ABORT: GLFW create window failed" << std::endl;
+        exit(-1);
+    }
+
+    glfwMakeContextCurrent(window);
+    #if defined(_WIN32)
+        glewInit();
+    #endif
+
+    glfwSetKeyCallback(window, [](GLFWwindow* _window, int _key, int _scancode, int _action, int _mods) {
+        if (_action == GLFW_PRESS && (_key == GLFW_KEY_LEFT_SHIFT || GLFW_KEY_RIGHT_SHIFT) )
+            bShift = true;
+        else if (_action == GLFW_RELEASE && (_key == GLFW_KEY_LEFT_SHIFT || GLFW_KEY_RIGHT_SHIFT) )
+            bShift = false;
+
+        else if (_action == GLFW_PRESS && (_key == GLFW_KEY_LEFT_CONTROL || GLFW_KEY_RIGHT_CONTROL) )
+            bControl = true;
+        else if (_action == GLFW_RELEASE && (_key == GLFW_KEY_LEFT_CONTROL || GLFW_KEY_RIGHT_CONTROL) )
+            bControl = false;
+
+        if (_action == GLFW_PRESS) {
+            if (onKeyPress)
+                onKeyPress(_key);
+        }
+    });
+
+    // callback when a mouse button is pressed or released
+    glfwSetMouseButtonCallback(window, [](GLFWwindow* _window, int button, int action, int mods) {
+        if (button == GLFW_MOUSE_BUTTON_1) {
+            if (action == GLFW_PRESS && !left_mouse_button_down)
+                left_mouse_button_down = true;
+            else if (action == GLFW_RELEASE && left_mouse_button_down)
+                left_mouse_button_down = false;
+        }
+        if (action == GLFW_PRESS) {
+            mouse.drag.x = mouse.x;
+            mouse.drag.y = mouse.y;
+        }
+    });
+
+    if (onScroll)
+        glfwSetScrollCallback(window, [](GLFWwindow* _window, double xoffset, double yoffset) {
+            onScroll(-yoffset * fPixelDensity);
         });
 
+#if defined(__EMSCRIPTEN__)
+    enable_extension("OES_texture_float");
+    enable_extension("OES_texture_half_float");
+    enable_extension("OES_standard_derivatives");
+    enable_extension("OES_texture_float_linear");
+    enable_extension("OES_texture_half_float_linear");
+    enable_extension("EXT_color_buffer_float");
+
+    emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, resize_callback);
+
+    // emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, key_callback);
+    
+    emscripten_set_mousedown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
+    emscripten_set_mouseup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
+    emscripten_set_mousemove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
+
+    emscripten_set_touchstart_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
+    emscripten_set_touchend_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
+    emscripten_set_touchmove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
+    emscripten_set_touchcancel_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
+
 #else
-        enable_extension("OES_texture_float");
-        enable_extension("OES_texture_half_float");
-        enable_extension("OES_standard_derivatives");
-        enable_extension("OES_texture_float_linear");
-        enable_extension("OES_texture_half_float_linear");
-        enable_extension("EXT_color_buffer_float");
+    glfwSetWindowPosCallback(window, [](GLFWwindow* _window, int x, int y) {
+        if (fPixelDensity != getPixelDensity(true))
+            updateViewport();
+    });
 
-        emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, resize_callback);
+    glfwSetWindowSizeCallback(window, [](GLFWwindow* _window, int _w, int _h) {
+        setViewport(_w,_h);
+    });
 
-        // emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, key_callback);
+    // callback when the mouse cursor enters/leaves
+    glfwSetCursorEnterCallback(window, [](GLFWwindow* _window, int entered) {
+        mouse.entered = (bool)entered;
+    });
+
+
+    glfwSetMouseButtonCallback(window, [](GLFWwindow* _window, int _button, int _action, int _mods) {
+        mouse.button = _button;
+        if (_action == GLFW_PRESS) {
+            if (onMousePress)
+                onMousePress(mouse.x, mouse.y, mouse.button);
+        }
+        else {
+            if (onMouseRelease)
+                onMouseRelease(mouse.x, mouse.y, mouse.button);
+        }
+    });	
+
+    // callback when the mouse cursor moves
+    glfwSetCursorPosCallback(window, [](GLFWwindow* _window, double x, double y) {
+        // Convert x,y to pixel coordinates relative to viewport.
+        // (0,0) is lower left corner.
+        y = viewport.w - y;
+        x *= fPixelDensity;
+        y *= fPixelDensity;
+        // mouse.velX,mouse.velY is the distance the mouse cursor has moved
+        // since the last callback, during a drag gesture.
+        // mouse.drag is the previous mouse position, during a drag gesture.
+        // Note that mouse.drag is *not* constrained to the viewport.
+        mouse.velX = x - mouse.drag.x;
+        mouse.velY = y - mouse.drag.y;
+        mouse.drag.x = x;
+        mouse.drag.y = y;
+
+        // mouse.x,mouse.y is the current cursor position, constrained
+        // to the viewport.
+        mouse.x = x;
+        mouse.y = y;
+        if (mouse.x < 0) mouse.x = 0;
+        if (mouse.y < 0) mouse.y = 0;
+        if (mouse.x > getWindowWidth()) mouse.x = getWindowWidth();
+        if (mouse.y > getWindowHeight()) mouse.y = getWindowHeight();
+
+        /*
+            * TODO: the following code would best be moved into the
+            * mouse button callback. If you click the mouse button without
+            * moving the mouse, then using this code, the mouse click doesn't
+            * register until the cursor is moved. (@doug-moen)
+            */
+        int action1 = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1);
+        int action2 = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_2);
+        int button = 0;
+
+        if (action1 == GLFW_PRESS) button = 1;
+        else if (action2 == GLFW_PRESS) button = 2;
+
+        // Lunch events
+        if (mouse.button == 0 && button != mouse.button) {
+            mouse.button = button;
+            if (onMousePress)
+                onMousePress(mouse.x, mouse.y, mouse.button);
+        }
+        else {
+            mouse.button = button;
+        }
+
+        if (mouse.velX != 0.0 || mouse.velY != 0.0) {
+            if (button != 0) {
+                if (onMouseDrag)
+                    onMouseDrag(mouse.x, mouse.y, mouse.button);
+            }
+            else {
+                if (onMouseMove) 
+                    onMouseMove(mouse.x, mouse.y);
+            }
+        }
+    });
+
+#endif 
         
-        emscripten_set_mousedown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
-        emscripten_set_mouseup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
-        emscripten_set_mousemove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
-
-        emscripten_set_touchstart_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-        emscripten_set_touchend_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-        emscripten_set_touchmove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-        emscripten_set_touchcancel_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-
 #endif
-        
-    #endif
 
     setViewport(properties.screen_width, properties.screen_height);
 
-    #if defined(__EMSCRIPTEN__)
+#if defined(__EMSCRIPTEN__)
     update_canvas_size();
-    #endif
+#endif
 
     return 0;
 }
+
 // get Time Function
 double getTimeSec() {
     timespec now;
@@ -915,16 +898,16 @@ double getTimeSec() {
 
 bool isGL() {
  
-    #if defined(DRIVER_GLFW)
-        return !glfwWindowShouldClose(window);
+#if defined(DRIVER_GLFW)
+    return !glfwWindowShouldClose(window);
 
-    #elif defined(DRIVER_BROADCOM)
-        return bHostInited;
+#elif defined(DRIVER_BROADCOM)
+    return bHostInited;
 
-    #elif defined(DRIVER_GBM)
-        return true;
+#elif defined(DRIVER_GBM)
+    return true;
 
-    #endif
+#endif
 }
 
 void updateGL() {
@@ -952,163 +935,151 @@ void updateGL() {
 
     // EVENTS
     // --------------------------------------------------------------------
-    #if defined(DRIVER_GLFW)
-        glfwPollEvents();
+#if defined(DRIVER_GLFW)
+    glfwPollEvents();
+#else
+    if ( onMouseMove || onMousePress || onMouseDrag || onMouseRelease ) {
+        const int XSIGN = 1<<4, YSIGN = 1<<5;
+        static int fd = -1;
+        if (fd < 0) {
+            fd = open(properties.mouse.c_str(),O_RDONLY|O_NONBLOCK);
+        }
 
-    #else
-        #if defined(EVENTS_AS_CALLBACKS)
-        if ( onMouseMove || onMousePress || onMouseDrag || onMouseRelease )
-        #endif 
-        {
-            const int XSIGN = 1<<4, YSIGN = 1<<5;
-            static int fd = -1;
-            if (fd < 0) {
-                fd = open(properties.mouse.c_str(),O_RDONLY|O_NONBLOCK);
+        if (fd >= 0) {
+            // Set values to 0
+            mouse.velX=0;
+            mouse.velY=0;
+
+            // Extract values from driver
+            struct {char buttons, dx, dy; } m;
+            while (1) {
+                int bytes = read(fd, &m, sizeof m);
+
+                if (bytes < (int)sizeof m)
+                    return;
+                else if (m.buttons&8) 
+                    break; // This bit should always be set
+
+                read(fd, &m, 1); // Try to sync up again
             }
 
-            if (fd >= 0) {
-                // Set values to 0
-                mouse.velX=0;
-                mouse.velY=0;
+            // Set button value
+            int button = m.buttons&3;
+            if (button) mouse.button = button;
+            else mouse.button = 0;
 
-                // Extract values from driver
-                struct {char buttons, dx, dy; } m;
-                while (1) {
-                    int bytes = read(fd, &m, sizeof m);
+            // Set deltas
+            mouse.velX=m.dx;
+            mouse.velY=m.dy;
+            if (m.buttons&XSIGN) mouse.velX-=256;
+            if (m.buttons&YSIGN) mouse.velY-=256;
 
-                    if (bytes < (int)sizeof m)
-                        return;
-                    else if (m.buttons&8) 
-                        break; // This bit should always be set
+            // Add movement
+            mouse.x += mouse.velX;
+            mouse.y += mouse.velY;
 
-                    read(fd, &m, 1); // Try to sync up again
-                }
+            // Clamp values
+            if (mouse.x < 0) mouse.x=0;
+            if (mouse.y < 0) mouse.y=0;
+            if (mouse.x > viewport.z) mouse.x = viewport.z;
+            if (mouse.y > viewport.w) mouse.y = viewport.w;
 
-                // Set button value
-                int button = m.buttons&3;
-                if (button) mouse.button = button;
-                else mouse.button = 0;
-
-                // Set deltas
-                mouse.velX=m.dx;
-                mouse.velY=m.dy;
-                if (m.buttons&XSIGN) mouse.velX-=256;
-                if (m.buttons&YSIGN) mouse.velY-=256;
-
-                // Add movement
-                mouse.x += mouse.velX;
-                mouse.y += mouse.velY;
-
-                // Clamp values
-                if (mouse.x < 0) mouse.x=0;
-                if (mouse.y < 0) mouse.y=0;
-                if (mouse.x > viewport.z) mouse.x = viewport.z;
-                if (mouse.y > viewport.w) mouse.y = viewport.w;
-
-                // Lunch events
-                if (mouse.button == 0 && button != mouse.button) {
-                    mouse.button = button;
-                    #if defined(EVENTS_AS_CALLBACKS)
-                    if (onMousePress)
-                    #endif 
+            // Lunch events
+            if (mouse.button == 0 && button != mouse.button) {
+                mouse.button = button;
+                if (onMousePress)
                     onMousePress(mouse.x, mouse.y, mouse.button);
-                }
-                else if (mouse.button != 0 && button != mouse.button) {
-                    mouse.button = button;
-                    #if defined(EVENTS_AS_CALLBACKS)
-                    if (onMouseRelease)
-                    #endif 
+            }
+            else if (mouse.button != 0 && button != mouse.button) {
+                mouse.button = button;
+                if (onMouseRelease)
                     onMouseRelease(mouse.x, mouse.y, mouse.button);
-                }
-                else
-                    mouse.button = button;
+            }
+            else
+                mouse.button = button;
 
-                if (mouse.velX != 0.0 || mouse.velY != 0.0) {
-                    if (button != 0) {
-                        #if defined(EVENTS_AS_CALLBACKS)
-                        if (onMouseDrag)
-                        #endif 
+            if (mouse.velX != 0.0 || mouse.velY != 0.0) {
+                if (button != 0) {
+                    if (onMouseDrag)
                         onMouseDrag(mouse.x, mouse.y, mouse.button);
-                    }
-                    else {
-                        #if defined(EVENTS_AS_CALLBACKS)
-                        if (onMouseMove)
-                        #endif 
+                }
+                else {
+                    if (onMouseMove)
                         onMouseMove(mouse.x, mouse.y);
-                    }
                 }
             }
         }
-    #endif
+    }
+#endif
 }
 
 void renderGL(){
-    // NON GLFW
-    #if defined(DRIVER_GLFW)
-        glfwSwapBuffers(window);
+// NON GLFW
+#if defined(DRIVER_GLFW)
+    glfwSwapBuffers(window);
 
-    #else
-        eglSwapBuffers(display, surface);
-        #if defined(DRIVER_GBM)
-        gbmSwapBuffers();
-        #endif
-
+#else
+    eglSwapBuffers(display, surface);
+    #if defined(DRIVER_GBM)
+    gbmSwapBuffers();
     #endif
+
+#endif
 }
 
 void closeGL(){
-    // NON GLFW
-    #if defined(DRIVER_GLFW)
-        glfwSetWindowShouldClose(window, GL_TRUE);
-        glfwTerminate();
+// NON GLFW
+#if defined(DRIVER_GLFW)
+    glfwSetWindowShouldClose(window, GL_TRUE);
+    glfwTerminate();
 
-    #else
-        eglSwapBuffers(display, surface);
+#else
+    eglSwapBuffers(display, surface);
 
-        // Release OpenGL resources
-        eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-        eglDestroySurface(display, surface);
-        eglDestroyContext(display, context);
-        eglTerminate(display);
-        eglReleaseThread();
+    // Release OpenGL resources
+    eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    eglDestroySurface(display, surface);
+    eglDestroyContext(display, context);
+    eglTerminate(display);
+    eglReleaseThread();
 
-        #if defined(DRIVER_BROADCOM)
-        vc_dispmanx_display_close(dispman_display);
-        bcm_host_deinit();
+    #if defined(DRIVER_BROADCOM)
+    vc_dispmanx_display_close(dispman_display);
+    bcm_host_deinit();
 
-        #elif defined(DRIVER_GBM)
-        gbmClean();
-        close(device);
-        #endif
-
+    #elif defined(DRIVER_GBM)
+    gbmClean();
+    close(device);
     #endif
+
+#endif
 }
 
 
 //-------------------------------------------------------------
 void setWindowSize(int _width, int _height) {
-    #if defined(__EMSCRIPTEN__)
+#if defined(__EMSCRIPTEN__)
     setViewport((float)_width, (float)_height);
     glfwSetWindowSize(window, _width * getPixelDensity(true), _height * getPixelDensity(true));
     return;
 
-    #elif defined(DRIVER_GLFW) 
+#elif defined(DRIVER_GLFW) 
     glfwSetWindowSize(window, _width / getPixelDensity(true), _height / getPixelDensity(true));
-    #endif
+#endif
 
     setViewport((float)_width / getPixelDensity(true), (float)_height / getPixelDensity(true));
 }
 
 void setWindowTitle( const char* _title) {
-    #if defined(DRIVER_GLFW)
+#if defined(DRIVER_GLFW)
     glfwSetWindowTitle(window, _title);
-    #endif
+#endif
 }
 
 void setWindowVSync(bool _value) {
-    #if defined(DRIVER_GLFW)
+#if defined(DRIVER_GLFW)
     glfwSwapInterval(_value);
-    #endif
+#endif
 }
 
 void setViewport(float _width, float _height) {
@@ -1131,33 +1102,29 @@ void updateViewport() {
     orthoFlippedMatrix = glm::ortho(   (float)viewport.x * fPixelDensity, width, 
                                         height, (float)viewport.y * fPixelDensity);
 
-#if defined(EVENTS_AS_CALLBACKS)
     if (onViewportResize)
-#endif 
-    onViewportResize(width, height);
+        onViewportResize(width, height);
 }
 
 void getScreenSize() {
-    {
-    #if defined(DRIVER_GLFW)
-        // glfwGetMonitorPhysicalSize(glfwGetPrimaryMonitor(), &screen.x, &screen.y);
-        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-        screen_width = mode->width;
-        screen_height = mode->height;
+#if defined(DRIVER_GLFW)
+    // glfwGetMonitorPhysicalSize(glfwGetPrimaryMonitor(), &screen.x, &screen.y);
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+    screen_width = mode->width;
+    screen_height = mode->height;
 
-    #elif defined(DRIVER_BROADCOM)
-        initHost();
-        int32_t success = graphics_get_display_size(0 /* LCD */, &screen_width, &screen_height);
-        assert(success >= 0);
+#elif defined(DRIVER_BROADCOM)
+    initHost();
+    int32_t success = graphics_get_display_size(0 /* LCD */, &screen_width, &screen_height);
+    assert(success >= 0);
 
-    #elif defined(DRIVER_GBM)
-        initHost();
-        screen_width = mode.hdisplay;
-        screen_height = mode.vdisplay;
+#elif defined(DRIVER_GBM)
+    initHost();
+    screen_width = mode.hdisplay;
+    screen_height = mode.vdisplay;
 
-    #endif
-    }
+#endif
 }
 
 int getScreenWidth() {
@@ -1173,20 +1140,20 @@ int getScreenHeight() {
 }
 
 bool isFullscreen() {
-    #if defined(__EMSCRIPTEN__)
+#if defined(__EMSCRIPTEN__)
     return properties.style == FULLSCREEN;
-    #elif defined(DRIVER_GLFW)
+#elif defined(DRIVER_GLFW)
     return glfwGetWindowMonitor( window ) != nullptr;
-    #else 
+#else 
     return properties.style == FULLSCREEN;
-    #endif
+#endif
 }
 
 void setFullscreen(bool _fullscreen) {
     if ( isFullscreen() == _fullscreen )
         return;
 
-    #if defined(__EMSCRIPTEN__)
+#if defined(__EMSCRIPTEN__)
     if ( _fullscreen ) {
         properties.style = FULLSCREEN;
 
@@ -1203,7 +1170,7 @@ void setFullscreen(bool _fullscreen) {
         properties.style = FULLSCREEN;
     }
     
-    #elif defined(DRIVER_GLFW)
+#elif defined(DRIVER_GLFW)
 
     if ( _fullscreen ) {
         // backup window position and window size
@@ -1224,30 +1191,25 @@ void setFullscreen(bool _fullscreen) {
         properties.style = REGULAR;
     }
 
-
-    #endif
+#endif
 }
 
-void setPixelDensity(float _density) {
-    fPixelDensity = _density;
-}
-
+void setPixelDensity(float _density) { fPixelDensity = _density; }
 float getPixelDensity(bool _compute) {
     if (_compute) {
-    #if defined(__EMSCRIPTEN__)
+#if defined(__EMSCRIPTEN__)
         return emscripten_get_device_pixel_ratio();
-    #elif defined(DRIVER_GLFW)
+#elif defined(DRIVER_GLFW)
         int window_width, window_height, framebuffer_width, framebuffer_height;
         glfwGetWindowSize(window, &window_width, &window_height);
         glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
         return float(framebuffer_width)/float(window_width);
-    #else
+#else
         return fPixelDensity;
-    #endif
+#endif
     }
-    else {
+    else
         return fPixelDensity;
-    }
 }
 
 const glm::ivec4& getViewport() { return viewport; }
@@ -1295,31 +1257,30 @@ size_t getWebGLVersionNumber() {
 #endif
 
 glm::vec4 getDate() {
-    #if defined(_MSC_VER)
-        time_t tv = time(NULL);
+#if defined(_MSC_VER)
+    time_t tv = time(NULL);
 
-        struct tm tm_struct;
-        struct tm* tm = &tm_struct;
-        errno_t err = localtime_s(tm, &tv);
-        if (err)
-        {
-                
-        }
+    struct tm tm_struct;
+    struct tm* tm = &tm_struct;
+    errno_t err = localtime_s(tm, &tv);
+    if (err) {
+            
+    }
 
-        return glm::vec4(tm->tm_year + 1900,
-            tm->tm_mon,
-            tm->tm_mday,
-            tm->tm_hour * 3600.0f + tm->tm_min * 60.0f + tm->tm_sec);
-    #else
-        gettimeofday(&tv, NULL);
-        struct tm *tm;
-        tm = localtime(&tv.tv_sec);
-        // std::cout << "y: " << tm->tm_year+1900 << " m: " << tm->tm_mon << " d: " << tm->tm_mday << " s: " << tm->tm_hour*3600.0f+tm->tm_min*60.0f+tm->tm_sec+tv.tv_usec*0.000001 << std::endl;
-        return glm::vec4(tm->tm_year + 1900,
-            tm->tm_mon,
-            tm->tm_mday,
-            tm->tm_hour * 3600.0f + tm->tm_min * 60.0f + tm->tm_sec + tv.tv_usec * 0.000001);
-    #endif 
+    return glm::vec4(tm->tm_year + 1900,
+        tm->tm_mon,
+        tm->tm_mday,
+        tm->tm_hour * 3600.0f + tm->tm_min * 60.0f + tm->tm_sec);
+#else
+    gettimeofday(&tv, NULL);
+    struct tm *tm;
+    tm = localtime(&tv.tv_sec);
+    // std::cout << "y: " << tm->tm_year+1900 << " m: " << tm->tm_mon << " d: " << tm->tm_mday << " s: " << tm->tm_hour*3600.0f+tm->tm_min*60.0f+tm->tm_sec+tv.tv_usec*0.000001 << std::endl;
+    return glm::vec4(tm->tm_year + 1900,
+        tm->tm_mon,
+        tm->tm_mday,
+        tm->tm_hour * 3600.0f + tm->tm_min * 60.0f + tm->tm_sec + tv.tv_usec * 0.000001);
+#endif 
 }
 
 double  getTime() { return elapseTime;}
