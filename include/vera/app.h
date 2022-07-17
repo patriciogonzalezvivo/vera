@@ -72,6 +72,7 @@ public:
     double  time, deltaTime;
     int     frameCount;
 
+    int     xrMode = -1;
 
 protected:
 

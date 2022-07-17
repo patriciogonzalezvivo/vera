@@ -282,7 +282,7 @@ void sdf(Image& _image) {
     sqrt(_image);
     autolevel(_image);
 
-    delete f;
+    delete [] f;
 }
 
 

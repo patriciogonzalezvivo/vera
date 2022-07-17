@@ -6,10 +6,13 @@
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
 // #define GLFW_INCLUDE_ES3
+
+#include <glm/gtc/type_ptr.hpp>
+#include "webxr.h"
+
 #endif
 
 namespace vera {
-
 
 #if defined(__EMSCRIPTEN__)
 EM_BOOL App::loop (double _time, void* _userData) {
@@ -36,7 +39,7 @@ void App::loop(double _time, App* _app) {
     renderGL();
 
     #if defined(__EMSCRIPTEN__)
-    return true;
+    return (_app->xrMode == -1);
     #endif
 }
 
@@ -61,7 +64,7 @@ void App::run(WindowProperties _properties) {
     post_setup = true;
 
 #ifdef EVENTS_AS_CALLBACKS
-    setViewportResizeCallback( [&](int _width, int _height) { 
+    setViewportResizeCallback( [&](int _width, int _height) {
         onViewportResize(_width, _height); 
         windowResized();
     } );
@@ -122,13 +125,81 @@ void App::run(WindowProperties _properties) {
         mouseReleased();
     } );
 
-
-    setScrollCallback( [&](float _yoffset) { onScroll(_yoffset); } );
+    setScrollCallback( [&](float _yoffset) { 
+        onScroll(_yoffset); 
+    } );
 #endif
 
 #if defined(__EMSCRIPTEN__)
-        // Run the loop 
+    // // Run the loop 
     emscripten_request_animation_frame_loop(loop, (void*)this);    
+
+    webxr_init(
+        /* Frame callback */
+        [](void* _userData, int _frameTime, WebXRRigidTransform* _headPose, WebXRView* _views, int _viewCount) {
+            App* _app = (App*)_userData;
+
+            float px = getPixelDensity();
+            float width = getWindowWidth();
+            float height = getWindowHeight();
+
+            _app->time = getTime();
+            _app->width = getWindowWidth();
+            _app->height = getWindowHeight();
+            _app->focused = getMouseEntered();
+            _app->deltaTime = getDelta();
+            _app->frameCount = _frameTime;
+
+            // Update
+            _app->update();
+            updateGL();
+
+            if (_app->auto_background_enabled)
+                clear(_app->auto_background_color);
+
+            for(int viewIndex = 0; viewIndex < _viewCount; viewIndex++) {
+                WebXRView view = _views[ viewIndex];
+                glViewport( view.viewport[0], view.viewport[1], view.viewport[2], view.viewport[3] );
+
+                Camera* cam = getCamera();
+                if (cam == nullptr)
+                    break;
+
+                cam->setViewport(view.viewport[2], view.viewport[3]);
+                cam->setTransformMatrix( glm::make_mat4(view.viewPose.matrix) );
+                cam->setProjection( glm::make_mat4(view.projectionMatrix) );
+
+                _app->draw();
+            }  
+
+            renderGL();
+        },
+        /* Session start callback */
+        [](void* _userData, int _mode) {
+            std::cout << "Session START callback" << std::endl;
+            App* app = (App*)_userData;
+            app->auto_background_color = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+            app->auto_background_enabled = true;
+            app->xrMode = _mode;
+            webxr_set_select_start_callback([](WebXRInputSource* _inputSource, void* _userData) { 
+                std::cout << "select_start_callback" << std::endl; 
+            }, _userData);
+
+            webxr_set_select_end_callback([](WebXRInputSource *_inputSource, void *_userData) { 
+                std::cout << "select_end_callback" << std::endl;
+            }, _userData);
+        },
+        /* Session end callback */
+        [](void* _userData, int _mode) {
+            std::cout << "Session END callback" << std::endl;
+            ((App*)_userData)->xrMode = -1;
+        },
+        /* Error callback */
+        [](void* _userData, int error) {
+            std::cout << "Error: " << error << std::endl;
+        },
+        /* userData */
+        this);
 #else
     
     // Render Loop
@@ -152,42 +223,43 @@ void App::background( const glm::vec4& _color ) {
 }
 
 void App::orbitControl() {
+    glEnable(GL_DEPTH_TEST);
+
+    if (xrMode != -1)
+        return;
+
     Camera* cam = getCamera();
 
-    if (cam) {
-        double aspect = width/height;
-        if (cam->getAspect() != aspect)
-            cam->setViewport(width, height);
-    }
+    if (cam == nullptr)
+        return;
+
+    double aspect = width/height;
+    if (cam->getAspect() != aspect)
+        cam->setViewport(width, height);
 
     if (mouseIsPressed) {
+        float dist = cam->getDistance();
 
-        if (cam) {
-            float dist = cam->getDistance();
+        if (mouseButton == 1) {
 
-            if (mouseButton == 1) {
+            // Left-button drag is used to rotate geometry.
+            if (fabs(movedX) < 50.0 && fabs(movedY) < 50.0) {
+                cameraLat -= getMouseVelX();
+                cameraLon -= getMouseVelY() * 0.5;
+                cam->orbit(cameraLat, cameraLon, dist);
+                cam->lookAt(glm::vec3(0.0));
+            }
+        } 
+        else if (mouseButton == 2) {
 
-                // Left-button drag is used to rotate geometry.
-                if (fabs(movedX) < 50.0 && fabs(movedY) < 50.0) {
-                    cameraLat -= getMouseVelX();
-                    cameraLon -= getMouseVelY() * 0.5;
-                    cam->orbit(cameraLat, cameraLon, dist);
-                    cam->lookAt(glm::vec3(0.0));
-                }
-            } 
-            else if (mouseButton == 2) {
-
-                // Right-button drag is used to zoom geometry.
-                dist += (-.008f * movedY);
-                if (dist > 0.0f) {
-                    cam->orbit(cameraLat, cameraLon, dist);
-                    cam->lookAt(glm::vec3(0.0));
-                }
+            // Right-button drag is used to zoom geometry.
+            dist += (-.008f * movedY);
+            if (dist > 0.0f) {
+                cam->orbit(cameraLat, cameraLon, dist);
+                cam->lookAt(glm::vec3(0.0));
             }
         }
     }
-
-    glEnable(GL_DEPTH_TEST);
 }
 
 }
