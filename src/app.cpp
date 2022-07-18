@@ -132,11 +132,11 @@ void App::run(WindowProperties _properties) {
 
 #if defined(__EMSCRIPTEN__)
     // // Run the loop 
-    emscripten_request_animation_frame_loop(loop, (void*)this);    
+    emscripten_request_animation_frame_loop(loop, (void*)this);
 
     webxr_init(
         /* Frame callback */
-        [](void* _userData, int _frameTime, WebXRRigidTransform* _headPose, WebXRView* _views, int _viewCount) {
+        [](void* _userData, int, WebXRRigidTransform* _headPose, WebXRView* _views, int _viewCount) {
             App* _app = (App*)_userData;
 
             float px = getPixelDensity();
@@ -148,7 +148,7 @@ void App::run(WindowProperties _properties) {
             _app->height = getWindowHeight();
             _app->focused = getMouseEntered();
             _app->deltaTime = getDelta();
-            _app->frameCount = _frameTime;
+            _app->frameCount++;
 
             // Update
             _app->update();
@@ -166,7 +166,16 @@ void App::run(WindowProperties _properties) {
                     break;
 
                 cam->setViewport(view.viewport[2], view.viewport[3]);
-                cam->setTransformMatrix( glm::make_mat4(view.viewPose.matrix) );
+
+                // cam->setPosition( glm::make_vec3(view.viewPose.position) * -1.0f );
+                
+                glm::mat4 t = glm::translate(glm::mat4(1.), glm::make_vec3(view.viewPose.position) );
+                glm::quat q = glm::quat(view.viewPose.orientation[3], view.viewPose.orientation[0], view.viewPose.orientation[1], view.viewPose.orientation[2]);
+                glm::vec3 e = glm::eulerAngles(q);
+                e.z = -e.z;
+                glm::mat4 r = glm::toMat4( glm::quat(e) );
+                
+                cam->setTransformMatrix( glm::inverse(t * r) );
                 cam->setProjection( glm::make_mat4(view.projectionMatrix) );
 
                 _app->draw();
@@ -178,21 +187,13 @@ void App::run(WindowProperties _properties) {
         [](void* _userData, int _mode) {
             std::cout << "Session START callback" << std::endl;
             App* app = (App*)_userData;
-            app->auto_background_color = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-            app->auto_background_enabled = true;
             app->xrMode = _mode;
-            webxr_set_select_start_callback([](WebXRInputSource* _inputSource, void* _userData) { 
-                std::cout << "select_start_callback" << std::endl; 
-            }, _userData);
-
-            webxr_set_select_end_callback([](WebXRInputSource *_inputSource, void *_userData) { 
-                std::cout << "select_end_callback" << std::endl;
-            }, _userData);
         },
         /* Session end callback */
         [](void* _userData, int _mode) {
             std::cout << "Session END callback" << std::endl;
             ((App*)_userData)->xrMode = -1;
+            emscripten_request_animation_frame_loop(loop, _userData);    
         },
         /* Error callback */
         [](void* _userData, int error) {
