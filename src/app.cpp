@@ -10,6 +10,16 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "webxr.h"
 
+static bool vr_enable = false;
+
+void vera_vr_enable() {
+    // commandsArgs.push_back( std::string(c) );
+    vr_enable = true;
+    std::cout << "VR ENABLED" << std::endl;
+    // webxr_request_session(WEBXR_SESSION_MODE_IMMERSIVE_VR, WEBXR_SESSION_FEATURE_LOCAL, WEBXR_SESSION_FEATURE_LOCAL);
+}
+
+
 #endif
 
 namespace vera {
@@ -84,8 +94,6 @@ void App::run(WindowProperties _properties) {
         pmouseX = _x - movedX;
         pmouseY = _y - movedY;
 
-        // mouseIsPressed = false;
-
         onMouseMove(_x, _y); 
         mouseMoved();
     } );
@@ -110,8 +118,6 @@ void App::run(WindowProperties _properties) {
 
         pmouseX = _x - movedX;
         pmouseY = _y - movedY;
-
-        // mouseIsPressed = true;
 
         mouseDragged();
         onMouseDrag(_x, _y, _button); 
@@ -157,35 +163,53 @@ void App::run(WindowProperties _properties) {
             if (_app->auto_background_enabled)
                 clear(_app->auto_background_color);
 
+            Camera* cam = getCamera();
+
+            if (cam == nullptr)
+                return;
+
+            webxr_set_projection_params(cam->getNearClip(), cam->getFarClip());
+
+            glm::vec3 cam_pos = cam->getPosition();
+            glm::vec3 head_pos = glm::make_vec3(_headPose->position);
+
             for(int viewIndex = 0; viewIndex < _viewCount; viewIndex++) {
                 WebXRView view = _views[ viewIndex];
                 glViewport( view.viewport[0], view.viewport[1], view.viewport[2], view.viewport[3] );
 
-                Camera* cam = getCamera();
-                if (cam == nullptr)
-                    break;
-
                 cam->setViewport(view.viewport[2], view.viewport[3]);
 
-                // cam->setPosition( glm::make_vec3(view.viewPose.position) * -1.0f );
-                
-                glm::mat4 t = glm::translate(glm::mat4(1.), glm::make_vec3(view.viewPose.position) );
-                glm::quat q = glm::quat(view.viewPose.orientation[3], view.viewPose.orientation[0], view.viewPose.orientation[1], view.viewPose.orientation[2]);
-                glm::vec3 e = glm::eulerAngles(q);
-                e.z = -e.z;
-                glm::mat4 r = glm::toMat4( glm::quat(e) );
-                
+                glm::mat4 t = glm::translate(glm::mat4(1.), glm::make_vec3(view.viewPose.position) + head_pos );
+                glm::mat4 r = glm::toMat4( glm::quat(view.viewPose.orientation[3], view.viewPose.orientation[0], view.viewPose.orientation[1], view.viewPose.orientation[2]) );
                 cam->setTransformMatrix( glm::inverse(t * r) );
+
+                cam->translate( cam_pos );
                 cam->setProjection( glm::make_mat4(view.projectionMatrix) );
 
                 _app->draw();
-            }  
+            } 
 
             renderGL();
+
+            cam->setPosition(cam_pos);
         },
         /* Session start callback */
         [](void* _userData, int _mode) {
             std::cout << "Session START callback" << std::endl;
+
+            // Camera* cam = getCamera();
+            // if (cam)
+            //     webxr_set_projection_params(cam->getNearClip(), cam->getFarClip());
+
+            // // TODO: select START/END callbacks
+            // webxr_set_select_start_callback([](WebXRInputSource *_inputSource, void *_userData) { 
+            //     printf("select_start_callback\n"); 
+            // }, _userData);
+
+            // webxr_set_select_end_callback([](WebXRInputSource *_inputSource, void *_userData) { 
+            //     printf("select_end_callback\n");
+            // }, _userData);
+
             App* app = (App*)_userData;
             app->xrMode = _mode;
         },
@@ -196,11 +220,30 @@ void App::run(WindowProperties _properties) {
             emscripten_request_animation_frame_loop(loop, _userData);    
         },
         /* Error callback */
-        [](void* _userData, int error) {
-            std::cout << "Error: " << error << std::endl;
+        [](void* _userData, int _error) {
+            switch (_error){
+                case WEBXR_ERR_API_UNSUPPORTED:
+                    std::cout << "WebXR unsupported in this browser." << std::endl;
+                    break;
+                case WEBXR_ERR_GL_INCAPABLE:
+                    std::cout << "GL context cannot be used to render to WebXR" << std::endl;
+                    break;
+                case WEBXR_ERR_SESSION_UNSUPPORTED:
+                    std::cout << "VR not supported on this device" << std::endl;
+                    break;
+                default:
+                    std::cout << "Unknown WebXR error with code" << std::endl;
+                }
         },
         /* userData */
         this);
+
+        webxr_is_session_supported(WEBXR_SESSION_MODE_IMMERSIVE_VR, [](int _mode, int _supported) {
+            if ((_mode == WEBXR_SESSION_MODE_IMMERSIVE_VR) && (_supported)) {
+                std::cout << "VR is supported. Requesting session" << std::endl;
+                webxr_request_session(WEBXR_SESSION_MODE_IMMERSIVE_VR, WEBXR_SESSION_FEATURE_LOCAL, WEBXR_SESSION_FEATURE_LOCAL);
+            } 
+        });
 #else
     
     // Render Loop
