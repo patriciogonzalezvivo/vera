@@ -18,6 +18,8 @@ VERA have an `App` class and a drawing API similar to [P5js's API](https://p5js.
 
 Ultimatelly VERA is designed to let artist code their works once and display them in a biffer range of surfaces. From native apps to custom displays powered by embebed systems such us [Raspberry Pi](https://www.raspberrypi.org/); or from holographic screen like those from [Looking Glass Factory](https://lookingglassfactory.com/), sandboxed web app (like [generative NFT projects](https://objkt.com/asset/hicetnunc/447619) ) to [AR/VR experiences through WebXR protocol](https://www.w3.org/TR/webxr/).
 
+[Here is very simple Hello World example app](https://patriciogonzalezvivo.github.io/vera_hello_world/). You can view and compile the [full project from here](https://github.com/patriciogonzalezvivo/vera_hello_world). 
+
 With your support will be possible to:
 - improve the documentation
 - bring more examples
