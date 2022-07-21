@@ -4,6 +4,7 @@
 #include "vera/ops/geom.h"
 
 #include "vera/ops/string.h"
+#include "vera/shaders/defaultShaders.h"
 
 namespace vera {
 
@@ -30,6 +31,22 @@ Model::Model(const std::string& _name, const Mesh &_mesh, const Material &_mat):
     setMaterial(_mat);
 }
 
+Model::~Model() {
+    clear();
+}
+
+void Model::clear() {
+    if (m_model_vbo) {
+        delete m_model_vbo;
+        m_model_vbo = nullptr;
+    }
+
+    if (m_bbox_vbo) {
+        delete m_bbox_vbo;
+        m_bbox_vbo = nullptr;
+    }
+}
+
 void Model::setName(const std::string& _str) {
     if (!m_name.empty())
         delDefine( "MODEL_NAME_" + toUpper( toUnderscore( purifyString(m_name) ) ) );
@@ -41,15 +58,17 @@ void Model::setName(const std::string& _str) {
 }
 
 void Model::addDefine(const std::string& _define, const std::string& _value) { 
-    m_shader.addDefine(_define, _value); 
+    m_shade.addDefine(_define, _value); 
+    m_shadow.addDefine(_define, _value); 
 }
 
 void Model::delDefine(const std::string& _define) { 
-    m_shader.delDefine(_define); 
+    m_shade.delDefine(_define);
+    m_shadow.delDefine(_define); 
 };
 
 void Model::printDefines() {
-    m_shader.printDefines();
+    m_shade.printDefines();
 }
 
 void Model::printVboInfo() {
@@ -101,36 +120,30 @@ bool Model::setGeom(const Mesh& _mesh) {
 }
 
 bool Model::setMaterial(const Material &_material) {
-    m_shader.mergeDefines(&_material);
+    m_shade.mergeDefines(&_material);
+    m_shadow.mergeDefines(&_material);
     return true;
 }
 
 bool Model::setShader(const std::string& _fragStr, const std::string& _vertStr, bool verbose) {
-    if (m_shader.isLoaded())
-        m_shader.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
+    if (m_shade.isLoaded())
+        m_shade.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
 
-    return m_shader.load( _fragStr, _vertStr, verbose);
-}
+    if (m_shadow.isLoaded())
+        m_shadow.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
 
-Model::~Model() {
-    clear();
-}
-
-void Model::clear() {
-    if (m_model_vbo) {
-        delete m_model_vbo;
-        m_model_vbo = nullptr;
-    }
-
-    if (m_bbox_vbo) {
-        delete m_bbox_vbo;
-        m_bbox_vbo = nullptr;
-    }
+    return  m_shade.load( _fragStr, _vertStr, verbose) && 
+            m_shadow.load( getDefaultSrc(FRAG_ERROR), _vertStr); // Use magenta frag error as a passthrough frag shader.
 }
 
 void Model::render() {
-    if (m_model_vbo && m_shader.isLoaded())
-        m_model_vbo->render(&m_shader);
+    if (m_model_vbo && m_shade.isLoaded())
+        m_model_vbo->render(&m_shade);
+}
+
+void Model::renderShadow() {
+    if (m_model_vbo && m_shadow.isLoaded())
+        m_model_vbo->render(&m_shadow);
 }
 
 void Model::render(Shader* _shader) {

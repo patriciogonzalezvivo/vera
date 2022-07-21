@@ -338,8 +338,10 @@ void setScrollCallback(std::function<void(float)>_callback) { onScroll = _callba
     }
 
     static EM_BOOL key_callback(int eventType, const EmscriptenKeyboardEvent *e, void* userData) {
-        if (eventType == EMSCRIPTEN_EVENT_KEYDOWN)
-            onKeyPress(e->keyCode);
+        if (eventType == EMSCRIPTEN_EVENT_KEYDOWN) {
+            if (onKeyPress)
+                onKeyPress(e->keyCode);
+        }
         
         return EM_TRUE;
     }
@@ -358,12 +360,14 @@ void setScrollCallback(std::function<void(float)>_callback) { onScroll = _callba
             mouse.drag.y = mouse.y;
             mouse.entered = true;
             mouse.button = 0;
-            onMousePress(mouse.x, mouse.y, mouse.button);
+            if (onMousePress)
+                onMousePress(mouse.x, mouse.y, mouse.button);
         } 
         else if (eventType == EMSCRIPTEN_EVENT_MOUSEUP) {
             mouse.entered = false;
             mouse.button = 0;
-            onMouseRelease(mouse.x, mouse.y, mouse.button);
+            if (onMouseRelease)
+                onMouseRelease(mouse.x, mouse.y, mouse.button);
         } 
         else if (eventType == EMSCRIPTEN_EVENT_MOUSEMOVE) {
             mouse.velX = x - mouse.drag.x;
@@ -384,15 +388,22 @@ void setScrollCallback(std::function<void(float)>_callback) { onScroll = _callba
             // Lunch events
             if (mouse.button == 0 && button != mouse.button) {
                 mouse.button = button;
-                onMousePress(mouse.x, mouse.y, mouse.button);
+                if (onMousePress)
+                    onMousePress(mouse.x, mouse.y, mouse.button);
             }
             else {
                 mouse.button = button;
             }
 
             if (mouse.velX != 0.0 || mouse.velY != 0.0) {
-                if (button != 0) onMouseDrag(mouse.x, mouse.y, mouse.button);
-                else onMouseMove(mouse.x, mouse.y);
+                if (button != 0) {
+                    if (onMouseDrag)
+                        onMouseDrag(mouse.x, mouse.y, mouse.button);
+                }
+                else {
+                    if (onMouseMove)
+                        onMouseMove(mouse.x, mouse.y);
+                }
             }
         } 
         else {
@@ -414,12 +425,14 @@ void setScrollCallback(std::function<void(float)>_callback) { onScroll = _callba
             mouse.drag.y = mouse.y;
             mouse.entered = true;
             mouse.button = 1;
-            onMousePress(mouse.x, mouse.y, mouse.button);
+            if (onMousePress)
+                onMousePress(mouse.x, mouse.y, mouse.button);
         } 
         else if (eventType == EMSCRIPTEN_EVENT_TOUCHEND) {
             mouse.entered = false;
             mouse.button = 0;
-            onMouseRelease(mouse.x, mouse.y, mouse.button);
+            if (onMouseRelease)
+                onMouseRelease(mouse.x, mouse.y, mouse.button);
         } 
         else if (eventType == EMSCRIPTEN_EVENT_TOUCHMOVE) {
             mouse.velX = x - mouse.drag.x;
@@ -431,14 +444,21 @@ void setScrollCallback(std::function<void(float)>_callback) { onScroll = _callba
             mouse.y = y;
 
             if (mouse.velX != 0.0 || mouse.velY != 0.0) {
-                if (mouse.button != 0) onMouseDrag(mouse.x, mouse.y, mouse.button);
-                else onMouseMove(mouse.x, mouse.y);
+                if (mouse.button != 0) {
+                    if (onMouseDrag)
+                        onMouseDrag(mouse.x, mouse.y, mouse.button);
+                }
+                else {
+                    if (onMouseMove)
+                        onMouseMove(mouse.x, mouse.y);
+                }
             }
         } 
         else if (eventType == EMSCRIPTEN_EVENT_TOUCHCANCEL) {
             mouse.entered = false;
             mouse.button = 0;
-            onMouseRelease(mouse.x, mouse.y, mouse.button);
+            if (onMouseRelease)
+                onMouseRelease(mouse.x, mouse.y, mouse.button);
 
         } 
         else {
@@ -754,10 +774,10 @@ int initGL(WindowProperties _prop) {
         }
     });
 
-    if (onScroll)
-        glfwSetScrollCallback(window, [](GLFWwindow* _window, double xoffset, double yoffset) {
+    glfwSetScrollCallback(window, [](GLFWwindow* _window, double xoffset, double yoffset) {
+        if (onScroll)
             onScroll(-yoffset * fPixelDensity);
-        });
+    });
 
 #if defined(__EMSCRIPTEN__)
     enable_extension("OES_texture_float");
@@ -769,8 +789,8 @@ int initGL(WindowProperties _prop) {
 
     emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, resize_callback);
 
-    // emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, key_callback);
-    
+    emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, key_callback);
+
     emscripten_set_mousedown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
     emscripten_set_mouseup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
     emscripten_set_mousemove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);

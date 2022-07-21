@@ -9,17 +9,6 @@
 
 #include <glm/gtc/type_ptr.hpp>
 #include "webxr.h"
-
-static bool vr_enable = false;
-
-void vera_vr_enable() {
-    // commandsArgs.push_back( std::string(c) );
-    vr_enable = true;
-    std::cout << "VR ENABLED" << std::endl;
-    // webxr_request_session(WEBXR_SESSION_MODE_IMMERSIVE_VR, WEBXR_SESSION_FEATURE_LOCAL, WEBXR_SESSION_FEATURE_LOCAL);
-}
-
-
 #endif
 
 namespace vera {
@@ -197,10 +186,6 @@ void App::run(WindowProperties _properties) {
         [](void* _userData, int _mode) {
             std::cout << "Session START callback" << std::endl;
 
-            // Camera* cam = getCamera();
-            // if (cam)
-            //     webxr_set_projection_params(cam->getNearClip(), cam->getFarClip());
-
             // // TODO: select START/END callbacks
             // webxr_set_select_start_callback([](WebXRInputSource *_inputSource, void *_userData) { 
             //     printf("select_start_callback\n"); 
@@ -240,7 +225,6 @@ void App::run(WindowProperties _properties) {
 
         webxr_is_session_supported(WEBXR_SESSION_MODE_IMMERSIVE_VR, [](int _mode, int _supported) {
             if ((_mode == WEBXR_SESSION_MODE_IMMERSIVE_VR) && (_supported)) {
-                std::cout << "VR is supported. Requesting session" << std::endl;
                 webxr_request_session(WEBXR_SESSION_MODE_IMMERSIVE_VR, WEBXR_SESSION_FEATURE_LOCAL, WEBXR_SESSION_FEATURE_LOCAL);
             } 
         });

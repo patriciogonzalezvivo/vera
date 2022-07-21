@@ -93,12 +93,12 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
         CubemapFace<float> **faces = new CubemapFace<float>*[6];
 
         if (m_height > m_width) {
-            if (m_width/6 == m_height) {
-                // Vertical Row
+            // Vertical Row
+            if (m_width/6 == m_height)
                 splitFacesFromVerticalRow<float>(data, m_width, m_height, faces);
-            }
+            
+            // Vertical Cross
             else {
-                // Vertical Cross
                 splitFacesFromVerticalCross<float>(data, m_width, m_height, faces);
 
                 // adjust NEG_Z face
@@ -110,18 +110,17 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
         }
         else {
 
-            if (m_width/2 == m_height)  {
-                // Equilatera
+            // Equilatera
+            if (m_width/2 == m_height)
                 splitFacesFromEquirectangular<float>(data, m_width, m_height, faces);
-            }
-            else if (m_width/6 == m_height) {
-                // Horizontal Row
+            
+            // Horizontal Row
+            else if (m_width/6 == m_height)
                 splitFacesFromHorizontalRow<float>(data, m_width, m_height, faces);
-            }
-            else {
-                // Horizontal Cross
+            
+            // Horizontal Cross
+            else
                 splitFacesFromHorizontalCross<float>(data, m_width, m_height, faces);
-            }
         }
 
         for (int i = 0; i < 6; i++) {
@@ -138,11 +137,10 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
 
     }
 
-    for (int i = 0; i < 9; i++) {
+    for (int i = 0; i < 9; i++)
         SH[i] = SH[i] * (32.0f / (float)sh_samples);
-    }
 
-#if defined(PLATFORM_RPI) || defined(DRIVER_GBM)
+#if defined(PLATFORM_RPI) || defined(DRIVER_GBM) || defined(__EMSCRIPTEN__)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -199,7 +197,7 @@ bool TextureCube::load(SkyData* _sky, int _width) {
     for (int i = 0; i < 9; i++)
         SH[i] = SH[i] * (32.0f / (float)sh_samples);
 
-#if defined(PLATFORM_RPI) || defined(DRIVER_GBM)
+#if defined(PLATFORM_RPI) || defined(DRIVER_GBM) || defined(__EMSCRIPTEN__)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

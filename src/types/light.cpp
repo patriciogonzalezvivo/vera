@@ -53,7 +53,7 @@ void Light::setPosition(const glm::vec3& _pos) {
     bUpdateShadowMap = true;
 }
 
-glm::mat4 Light::getMVPMatrix( const glm::mat4 &_model, float _area) {
+glm::mat4 Light::getMVPMatrix(const glm::mat4 &_model, float _area) {
     // TODO:
     //      - Extend this to match different light types and not just directional
 
@@ -95,7 +95,6 @@ void Light::bindShadowMap() {
         m_shadowMap.allocate(1024, 1024, COLOR_DEPTH_TEXTURES);
 
     m_shadowMap.bind();
-
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 }
@@ -104,6 +103,7 @@ void Light::unbindShadowMap() {
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     m_shadowMap.unbind();
+    
     glViewport(m_viewport[0], m_viewport[1], m_viewport[2], m_viewport[3]);
 }
 

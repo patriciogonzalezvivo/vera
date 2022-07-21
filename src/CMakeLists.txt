@@ -66,6 +66,7 @@ set(VERA_SOURCES
     ${SOURCE_FOLDER}/types/triangle.cpp
     ${SOURCE_FOLDER}/shaders/defaultShaders.cpp
     ${SOURCE_FOLDER}/xr/holoPlay.cpp 
+    ${SOURCE_FOLDER}/xr/xr.cpp 
 )
 
 # C++ LIBRAY
