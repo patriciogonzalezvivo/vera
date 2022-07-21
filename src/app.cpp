@@ -170,9 +170,6 @@ void App::run(WindowProperties _properties) {
                 glm::mat4 r = glm::toMat4( glm::quat(view.viewPose.orientation[3], view.viewPose.orientation[0], view.viewPose.orientation[1], view.viewPose.orientation[2]) );
                 cam->setTransformMatrix( glm::translate( glm::inverse(t * r), cam_pos) );
                 cam->setProjection( glm::make_mat4(view.projectionMatrix) );
-
-                // cam->translate( cam_pos );
-
                 _app->draw();
             } 
 
