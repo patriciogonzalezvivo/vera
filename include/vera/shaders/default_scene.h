@@ -8,6 +8,9 @@ precision mediump float;
 #endif
 
 uniform mat4    u_modelViewProjectionMatrix;
+uniform mat4    u_projectionMatrix;
+uniform mat4    u_modelMatrix;
+uniform mat4    u_viewMatrix;
 
 attribute vec4  a_position;
 varying vec4    v_position;
@@ -40,7 +43,7 @@ varying vec4    v_lightCoord;
 
 void main(void) {
     
-    v_position = a_position;
+    v_position = u_modelMatrix * a_position;
     
 #ifdef MODEL_VERTEX_COLOR
     v_color = a_color;
@@ -65,7 +68,7 @@ void main(void) {
     v_lightCoord = u_lightMatrix * v_position;
 #endif
     
-    gl_Position = u_modelViewProjectionMatrix * v_position;
+    gl_Position = u_projectionMatrix * u_viewMatrix * v_position;
 }
 )";
 
@@ -75,6 +78,9 @@ precision mediump float;
 #endif
 
 uniform mat4    u_modelViewProjectionMatrix;
+uniform mat4    u_modelMatrix;
+uniform mat4    u_viewMatrix;
+uniform mat4    u_projectionMatrix;
 
 in      vec4    a_position;
 out     vec4    v_position;
@@ -565,7 +571,6 @@ float shadow() {
 #define FNC_REFLECTION
 
 vec3 reflection(vec3 _V, vec3 _N, float _roughness) {
-        // Reflect
 #ifdef MATERIAL_ANISOTROPY
     vec3  anisotropicT = MATERIAL_ANISOTROPY_DIRECTION;
     vec3  anisotropicB = MATERIAL_ANISOTROPY_DIRECTION;
@@ -1935,9 +1940,9 @@ vec4 pbr(const Material _mat) {
     vec3    diffuseColor = _mat.baseColor.rgb * (vec3(1.0) - _mat.f0) * (1.0 - _mat.metallic);
     vec3    specularColor = mix(_mat.f0, _mat.baseColor.rgb, _mat.metallic);
 
-    vec3    N = _mat.normal;                             // Normal
+    vec3    N = _mat.normal;                            // Normal
     vec3    V = normalize(u_camera - v_position.xyz);   // View
-    float NoV = dot(N, V);                            // Normal . View
+    float NoV = dot(N, V);                              // Normal . View
     float f0  = max(_mat.f0.r, max(_mat.f0.g, _mat.f0.b));
     float roughness = _mat.roughness;
     

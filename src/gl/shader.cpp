@@ -7,6 +7,7 @@
 #include "vera/ops/string.h"
 #include "vera/gl/shader.h"
 #include "vera/shaders/defaultShaders.h"
+#include "vera/xr/xr.h"
 
 #include "glm/gtc/type_ptr.hpp"
 
@@ -29,9 +30,12 @@ Shader::Shader():
     
     #elif defined(PLATFORM_RPI)
     addDefine("PLATFORM_RPI");
-    
+
     #elif defined(__EMSCRIPTEN__)
-    addDefine("PLATFORM_WEBGL");//, toString(getWebGLVersionNumber()) );
+    addDefine("PLATFORM_WEBGL");//, toString(getWebGLVersionNumber()));
+
+    if (getXR() != NONE_XR_MODE)
+        addDefine("PLATFORM_WEBXR", toString((int)getXR()));
     
     #else
     addDefine("PLATFORM_LINUX");
