@@ -24,7 +24,6 @@ XrMode  getXR();
 
 #if defined(__EMSCRIPTEN__)
 void requestXR(XrMode _mode); 
-void setCameraForXRView(Camera* _cam, WebXRView* _view, glm::vec3 _offset = glm::vec3(0.0f));
 #endif
 
 }

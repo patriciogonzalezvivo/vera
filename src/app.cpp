@@ -38,7 +38,7 @@ void App::loop(double _time, App* _app) {
     renderGL();
 
     #if defined(__EMSCRIPTEN__)
-    return (_app->xrMode == -1);
+    return (getXR() == NONE_XR_MODE);
     #endif
 }
 
@@ -165,15 +165,13 @@ void App::run(WindowProperties _properties) {
             for(int viewIndex = 0; viewIndex < _viewCount; viewIndex++) {
                 WebXRView view = _views[ viewIndex];
                 glViewport( view.viewport[0], view.viewport[1], view.viewport[2], view.viewport[3] );
-
                 cam->setViewport(view.viewport[2], view.viewport[3]);
-
                 glm::mat4 t = glm::translate(glm::mat4(1.), glm::make_vec3(view.viewPose.position) + head_pos );
                 glm::mat4 r = glm::toMat4( glm::quat(view.viewPose.orientation[3], view.viewPose.orientation[0], view.viewPose.orientation[1], view.viewPose.orientation[2]) );
-                cam->setTransformMatrix( glm::inverse(t * r) );
-
-                cam->translate( cam_pos );
+                cam->setTransformMatrix( glm::translate( glm::inverse(t * r), cam_pos) );
                 cam->setProjection( glm::make_mat4(view.projectionMatrix) );
+
+                // cam->translate( cam_pos );
 
                 _app->draw();
             } 
@@ -184,7 +182,8 @@ void App::run(WindowProperties _properties) {
         },
         /* Session start callback */
         [](void* _userData, int _mode) {
-            std::cout << "Session START callback" << std::endl;
+            std::cout << "Session START XR mode " << _mode << std::endl;
+            setXR((XrMode)_mode);
 
             // // TODO: select START/END callbacks
             // webxr_set_select_start_callback([](WebXRInputSource *_inputSource, void *_userData) { 
@@ -194,14 +193,12 @@ void App::run(WindowProperties _properties) {
             // webxr_set_select_end_callback([](WebXRInputSource *_inputSource, void *_userData) { 
             //     printf("select_end_callback\n");
             // }, _userData);
-
-            App* app = (App*)_userData;
-            app->xrMode = _mode;
+            
         },
         /* Session end callback */
         [](void* _userData, int _mode) {
             std::cout << "Session END callback" << std::endl;
-            ((App*)_userData)->xrMode = -1;
+            setXR(NONE_XR_MODE);
             emscripten_request_animation_frame_loop(loop, _userData);    
         },
         /* Error callback */
@@ -253,7 +250,7 @@ void App::background( const glm::vec4& _color ) {
 void App::orbitControl() {
     glEnable(GL_DEPTH_TEST);
 
-    if (xrMode != -1)
+    if (getXR() > 0)
         return;
 
     Camera* cam = getCamera();

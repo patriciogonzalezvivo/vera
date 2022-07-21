@@ -24,13 +24,6 @@ void requestXR(XrMode _mode) {
     }
 }
 
-void setCameraForXRView(Camera* _cam, WebXRView* _view, glm::vec3 _offset) {
-    _cam->setViewport(_view->viewport[2], _view->viewport[3]);
-    glm::mat4 t = glm::translate(glm::mat4(1.), glm::make_vec3(_view->viewPose.position) + _offset );
-    glm::mat4 r = glm::toMat4( glm::quat(_view->viewPose.orientation[3], _view->viewPose.orientation[0], _view->viewPose.orientation[1], _view->viewPose.orientation[2]) );
-    _cam->setTransformMatrix( glm::inverse(t * r) );
-    _cam->setProjection( glm::make_mat4(_view->projectionMatrix) );
-}
 #endif
 
 }

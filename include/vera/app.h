@@ -6,6 +6,7 @@
 
 #include "window.h"
 #include "ops/draw.h"
+#include "xr/xr.h"
 
 #include <math.h>
 
@@ -71,8 +72,6 @@ public:
 
     double  time, deltaTime;
     int     frameCount;
-
-    int     xrMode = -1;
 
 protected:
 
