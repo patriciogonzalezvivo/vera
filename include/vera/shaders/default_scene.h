@@ -11,6 +11,7 @@ uniform mat4    u_modelViewProjectionMatrix;
 uniform mat4    u_projectionMatrix;
 uniform mat4    u_modelMatrix;
 uniform mat4    u_viewMatrix;
+uniform mat3    u_normalMatrix;
 
 attribute vec4  a_position;
 varying vec4    v_position;
@@ -43,7 +44,7 @@ varying vec4    v_lightCoord;
 
 void main(void) {
     
-    v_position = u_modelMatrix * a_position;
+    v_position = a_position;
     
 #ifdef MODEL_VERTEX_COLOR
     v_color = a_color;
@@ -68,7 +69,7 @@ void main(void) {
     v_lightCoord = u_lightMatrix * v_position;
 #endif
     
-    gl_Position = u_projectionMatrix * u_viewMatrix * v_position;
+    gl_Position = u_projectionMatrix * u_viewMatrix * u_modelMatrix * v_position;
 }
 )";
 
@@ -142,7 +143,6 @@ void main(void) {
 )";
 
 const std::string default_scene_frag0 = R"(
-
 #ifdef GL_ES
 precision mediump float;
 #endif
@@ -571,6 +571,8 @@ float shadow() {
 #define FNC_REFLECTION
 
 vec3 reflection(vec3 _V, vec3 _N, float _roughness) {
+    return reflect(_V, _N);
+
 #ifdef MATERIAL_ANISOTROPY
     vec3  anisotropicT = MATERIAL_ANISOTROPY_DIRECTION;
     vec3  anisotropicB = MATERIAL_ANISOTROPY_DIRECTION;
@@ -1941,7 +1943,7 @@ vec4 pbr(const Material _mat) {
     vec3    specularColor = mix(_mat.f0, _mat.baseColor.rgb, _mat.metallic);
 
     vec3    N = _mat.normal;                            // Normal
-    vec3    V = normalize(u_camera - v_position.xyz);   // View
+    vec3    V = normalize(v_position.xyz - u_camera);   // View
     float NoV = dot(N, V);                              // Normal . View
     float f0  = max(_mat.f0.r, max(_mat.f0.g, _mat.f0.b));
     float roughness = _mat.roughness;

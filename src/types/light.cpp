@@ -9,7 +9,7 @@ Light::Light():
     direction(0.0),
     intensity(1.0),
     falloff(-1.0),
-    bUpdateShadowMap(true),
+    // bUpdateShadowMap(true),
     m_mvp_biased(1.0), 
     m_mvp(1.0), 
     m_lightType(LIGHT_DIRECTIONAL) {
@@ -48,62 +48,65 @@ Light::Light(glm::vec3 _pos, glm::vec3 _dir, float _falloff): m_mvp_biased(1.0),
 Light::~Light() {
 }
 
-void Light::setPosition(const glm::vec3& _pos) {
-    Node::setPosition(_pos);
-    bUpdateShadowMap = true;
-}
+// void Light::setPosition(const glm::vec3& _pos) {
+//     Node::setPosition(_pos);
+//     bUpdateShadowMap = true;
+// }
 
-glm::mat4 Light::getMVPMatrix(const glm::mat4 &_model, float _area) {
+const glm::mat4& Light::getMVPMatrix( const glm::mat4 &_model, float _area) {
     // TODO:
     //      - Extend this to match different light types and not just directional
 
     if (bChange) {
         // From http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-16-shadow-mapping
-        // _area *= 2.0;
+        _area *= 2.0;
         m_near = -_area * 2.0;
         m_far = _area * 4.0;
 
         // Compute the MVP matrix from the light's point of view
-        glm::mat4 depthProjectionMatrix = glm::ortho<float>(-_area, _area, -_area, _area, m_near, m_far);
-        glm::mat4 depthViewMatrix = glm::lookAt(glm::normalize(getPosition()), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
-        m_mvp = depthProjectionMatrix * depthViewMatrix * _model;
+        m_projectionMatrix = glm::ortho<float>(-_area, _area, -_area, _area, m_near, m_far);
+        m_viewMatrix = glm::lookAt(glm::normalize(getPosition()), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+        m_mvp = m_projectionMatrix * m_viewMatrix * _model;
 
         // Make biased MVP matrix (0 ~ 1) instad of (-1 to 1)
-        glm::mat4 biasMatrix(
+        const glm::mat4 biasMatrix(
             0.5, 0.0, 0.0, 0.0,
             0.0, 0.5, 0.0, 0.0,
             0.0, 0.0, 0.5, 0.0,
             0.5, 0.5, 0.5, 1.0
         );
+
         m_mvp_biased = biasMatrix * m_mvp;
 
-        bUpdateShadowMap = true;
+        // bUpdateShadowMap = true;
         bChange = false;
     }
 
     return m_mvp;
 }
 
-glm::mat4 Light::getBiasMVPMatrix() {
-    return m_mvp_biased;
-}
-
 void Light::bindShadowMap() {
     glGetIntegerv(GL_VIEWPORT, m_viewport);
 
     if (m_shadowMap.getDepthTextureId() == 0)
-        m_shadowMap.allocate(1024, 1024, COLOR_DEPTH_TEXTURES);
+    #if defined(PLATFORM_RPI)
+        m_shadowMap.allocate(512, 512, DEPTH_TEXTURE);
+    #else
+        m_shadowMap.allocate(2048, 2048, DEPTH_TEXTURE);
+    #endif
 
-    m_shadowMap.bind();
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+    m_shadowMap.bind();
+
+    glClear(GL_DEPTH_BUFFER_BIT);
 }
 
 void Light::unbindShadowMap() {
+    m_shadowMap.unbind();
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
-    m_shadowMap.unbind();
-    
+
     glViewport(m_viewport[0], m_viewport[1], m_viewport[2], m_viewport[3]);
 }
 

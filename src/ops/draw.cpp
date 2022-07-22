@@ -586,8 +586,8 @@ void image(const Fbo *_fbo, float _x, float _y, float _width, float _height) {
     billboard_vbo->render( billboard_shader );
 }
 
-void imageDepth(const Fbo &_fbo, float _x, float _y, float _width, float _height, Camera* _cam) { imageDepth(&_fbo, _x, _y, _width, _height); }
-void imageDepth(const Fbo *_fbo, float _x, float _y, float _width, float _height, Camera* _cam) { 
+void imageDepth(const Fbo &_fbo, float _x, float _y, float _width, float _height, float _far, float _near) { imageDepth(&_fbo, _x, _y, _width, _height, _far, _near); }
+void imageDepth(const Fbo *_fbo, float _x, float _y, float _width, float _height, float _far, float _near) { 
     if (billboard_shader == nullptr) {
         billboard_shader = new Shader();
         billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD), false );
@@ -607,17 +607,8 @@ void imageDepth(const Fbo *_fbo, float _x, float _y, float _width, float _height
     billboard_shader->setUniformDepthTexture("u_tex0", _fbo, 0);
     billboard_shader->setUniform("u_tex0CurrentFrame", 0.0f );
     billboard_shader->setUniform("u_tex0TotalFrames", 0.0f );
-
-    if (_cam) {
-        billboard_shader->setUniform("u_cameraNearClip", _cam->getNearClip());
-        billboard_shader->setUniform("u_cameraFarClip", _cam->getFarClip());
-        billboard_shader->setUniform("u_cameraDistance", _cam->getDistance() );
-    }
-    else {
-        billboard_shader->setUniform("u_cameraNearClip", 0.001f);
-        billboard_shader->setUniform("u_cameraFarClip", 100.0f);
-        billboard_shader->setUniform("u_cameraDistance", 0.0f);
-    }
+    billboard_shader->setUniform("u_cameraNearClip", _near);
+    billboard_shader->setUniform("u_cameraFarClip", _far);
 
     billboard_vbo->render( billboard_shader );
 }
@@ -869,8 +860,8 @@ void shader(Shader* _program) {
             if (it->second->falloff > 0)
                 _program->setUniform("u_lightFalloff", it->second->falloff);
 
-            // _program->setUniform("u_lightMatrix", it->second->getBiasMVPMatrix() );
-            // _program->setUniformDepthTexture("u_lightSMaphadowMap", it->second->getShadowMap(), _program->textureIndex++ );
+            _program->setUniform("u_lightMatrix", it->second->getBiasMVPMatrix() );
+            _program->setUniformDepthTexture("u_lightShadowMap", it->second->getShadowMap(), _program->textureIndex++ );
         }
         else {
             for (LightsMap::iterator it = scene->lights.begin(); it != scene->lights.end(); ++it) {
@@ -886,7 +877,7 @@ void shader(Shader* _program) {
                     _program->setUniform(name +"Falloff", it->second->falloff);
 
                 _program->setUniform(name + "Matrix", it->second->getBiasMVPMatrix() );
-                // _program->setUniformDepthTexture(name + "ShadowMap", it->second->getShadowMap(), _shader->textureIndex++ );
+                _program->setUniformDepthTexture(name + "ShadowMap", it->second->getShadowMap(), _program->textureIndex++ );
             }
         } 
     }

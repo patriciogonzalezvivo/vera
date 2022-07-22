@@ -13,7 +13,7 @@ Model::Model():
     m_name(""), m_area(0.0f) {
 
     addDefine("LIGHT_SHADOWMAP", "u_lightShadowMap");
-    addDefine("LIGHT_SHADOWMAP_SIZE", "1024.0");
+    addDefine("LIGHT_SHADOWMAP_SIZE", "2048.0");
 }
 
 Model::Model(const std::string& _name, const Mesh &_mesh):
@@ -114,7 +114,7 @@ bool Model::setGeom(const Mesh& _mesh) {
         addDefine("MODEL_PRIMITIVE_TRIANGLE_FAN");
 
     addDefine("LIGHT_SHADOWMAP", "u_lightShadowMap");
-    addDefine("LIGHT_SHADOWMAP_SIZE", "1024.0");
+    addDefine("LIGHT_SHADOWMAP_SIZE", "2048.0");
 
     return true;
 }

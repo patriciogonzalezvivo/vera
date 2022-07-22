@@ -154,8 +154,8 @@ void image(const Fbo &_fbo);
 void image(const Fbo *_fbo);
 void image(const Fbo &_fbo, float _x, float _y, float _width = 0, float _height = 0);
 void image(const Fbo *_fbo, float _x, float _y, float _width = 0, float _height = 0);
-void imageDepth(const Fbo &_fbo, float _x, float _y, float _width = 0, float _height = 0, Camera* _cam = nullptr);
-void imageDepth(const Fbo *_fbo, float _x, float _y, float _width = 0, float _height = 0, Camera* _cam = nullptr);
+void imageDepth(const Fbo &_fbo, float _x, float _y, float _width = 0, float _height = 0, float _far = 100.0f, float _near = 0.001f);
+void imageDepth(const Fbo *_fbo, float _x, float _y, float _width = 0, float _height = 0, float _far = 100.0f, float _near = 0.001f);
 Vbo* getBillboard();
 
 // tint(v1, v2, v3, [alpha])
