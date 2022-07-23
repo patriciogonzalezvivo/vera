@@ -43,7 +43,8 @@ static double           elapseTime = 0.0;
 static double           delta = 0.0;
 static double           FPS = 0.0;
 static double           restSec = 0.0167; // default 60fps 
-static float            fPixelDensity = 1.0;
+static float            fPixelDensity = 1.0f;
+static float            yScroll = 0.0f;
 
 static bool             bShift = false;    
 static bool             bControl = false;    
@@ -415,58 +416,89 @@ void setScrollCallback(std::function<void(float)>_callback) { onScroll = _callba
     }
 
     static EM_BOOL touch_callback(int eventType, const EmscriptenTouchEvent *e, void *userData) {
-        float x = e->touches[0].targetX;
-        float y = viewport.w - e->touches[0].targetY;
+        float pd = getPixelDensity(true);
+        bool preventDefault = false;
 
-        if (eventType == EMSCRIPTEN_EVENT_TOUCHSTART) {
-            mouse.x = x;
-            mouse.y = y;
-            mouse.drag.x = mouse.x;
-            mouse.drag.y = mouse.y;
-            mouse.entered = true;
-            mouse.button = 1;
-            if (onMousePress)
-                onMousePress(mouse.x, mouse.y, mouse.button);
-        } 
-        else if (eventType == EMSCRIPTEN_EVENT_TOUCHEND) {
-            mouse.entered = false;
-            mouse.button = 0;
-            if (onMouseRelease)
-                onMouseRelease(mouse.x, mouse.y, mouse.button);
-        } 
-        else if (eventType == EMSCRIPTEN_EVENT_TOUCHMOVE) {
-            mouse.velX = x - mouse.drag.x;
-            mouse.velY = y - mouse.drag.y;
-            mouse.drag.x = x;
-            mouse.drag.y = y;
+        if (e->numTouches == 1) {
+            float x = e->touches[0].targetX;
+            float y = viewport.w - e->touches[0].targetY;
 
-            mouse.x = x;
-            mouse.y = y;
+            y *= pd;
+            x *= pd;
 
-            if (mouse.velX != 0.0 || mouse.velY != 0.0) {
-                if (mouse.button != 0) {
-                    if (onMouseDrag)
-                        onMouseDrag(mouse.x, mouse.y, mouse.button);
+            if (eventType == EMSCRIPTEN_EVENT_TOUCHSTART) {
+                mouse.x = x;
+                mouse.y = y;
+                mouse.drag.x = mouse.x;
+                mouse.drag.y = mouse.y;
+                mouse.entered = true;
+                mouse.button = 1;
+                if (onMousePress)
+                    onMousePress(mouse.x, mouse.y, mouse.button);
+            } 
+            else if (eventType == EMSCRIPTEN_EVENT_TOUCHEND) {
+                mouse.entered = false;
+                mouse.button = 0;
+                if (onMouseRelease)
+                    onMouseRelease(mouse.x, mouse.y, mouse.button);
+            } 
+            else if (eventType == EMSCRIPTEN_EVENT_TOUCHMOVE) {
+                mouse.velX = x - mouse.drag.x;
+                mouse.velY = y - mouse.drag.y;
+                mouse.drag.x = x;
+                mouse.drag.y = y;
+
+                mouse.x = x;
+                mouse.y = y;
+
+                if (mouse.velX != 0.0 || mouse.velY != 0.0) {
+                    if (mouse.button != 0) {
+                        if (onMouseDrag)
+                            onMouseDrag(mouse.x, mouse.y, mouse.button);
+                    }
+                    else {
+                        if (onMouseMove)
+                            onMouseMove(mouse.x, mouse.y);
+                    }
                 }
-                else {
-                    if (onMouseMove)
-                        onMouseMove(mouse.x, mouse.y);
-                }
+            } 
+            else if (eventType == EMSCRIPTEN_EVENT_TOUCHCANCEL) {
+                mouse.entered = false;
+                mouse.button = 0;
+                if (onMouseRelease)
+                    onMouseRelease(mouse.x, mouse.y, mouse.button);
+
+            } 
+            else {
+                printf("eventType is invalid. (%d)\n", eventType);
+                return false;
             }
-        } 
-        else if (eventType == EMSCRIPTEN_EVENT_TOUCHCANCEL) {
-            mouse.entered = false;
-            mouse.button = 0;
-            if (onMouseRelease)
-                onMouseRelease(mouse.x, mouse.y, mouse.button);
+            preventDefault = true;
+        }
+        else if (e->numTouches > 1) {
+            // float x0 = e->touches[0].targetX;
+            // float x1 = e->touches[1].targetX;
+            // float xAverage = (x0 + x1) * 0.5f;
 
-        } 
-        else {
-            printf("eventType is invalid. (%d)\n", eventType);
-            return false;
+            float y0 = viewport.w - e->touches[0].targetY;
+            float y1 = viewport.w - e->touches[1].targetY;
+            float yAverage = (y0 + y1) * 0.5f;
+
+            if (eventType == EMSCRIPTEN_EVENT_TOUCHSTART) {
+                yScroll = yAverage; 
+                preventDefault = true;
+            }
+            else if (eventType == EMSCRIPTEN_EVENT_TOUCHMOVE) {
+                if (onScroll)
+                    onScroll( (yAverage - yScroll) * pd );
+            }
+            else {
+                yScroll = 0.0f;
+                preventDefault = true;
+            }
         }
 
-        return EM_TRUE;
+        return preventDefault;
     }
 #endif
 
