@@ -94,6 +94,7 @@ const glm::mat4&  getFlippedOrthoMatrix();
 int         getWindowWidth();
 int         getWindowHeight();
 int         getWindowMSAA();
+WindowStyle getWindowStyle();
 
 
 // TIME

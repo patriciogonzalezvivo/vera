@@ -69,7 +69,7 @@ void main(void) {
     v_lightCoord = u_lightMatrix * v_position;
 #endif
     
-    gl_Position = u_projectionMatrix * u_viewMatrix * u_modelMatrix * v_position;
+    gl_Position = u_modelViewProjectionMatrix * v_position;
 }
 )";
 

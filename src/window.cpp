@@ -1238,6 +1238,7 @@ const glm::mat4& getFlippedOrthoMatrix() { return orthoFlippedMatrix; }
 int getWindowWidth() { return viewport.z * fPixelDensity; }
 int getWindowHeight() { return viewport.w * fPixelDensity; }
 int getWindowMSAA() { return properties.msaa; }
+WindowStyle getWindowStyle() { return properties.style; }
 
 std::string getVendor() {
     if (properties.vendor == "") properties.vendor = std::string((const char*)glGetString(GL_VENDOR));

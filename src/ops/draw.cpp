@@ -861,7 +861,7 @@ void shader(Shader* _program) {
                 _program->setUniform("u_lightFalloff", it->second->falloff);
 
             _program->setUniform("u_lightMatrix", it->second->getBiasMVPMatrix() );
-            _program->setUniformDepthTexture("u_lightShadowMap", it->second->getShadowMap(), _program->textureIndex++ );
+            // _program->setUniformDepthTexture("u_lightShadowMap", it->second->getShadowMap(), _program->textureIndex++ );
         }
         else {
             for (LightsMap::iterator it = scene->lights.begin(); it != scene->lights.end(); ++it) {
@@ -877,7 +877,7 @@ void shader(Shader* _program) {
                     _program->setUniform(name +"Falloff", it->second->falloff);
 
                 _program->setUniform(name + "Matrix", it->second->getBiasMVPMatrix() );
-                _program->setUniformDepthTexture(name + "ShadowMap", it->second->getShadowMap(), _program->textureIndex++ );
+                // _program->setUniformDepthTexture(name + "ShadowMap", it->second->getShadowMap(), _program->textureIndex++ );
             }
         } 
     }
