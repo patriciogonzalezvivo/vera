@@ -75,7 +75,7 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
 
     if (!m_vertexShader) {
         if (_onError == SHOW_MAGENTA_SHADER) {
-            load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), SHOW_MAGENTA_SHADER, false);
+            load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), DONT_KEEP_SHADER, false);
             return false;
         }
         else if (_onError == REVERT_TO_PREVIOUS_SHADER) {
@@ -102,7 +102,7 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
     glAttachShader(m_program, m_fragmentShader);
     glLinkProgram(m_program);
 
-    if (!SHOW_MAGENTA_SHADER) {
+    if (!DONT_KEEP_SHADER) {
         m_fragmentSource = _fragmentSrc;
         m_vertexSource = _vertexSrc;
     }
@@ -129,7 +129,7 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
             std::cerr << (unsigned)toInt(lineNum) << ": " << getLineNumber(_fragmentSrc,(unsigned)toInt(lineNum)) << std::endl;
         }
         glDeleteProgram(m_program);
-        load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), SHOW_MAGENTA_SHADER, false);
+        load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), DONT_KEEP_SHADER, false);
         return false;
     } 
     else {

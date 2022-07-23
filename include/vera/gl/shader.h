@@ -18,7 +18,9 @@ namespace vera {
 enum ShaderErrorResolve {
     REVERT_TO_PREVIOUS_SHADER = 0,
     SHOW_MAGENTA_SHADER,
-    KEEP_BROKEN_SHADER
+    DONT_KEEP_SHADER,
+    KEEP_BROKEN_SHADER,
+
 };
 
 class Shader : public HaveDefines {
