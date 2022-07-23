@@ -29,7 +29,7 @@ public:
 
     virtual void    clear();
 
-    virtual bool            isLoaded() const { return m_id != 0; };
+    virtual bool            loaded() const { return m_id != 0; };
     virtual const GLuint    getTextureId() const { return m_id; };
     virtual std::string     getFilePath() const { return m_path; };
     virtual int             getWidth() const { return m_width; };

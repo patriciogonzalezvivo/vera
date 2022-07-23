@@ -56,7 +56,12 @@ void Shader::operator = (const Shader &_parent ) {
     m_defineChange = true;
 }
 
-bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc, bool _verbose, bool _error_screen) {
+void Shader::setSource(const std::string& _fragmentSrc, const std::string& _vertexSrc) {
+    m_fragmentSource = _fragmentSrc;
+    m_vertexSource = _vertexSrc;
+}
+
+bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc, ShaderErrorResolve _onError, bool _verbose) {
     std::chrono::time_point<std::chrono::steady_clock> start_time, end_time;
     start_time = std::chrono::steady_clock::now();
     m_defineChange = false;
@@ -69,21 +74,23 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
     m_vertexShader = compileShader(_vertexSrc, GL_VERTEX_SHADER, _verbose);
 
     if (!m_vertexShader) {
-        if (_error_screen)
-            load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), false);
-        else
-            load(m_fragmentSource, m_vertexSource, false);
-
-        return false;
+        if (_onError == SHOW_MAGENTA_SHADER) {
+            load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), SHOW_MAGENTA_SHADER, false);
+            return false;
+        }
+        else if (_onError == REVERT_TO_PREVIOUS_SHADER) {
+            reload(SHOW_MAGENTA_SHADER, _verbose);
+            return false;
+        }
     }
 
     m_fragmentShader = compileShader(_fragmentSrc, GL_FRAGMENT_SHADER, _verbose);
 
     if (!m_fragmentShader) {
-        if (_error_screen)
-            load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), false);
-        else
-            load(m_fragmentSource, m_vertexSource, false);
+        if (_onError == SHOW_MAGENTA_SHADER)
+            load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), SHOW_MAGENTA_SHADER, false);
+        else if (_onError == REVERT_TO_PREVIOUS_SHADER)
+            reload(SHOW_MAGENTA_SHADER, _verbose);
     }
 
     if (m_program != 0)
@@ -95,8 +102,10 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
     glAttachShader(m_program, m_fragmentShader);
     glLinkProgram(m_program);
 
-    m_fragmentSource = _fragmentSrc;
-    m_vertexSource = _vertexSrc;
+    if (!SHOW_MAGENTA_SHADER) {
+        m_fragmentSource = _fragmentSrc;
+        m_vertexSource = _vertexSrc;
+    }
 
     end_time = std::chrono::steady_clock::now();
     std::chrono::duration<double> load_time = end_time - start_time;
@@ -120,7 +129,7 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
             std::cerr << (unsigned)toInt(lineNum) << ": " << getLineNumber(_fragmentSrc,(unsigned)toInt(lineNum)) << std::endl;
         }
         glDeleteProgram(m_program);
-        load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), false);
+        load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), SHOW_MAGENTA_SHADER, false);
         return false;
     } 
     else {
@@ -147,8 +156,8 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
     }
 }
 
-bool Shader::reload(bool _verbose) {
-    return load(m_fragmentSource, m_vertexSource, _verbose);
+bool Shader::reload(ShaderErrorResolve _onError, bool _verbose) {
+    return load(m_fragmentSource, m_vertexSource, _onError, _verbose);
 }
 
 const GLint Shader::getAttribLocation(const std::string& _attribute) const {
@@ -158,20 +167,20 @@ const GLint Shader::getAttribLocation(const std::string& _attribute) const {
 void Shader::use() {
     textureIndex = 0;
 
-    if (m_defineChange)
-        reload(false);
+    if (m_defineChange || !loaded() )
+        reload(SHOW_MAGENTA_SHADER, false);
 
-    if (!isInUse())
+    if (!inUse())
         glUseProgram(getProgram());
 }
 
-bool Shader::isInUse() const {
+bool Shader::inUse() const {
     GLint currentProgram = 0;
     glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
     return (getProgram() == (GLuint)currentProgram);
 }
 
-bool Shader::isLoaded() const {
+bool Shader::loaded() const {
     return m_program != 0;
 }
 
@@ -367,27 +376,27 @@ GLint Shader::getUniformLocation(const std::string& _uniformName) const {
 }
 
 void Shader::setUniform(const std::string& _name, int _x) {
-    if (isInUse()) {
+    if (inUse()) {
         glUniform1i(getUniformLocation(_name), _x);
     }
 }
 
 void Shader::setUniform(const std::string& _name, int _x, int _y) {
-    if (isInUse()) {
+    if (inUse()) {
         glUniform2i(getUniformLocation(_name), _x, _y);
         // std::cout << "Uniform " << _name << ": vec2i(" << _x << "," << _y << ")" << std::endl;
     }
 }
 
 void Shader::setUniform(const std::string& _name, int _x, int _y, int _z) {
-    if (isInUse()) {
+    if (inUse()) {
         glUniform3i(getUniformLocation(_name), _x, _y, _z);
         // std::cout << "Uniform " << _name << ": vec3i(" << _x << "," << _y << "," << _z <<")" << std::endl;
     }
 }
 
 void Shader::setUniform(const std::string& _name, int _x, int _y, int _z, int _w) {
-    if (isInUse()) {
+    if (inUse()) {
         glUniform4i(getUniformLocation(_name), _x, _y, _z, _w);
         // std::cout << "Uniform " << _name << ": vec4i(" << _x << "," << _y << "," << _z << << "," << _w << ")" << std::endl;
     }
@@ -395,7 +404,7 @@ void Shader::setUniform(const std::string& _name, int _x, int _y, int _z, int _w
 
 void Shader::setUniform(const std::string& _name, const int *_array, size_t _size) {
     GLint loc = getUniformLocation(_name);
-    if (isInUse()) {
+    if (inUse()) {
         if (_size == 1) {
             glUniform1i(loc, _array[0]);
         }
@@ -416,28 +425,28 @@ void Shader::setUniform(const std::string& _name, const int *_array, size_t _siz
 }
 
 void Shader::setUniform(const std::string& _name, float _x) {
-    if (isInUse()) {
+    if (inUse()) {
         glUniform1f(getUniformLocation(_name), _x);
         // std::cout << "Uniform " << _name << ": float(" << _x << ")" << std::endl;
     }
 }
 
 void Shader::setUniform(const std::string& _name, float _x, float _y) {
-    if (isInUse()) {
+    if (inUse()) {
         glUniform2f(getUniformLocation(_name), _x, _y);
         // std::cout << "Uniform " << _name << ": vec2(" << _x << "," << _y << ")" << std::endl;
     }
 }
 
 void Shader::setUniform(const std::string& _name, float _x, float _y, float _z) {
-    if (isInUse()) {
+    if (inUse()) {
         glUniform3f(getUniformLocation(_name), _x, _y, _z);
         // std::cout << "Uniform " << _name << ": vec3(" << _x << "," << _y << "," << _z <<")" << std::endl;
     }
 }
 
 void Shader::setUniform(const std::string& _name, float _x, float _y, float _z, float _w) {
-    if (isInUse()) {
+    if (inUse()) {
         glUniform4f(getUniformLocation(_name), _x, _y, _z, _w);
         // std::cout << "Uniform " << _name << ": vec3(" << _x << "," << _y << "," << _z <<")" << std::endl;
     }
@@ -445,7 +454,7 @@ void Shader::setUniform(const std::string& _name, float _x, float _y, float _z, 
 
 void Shader::setUniform(const std::string& _name, const float *_array, size_t _size) {
     GLint loc = getUniformLocation(_name);
-    if (isInUse()) {
+    if (inUse()) {
         if (_size == 1) {
             glUniform1f(loc, _array[0]);
         }
@@ -465,25 +474,25 @@ void Shader::setUniform(const std::string& _name, const float *_array, size_t _s
 }
 
 void Shader::setUniform(const std::string& _name, const glm::vec2 *_array, size_t _size) {
-    if (isInUse()) {
+    if (inUse()) {
         glUniform2fv(getUniformLocation(_name), _size, glm::value_ptr(_array[0]));
     }
 }
 
 void Shader::setUniform(const std::string& _name, const glm::vec3 *_array, size_t _size) {
-    if (isInUse()) {
+    if (inUse()) {
         glUniform3fv(getUniformLocation(_name), _size, glm::value_ptr(_array[0]));
     }
 }
 
 void Shader::setUniform(const std::string& _name, const glm::vec4 *_array, size_t _size) {
-    if (isInUse()) {
+    if (inUse()) {
         glUniform4fv(getUniformLocation(_name), _size, glm::value_ptr(_array[0]));
     }
 }
 
 void Shader::setUniformTexture(const std::string& _name, GLuint _textureId, size_t _texLoc) {
-    if (isInUse()) {
+    if (inUse()) {
         glActiveTexture(GL_TEXTURE0 + _texLoc);
         glBindTexture(GL_TEXTURE_2D, _textureId);
         glUniform1i(getUniformLocation(_name), _texLoc);
@@ -515,7 +524,7 @@ void  Shader::setUniformDepthTexture(const std::string& _name, const Fbo* _fbo) 
 }
 
 void Shader::setUniformTextureCube(const std::string& _name, const TextureCube* _tex, size_t _texLoc) {
-    if (isInUse()) {
+    if (inUse()) {
         glActiveTexture(GL_TEXTURE0 + _texLoc);
         glBindTexture(GL_TEXTURE_CUBE_MAP, _tex->getTextureId());
         glUniform1i(getUniformLocation(_name), _texLoc);
@@ -527,19 +536,19 @@ void  Shader::setUniformTextureCube(const std::string& _name, const TextureCube*
 }
 
 void Shader::setUniform(const std::string& _name, const glm::mat2& _value, bool _transpose) {
-    if (isInUse()) {
+    if (inUse()) {
         glUniformMatrix2fv(getUniformLocation(_name), 1, _transpose, &_value[0][0]);
     }
 }
 
 void Shader::setUniform(const std::string& _name, const glm::mat3& _value, bool _transpose) {
-    if (isInUse()) {
+    if (inUse()) {
         glUniformMatrix3fv(getUniformLocation(_name), 1, _transpose, &_value[0][0]);
     }
 }
 
 void Shader::setUniform(const std::string& _name, const glm::mat4& _value, bool _transpose) {
-    if (isInUse()) {
+    if (inUse()) {
         glUniformMatrix4fv(getUniformLocation(_name), 1, _transpose, &_value[0][0]);
     }
 }

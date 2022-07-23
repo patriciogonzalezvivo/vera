@@ -126,23 +126,23 @@ bool Model::setMaterial(const Material &_material) {
 }
 
 bool Model::setShader(const std::string& _fragStr, const std::string& _vertStr, bool verbose) {
-    if (m_shade.isLoaded())
+    if (m_shade.loaded())
         m_shade.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
 
-    if (m_shadow.isLoaded())
+    if (m_shadow.loaded())
         m_shadow.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
 
-    return  m_shade.load( _fragStr, _vertStr, verbose) && 
+    return  m_shade.load( _fragStr, _vertStr, SHOW_MAGENTA_SHADER, verbose) && 
             m_shadow.load( getDefaultSrc(FRAG_ERROR), _vertStr); // Use magenta frag error as a passthrough frag shader.
 }
 
 void Model::render() {
-    if (m_model_vbo && m_shade.isLoaded())
+    if (m_model_vbo && m_shade.loaded())
         m_model_vbo->render(&m_shade);
 }
 
 void Model::renderShadow() {
-    if (m_model_vbo && m_shadow.isLoaded())
+    if (m_model_vbo && m_shadow.loaded())
         m_model_vbo->render(&m_shadow);
 }
 

@@ -15,18 +15,23 @@
 
 namespace vera {
 
+enum ShaderErrorResolve {
+    REVERT_TO_PREVIOUS_SHADER = 0,
+    SHOW_MAGENTA_SHADER,
+    KEEP_BROKEN_SHADER
+};
+
 class Shader : public HaveDefines {
 public:
     Shader();
-    // Shader(const Shader&) { std::cout << "copy-constructed\n"; }
-    // Shader(Shader&&) { std::cout << "move-constructed\n"; }
     virtual ~Shader();
 
     void    operator = (const Shader &_parent );
+    void    setSource(const std::string& _fragmentSrc, const std::string& _vertexSrc);
 
     void    use();
-    bool    load(const std::string& _fragmentSrc, const std::string& _vertexSrc, bool _verbose = false, bool _error_screen = true);
-    bool    reload(bool _verbose = false);
+    bool    load(const std::string& _fragmentSrc, const std::string& _vertexSrc, ShaderErrorResolve _onError = SHOW_MAGENTA_SHADER, bool _verbose = false);
+    bool    reload(ShaderErrorResolve _onError = SHOW_MAGENTA_SHADER, bool _verbose = false);
     
     const   GLuint  getProgram() const { return m_program; };
     const   GLuint  getFragmentShader() const { return m_fragmentShader; };
@@ -36,8 +41,8 @@ public:
     const std::string& getFragmentSource() const { return m_fragmentSource; };
     const std::string& getVertexSource() const { return m_vertexSource; };
 
-    bool    isInUse() const;
-    bool    isLoaded() const;
+    bool    inUse() const;
+    bool    loaded() const;
    
     void    setUniform(const std::string& _name, int _x);
     void    setUniform(const std::string& _name, int _x, int _y);

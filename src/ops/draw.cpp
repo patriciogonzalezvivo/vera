@@ -152,7 +152,7 @@ glm::mat4* getWorldMatrixPtr() { return &matrix_world; }
 Shader* getPointShader() {
     if (points_shader == nullptr) {
         points_shader = new Shader();
-        points_shader->load( getDefaultSrc(FRAG_POINTS), getDefaultSrc(VERT_POINTS) );
+        points_shader->setSource( getDefaultSrc(FRAG_POINTS), getDefaultSrc(VERT_POINTS) );
     }
 
     return points_shader;
@@ -161,7 +161,7 @@ Shader* getPointShader() {
 Shader* getFillShader() {
     if (fill_shader == nullptr) {
         fill_shader = new Shader();
-        fill_shader->load( getDefaultSrc(FRAG_FILL), getDefaultSrc(VERT_FILL) );
+        fill_shader->setSource( getDefaultSrc(FRAG_FILL), getDefaultSrc(VERT_FILL) );
     }
     
     return fill_shader;
@@ -461,7 +461,7 @@ void image(const Texture *_tex) {
 
     if (billboard_shader == nullptr) {
         billboard_shader = new Shader();
-        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD), false );
+        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
     }
 
     billboard_shader->use();
@@ -480,7 +480,7 @@ void image(const Texture *_tex, float _x, float _y, float _width, float _height)
 
     if (billboard_shader == nullptr) {
         billboard_shader = new Shader();
-        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD), false );
+        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
     }
 
     if (_width == 0)
@@ -504,7 +504,7 @@ void image(const TextureStream &_stream) { image(&_stream); }
 void image(const TextureStream *_stream) {
     if (billboard_shader == nullptr) {
         billboard_shader = new Shader();
-        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD), false );
+        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
     }
 
     billboard_shader->use();
@@ -520,7 +520,7 @@ void image(const TextureStream &_stream, float _x, float _y, float _width, float
 void image(const TextureStream *_stream, float _x, float _y, float _width, float _height, bool _debug) {
     if (billboard_shader == nullptr) {
         billboard_shader = new Shader();
-        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD), false);
+        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
     }
 
     if (_width == 0)
@@ -550,7 +550,7 @@ void image(const Fbo &_fbo) { image(&_fbo); }
 void image(const Fbo *_fbo) {
     if (billboard_shader == nullptr) {
         billboard_shader = new Shader();
-        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD), false );
+        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
     }
 
     billboard_shader->use();
@@ -566,7 +566,7 @@ void image(const Fbo &_fbo, float _x, float _y, float _width, float _height) { i
 void image(const Fbo *_fbo, float _x, float _y, float _width, float _height) { 
     if (billboard_shader == nullptr) {
         billboard_shader = new Shader();
-        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD), false );
+        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
     }
 
     if (_width == 0)
@@ -590,7 +590,7 @@ void imageDepth(const Fbo &_fbo, float _x, float _y, float _width, float _height
 void imageDepth(const Fbo *_fbo, float _x, float _y, float _width, float _height, float _far, float _near) { 
     if (billboard_shader == nullptr) {
         billboard_shader = new Shader();
-        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD), false );
+        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
     }
 
     if (_width == 0)
@@ -756,24 +756,34 @@ void rect(float _x, float _y, float _w, float _h, Shader* _program) {
 //
 Shader loadShader(const std::string& _fragFile, const std::string& _vertFile) {
     Shader s;
-    s.load(loadGlslFrom(_fragFile), loadGlslFrom(_vertFile));
+    s.setSource(loadGlslFrom(_fragFile), loadGlslFrom(_vertFile));
     return s;
 }
 
 Shader createShader(const std::string& _fragSrc, const std::string& _vertSrc) {
     Shader s;
+    // s.addDefine("MODEL_VERTEX_COLOR", "v_color");
+    // s.addDefine("MODEL_VERTEX_NORMAL", "v_normal");
+    // s.addDefine("MODEL_VERTEX_TEXCOORD", "v_texcoord");
+    // s.addDefine("MODEL_VERTEX_TANGENT", "v_tangent");
+
     if (!_fragSrc.empty() && _vertSrc.empty())
-        s.load(_fragSrc, getDefaultSrc(VERT_DEFAULT_SCENE), false, false);
+        s.setSource(_fragSrc, getDefaultSrc(VERT_DEFAULT_SCENE));
     else if (_fragSrc.empty())
-        s.load(getDefaultSrc(FRAG_DEFAULT_SCENE), getDefaultSrc(VERT_DEFAULT_SCENE), false, false);
+        s.setSource(getDefaultSrc(FRAG_DEFAULT_SCENE), getDefaultSrc(VERT_DEFAULT_SCENE));
     else
-        s.load(_fragSrc, _vertSrc, false, false);
+        s.setSource(_fragSrc, _vertSrc);
+
     return s;
 }
 
 Shader createShader(DefaultShaders _frag, DefaultShaders _vert) {
     Shader s;
-    s.load(getDefaultSrc(_frag), getDefaultSrc(_vert));
+    // s.addDefine("MODEL_VERTEX_COLOR", "v_color");
+    // s.addDefine("MODEL_VERTEX_NORMAL", "v_normal");
+    // s.addDefine("MODEL_VERTEX_TEXCOORD", "v_texcoord");
+    // s.addDefine("MODEL_VERTEX_TANGENT", "v_tangent");
+    s.setSource(getDefaultSrc(_frag), getDefaultSrc(_vert));
     return s;
 }
 
@@ -842,8 +852,14 @@ void shader(Shader* _program) {
         _program->setUniform("u_cameraChange", scene->activeCamera->bChange);
         _program->setUniform("u_iblLuminance", 30000.0f * scene->activeCamera->getExposure());
     }
-    else
+    else {
         _program->setUniform("u_modelViewProjectionMatrix", getFlippedOrthoMatrix() * matrix_world );
+        _program->setUniform("u_projectionMatrix", getFlippedOrthoMatrix() );
+        _program->setUniform("u_viewMatrix", glm::mat4(1.0f) );
+        _program->setUniform("u_normalMatrix", glm::mat3(1.0f) );
+    }
+
+    _program->setUniform("u_modelMatrix", matrix_world );
 
     if (lights_enabled) {
         // Pass Light Uniforms
@@ -861,7 +877,9 @@ void shader(Shader* _program) {
                 _program->setUniform("u_lightFalloff", it->second->falloff);
 
             _program->setUniform("u_lightMatrix", it->second->getBiasMVPMatrix() );
-            // _program->setUniformDepthTexture("u_lightShadowMap", it->second->getShadowMap(), _program->textureIndex++ );
+
+            if (it->second->getShadowMap()->isAllocated())
+                _program->setUniformDepthTexture("u_lightShadowMap", it->second->getShadowMap(), _program->textureIndex++ );
         }
         else {
             for (LightsMap::iterator it = scene->lights.begin(); it != scene->lights.end(); ++it) {
@@ -877,7 +895,9 @@ void shader(Shader* _program) {
                     _program->setUniform(name +"Falloff", it->second->falloff);
 
                 _program->setUniform(name + "Matrix", it->second->getBiasMVPMatrix() );
-                // _program->setUniformDepthTexture(name + "ShadowMap", it->second->getShadowMap(), _program->textureIndex++ );
+
+                if (it->second->getShadowMap()->isAllocated())
+                    _program->setUniformDepthTexture(name + "ShadowMap", it->second->getShadowMap(), _program->textureIndex++ );
             }
         } 
     }
