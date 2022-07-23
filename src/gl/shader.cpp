@@ -102,7 +102,7 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
     glAttachShader(m_program, m_fragmentShader);
     glLinkProgram(m_program);
 
-    if (!DONT_KEEP_SHADER) {
+    if (_onError != DONT_KEEP_SHADER) {
         m_fragmentSource = _fragmentSrc;
         m_vertexSource = _vertexSrc;
     }
