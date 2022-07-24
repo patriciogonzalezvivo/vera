@@ -7,6 +7,7 @@
 #include "window.h"
 #include "ops/draw.h"
 #include "xr/xr.h"
+#include "xr/holoPlay.h"
 
 #include <math.h>
 

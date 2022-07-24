@@ -34,7 +34,14 @@ void App::loop(double _time, App* _app) {
     if (_app->auto_background_enabled)
         clear(_app->auto_background_color);
 
-    _app->draw();
+    if (vera::getWindowStyle() == vera::LENTICULAR) {
+        vera::renderQuilt([&](const vera::QuiltProperties& quilt, glm::vec4& viewport, int &viewIndex) {
+            _app->draw();
+        });
+    }
+    else
+        _app->draw();
+
     renderGL();
 
     #if defined(__EMSCRIPTEN__)
@@ -229,7 +236,7 @@ void App::run(WindowProperties _properties) {
         loop(getTime(), this);
 
     closeGL();
-        close();
+    close();
 
 #endif
 }
@@ -259,7 +266,7 @@ void App::orbitControl() {
     if (cam->getAspect() != aspect)
         cam->setViewport(width, height);
 
-    if (mouseIsPressed) {
+    if (mouseIsPressed && getQuiltCurrentViewIndex() == 0) {
         float dist = cam->getDistance();
 
         if (mouseButton == 1) {
@@ -282,6 +289,9 @@ void App::orbitControl() {
             }
         }
     }
+
+    if (vera::getWindowStyle() == vera::LENTICULAR)
+        cam->setVirtualOffset(1.5, getQuiltCurrentViewIndex(), getQuiltTotalViews());
 }
 
 }

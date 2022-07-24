@@ -5,6 +5,7 @@
 
 #include "glm/glm.hpp"
 #include "vera/gl/shader.h"
+#include "vera/gl/fbo.h"
 
 namespace vera {
 
@@ -29,8 +30,10 @@ int  getQuiltHeight();
 int  getQuiltColumns();
 int  getQuiltRows();
 int  getQuiltTotalViews();
+int  getQuiltCurrentViewIndex();
+Fbo* getQuiltFbo();
 
-void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _renderFnc );
+void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _renderFnc, bool _justQuilt = false);
 
 // LENTICULAR Display
 //

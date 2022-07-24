@@ -1,5 +1,7 @@
 #include "vera/xr/holoPlay.h"
 #include "vera/gl/gl.h"
+#include "vera/ops/draw.h"
+#include "vera/ops/string.h"
 
 #include <fstream> 
 
@@ -7,8 +9,12 @@
 
 namespace vera {
 
-//  QUILT 
+static QuiltProperties  quilt;
+static Fbo              quilt_fbo;
+static Shader           quilt_shader;
+static int              currentViewIndex = 0;
 
+//  QUILT 
 QuiltProperties::QuiltProperties() {};
 QuiltProperties::QuiltProperties(int _width, int _height, int _cols, int _rows) {
     width = _width;
@@ -17,8 +23,6 @@ QuiltProperties::QuiltProperties(int _width, int _height, int _cols, int _rows) 
     rows = _rows;
     totalViews = _cols * _rows;
 };
-
-static QuiltProperties quilt;
 
 void setQuiltProperties(const QuiltProperties& _quilt) { quilt = _quilt; }
 
@@ -43,8 +47,14 @@ int getQuiltHeight() { return quilt.height; }
 int getQuiltColumns() { return quilt.columns; }
 int getQuiltRows() { return quilt.rows; }
 int getQuiltTotalViews() { return quilt.totalViews; }
+int getQuiltCurrentViewIndex() { return currentViewIndex; }
 
-void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _renderFnc) {
+void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _renderFnc, bool _justQuilt) {
+
+    Camera* cam = getCamera();
+    if (!cam)
+        return;
+
 
     // save the viewport for the total quilt
     GLint viewport[4];
@@ -53,6 +63,32 @@ void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _
     // get quilt view dimensions
     int qs_viewWidth = int(float(quilt.width) / float(quilt.columns));
     int qs_viewHeight = int(float(quilt.height) / float(quilt.rows));
+
+    if (!_justQuilt) {
+
+        if (!quilt_fbo.isAllocated()) {
+            quilt_fbo.allocate(quilt.width, quilt.height, COLOR_TEXTURE_DEPTH_BUFFER);
+            quilt_shader.load(vera::getLenticularFragShader(vera::getVersion()), vera::getDefaultSrc(vera::VERT_BILLBOARD));
+            quilt_shader.addDefine("QUILT");
+            quilt_shader.addDefine("QUILT_WIDTH", vera::toString( quilt.width ));
+            quilt_shader.addDefine("QUILT_HEIGHT", vera::toString( quilt.height ));
+            quilt_shader.addDefine("QUILT_COLUMNS", vera::toString( quilt.columns ));
+            quilt_shader.addDefine("QUILT_ROWS", vera::toString( quilt.rows ));
+            quilt_shader.addDefine("QUILT_TOTALVIEWS", vera::toString( quilt.totalViews ));
+        }
+
+        Camera* cam = getCamera();
+        if (cam)
+            if (cam->getProjectionType() != ProjectionType::PERSPECTIVE_VIRTUAL_OFFSET) {
+                // cam->setAspect(1.0);
+                cam->setViewport(getWindowWidth(),getWindowHeight());
+                cam->setFOV(glm::radians(14.0f));
+                cam->setProjection(ProjectionType::PERSPECTIVE_VIRTUAL_OFFSET);
+                // cam->setClipping(0.01, 100.0);
+            }
+
+        quilt_fbo.bind();
+    }
 
     // render views and copy each view to the quilt
     for (int viewIndex = 0; viewIndex < quilt.totalViews; viewIndex++) {
@@ -69,6 +105,8 @@ void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _
         glScissor(x, y, qs_viewWidth, qs_viewHeight);
         glm::vec4 vp = glm::vec4(x, y, qs_viewWidth, qs_viewHeight);
 
+        currentViewIndex = viewIndex;
+        
         _renderFnc(quilt, vp, viewIndex);
 
         // reset viewport
@@ -77,6 +115,17 @@ void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _
         // // restore scissor
         glDisable(GL_SCISSOR_TEST);
         glScissor(viewport[0], viewport[1], viewport[2], viewport[3]);
+    }
+
+    if (!_justQuilt) {
+        quilt_fbo.unbind();
+
+        quilt_shader.use();
+        feedLenticularUniforms( quilt_shader );
+        quilt_shader.setUniformTexture("u_scene", &quilt_fbo, 0);
+        quilt_shader.setUniform("u_resolution", float(vera::getWindowWidth()), float(vera::getWindowHeight()) );
+        quilt_shader.setUniform("u_modelViewProjectionMatrix", glm::mat4(1.));
+        vera::getBillboard()->render( &quilt_shader );
     }
 }
 

@@ -3,6 +3,7 @@
 #include "vera/ops/meshes.h"
 #include "vera/ops/fs.h"
 #include "vera/ops/string.h"
+#include "vera/xr/holoPlay.h"
 #include "vera/window.h"
 
 #include "vera/shaders/defaultShaders.h"
@@ -670,7 +671,11 @@ void textAngle(float _angle, Font* _font) {
 void textSize(float _size, Font* _font) { 
     if (_font == nullptr)
         _font = getFont();
-    _font->setSize(_size * vera::getPixelDensity());
+
+    if (getWindowStyle() == LENTICULAR)
+        _font->setSize(_size * 3.0f );
+    else
+        _font->setSize(_size * vera::getPixelDensity());
 }
 
 void text(const std::string& _text, const glm::vec2& _pos, Font* _font) { text(_text, _pos.x, _pos.y, _font); }
