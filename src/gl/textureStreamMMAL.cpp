@@ -919,7 +919,7 @@ void main (void) {
 }
 )";
 
-    m_shader.load(frag, vert, false);
+    m_shader.load(frag, vert);
 
     return true;
 }
