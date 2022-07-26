@@ -168,14 +168,14 @@ void App::run(WindowProperties _properties) {
 
             glm::vec3 cam_pos = cam->getPosition();
             glm::vec3 head_pos = glm::make_vec3(_headPose->position);
-
             for(int viewIndex = 0; viewIndex < _viewCount; viewIndex++) {
                 WebXRView view = _views[ viewIndex];
                 glViewport( view.viewport[0], view.viewport[1], view.viewport[2], view.viewport[3] );
                 cam->setViewport(view.viewport[2], view.viewport[3]);
                 glm::mat4 t = glm::translate(glm::mat4(1.), glm::make_vec3(view.viewPose.position) + head_pos );
                 glm::mat4 r = glm::toMat4( glm::quat(view.viewPose.orientation[3], view.viewPose.orientation[0], view.viewPose.orientation[1], view.viewPose.orientation[2]) );
-                cam->setTransformMatrix( glm::translate( glm::inverse(t * r), cam_pos) );
+                // cam->setTransformMatrix( glm::translate( glm::inverse(t * r), cam_pos) );
+                cam->setTransformMatrix( glm::inverse(t * r) );
                 cam->setProjection( glm::make_mat4(view.projectionMatrix) );
                 _app->draw();
             } 
