@@ -20,7 +20,8 @@ Ultimatelly VERA is designed to let artist code their works once and display the
 
 ## Examples and projects using VERA
 
-- [very simple Hello World example app](https://patriciogonzalezvivo.github.io/vera_hello_world/). You can view and compile the [full project from here](https://github.com/patriciogonzalezvivo/vera_hello_world). 
+- [very simple Hello World example](https://patriciogonzalezvivo.github.io/vera_hello_world/). Which you can view and compile the [full project](https://github.com/patriciogonzalezvivo/vera_hello_world) and display it in a big range of surfaces like: native OSX, Window and Linux apps; console app with out window manager for embebed systems like [RaspberryPi](https://www.raspberrypi.com/), [Nvidia Jetson Nano](https://developer.nvidia.com/embedded/jetson-nano-developer-kit) and [Khadas's VIM4](https://www.khadas.com/vim4); on the web embebed WASM apps or selfcontain WASM/WebGL interactives for NFT project; WebXR experiences for VR headsets like the Oculus Quest2 or realtime applications for holographic displays like [LGF](https://lookingglassfactory.com/).
+![VERA_bigger](https://user-images.githubusercontent.com/346914/180854090-6d9d1f53-c48d-4108-93b9-4101a6b7c9e1.gif)
 
 ## Support VERA
 
