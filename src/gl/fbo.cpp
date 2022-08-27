@@ -45,6 +45,9 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
             color_texture = true;
             depth_texture = false;
         break;
+        case POSITION_TEXTURE:
+            _filter = NEAREST;
+            _wrap = CLAMP;
         case COLOR_TEXTURE_DEPTH_BUFFER:
             m_depth = true;
             color_texture = true;
@@ -101,6 +104,10 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
 #elif defined(__APPLE__)
         format = GL_RGBA16;
         type = GL_UNSIGNED_BYTE;
+
+#elif defined(PLATFORM_LINUX)
+        format = GL_RGBA16F;
+        type = GL_FLOAT;
 
 #else
         if (_type == COLOR_FLOAT_TEXTURE) {
