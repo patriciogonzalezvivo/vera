@@ -601,7 +601,7 @@ Mesh floorMesh(float _area, int _subD, float _y) {
 
             mesh.addIndex((x+1) + (y+1) * (N+1));   // D
             mesh.addIndex(  x   + (y+1) * (N+1));   // C
-            mesh.addIndex(  x   +   y   * (N+1));  // A
+            mesh.addIndex(  x   +   y   * (N+1));   // A
         }
     }
 

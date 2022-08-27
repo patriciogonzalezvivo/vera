@@ -58,17 +58,21 @@ void Model::setName(const std::string& _str) {
 }
 
 void Model::addDefine(const std::string& _define, const std::string& _value) { 
-    m_shade.addDefine(_define, _value); 
-    m_shadow.addDefine(_define, _value); 
+    m_shadeShader.addDefine(_define, _value); 
+    m_shadowShader.addDefine(_define, _value);
+    m_normalShader.addDefine(_define, _value);
+    m_positionShader.addDefine(_define, _value);
 }
 
 void Model::delDefine(const std::string& _define) { 
-    m_shade.delDefine(_define);
-    m_shadow.delDefine(_define); 
+    m_shadeShader.delDefine(_define);
+    m_shadowShader.delDefine(_define); 
+    m_normalShader.delDefine(_define);
+    m_positionShader.delDefine(_define);
 };
 
 void Model::printDefines() {
-    m_shade.printDefines();
+    m_shadeShader.printDefines();
 }
 
 void Model::printVboInfo() {
@@ -120,30 +124,50 @@ bool Model::setGeom(const Mesh& _mesh) {
 }
 
 bool Model::setMaterial(const Material &_material) {
-    m_shade.mergeDefines(&_material);
-    m_shadow.mergeDefines(&_material);
+    m_shadeShader.mergeDefines(&_material);
+    m_shadowShader.mergeDefines(&_material);
+    m_normalShader.mergeDefines(&_material);
+    m_positionShader.mergeDefines(&_material);
     return true;
 }
 
 bool Model::setShader(const std::string& _fragStr, const std::string& _vertStr, bool verbose) {
-    if (m_shade.loaded())
-        m_shade.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
+    if (m_shadeShader.loaded())
+        m_shadeShader.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
 
-    if (m_shadow.loaded())
-        m_shadow.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
+    if (m_shadowShader.loaded())
+        m_shadowShader.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
 
-    return  m_shade.load( _fragStr, _vertStr, SHOW_MAGENTA_SHADER, verbose) && 
-            m_shadow.load( getDefaultSrc(FRAG_ERROR), _vertStr); // Use magenta frag error as a passthrough frag shader.
+    if (m_normalShader.loaded())
+        m_normalShader.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
+
+    if (m_positionShader.loaded())
+        m_positionShader.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
+
+    return  m_shadeShader.load( _fragStr, _vertStr, SHOW_MAGENTA_SHADER, verbose) && 
+            m_shadowShader.load( getDefaultSrc(FRAG_ERROR), _vertStr) &&
+            m_normalShader.load( getDefaultSrc(FRAG_NORMAL), _vertStr) &&
+            m_positionShader.load( getDefaultSrc(FRAG_POSITION), _vertStr);
 }
 
 void Model::render() {
-    if (m_model_vbo && m_shade.loaded())
-        m_model_vbo->render(&m_shade);
+    if (m_model_vbo && m_shadeShader.loaded())
+        m_model_vbo->render(&m_shadeShader);
 }
 
 void Model::renderShadow() {
-    if (m_model_vbo && m_shadow.loaded())
-        m_model_vbo->render(&m_shadow);
+    if (m_model_vbo && m_shadowShader.loaded())
+        m_model_vbo->render(&m_shadowShader);
+}
+
+void Model::renderNormal() {
+    if (m_model_vbo && m_normalShader.loaded())
+        m_model_vbo->render(&m_normalShader);
+}
+
+void Model::renderPosition() {
+    if (m_model_vbo && m_positionShader.loaded())
+        m_model_vbo->render(&m_positionShader);
 }
 
 void Model::render(Shader* _shader) {

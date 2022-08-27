@@ -4,6 +4,7 @@
 #include "vera/shaders/default.h"
 #include "vera/shaders/default_error.h"
 #include "vera/shaders/default_scene.h"
+#include "vera/shaders/default_buffers.h"
 
 #include "vera/shaders/billboard.h"
 #include "vera/shaders/dynamic_billboard.h"
@@ -135,6 +136,19 @@ std::string getDefaultSrc( DefaultShaders _type ) {
             rta += points_frag;
         else if (versionNumber >= 130) 
             rta += points_frag_300;
+    }
+
+    else if (_type == FRAG_POSITION) {
+        if (versionNumber < 130)
+            rta += default_buffer_position;
+        else if (versionNumber >= 130) 
+            rta += default_buffer_position_300;
+    }
+    else if (_type == FRAG_NORMAL) {
+        if (versionNumber < 130)
+            rta += default_buffer_normal;
+        else if (versionNumber >= 130) 
+            rta += default_buffer_normal_300;
     }
 
     else if (_type == FRAG_PLOT) {

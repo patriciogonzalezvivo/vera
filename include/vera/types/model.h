@@ -32,12 +32,16 @@ public:
     Vbo*            getVbo() { return m_model_vbo; }
     Vbo*            getVboBbox() { return m_bbox_vbo; }
     float           getArea() const { return m_area; }
-    Shader*         getShadeShader() { return &m_shade; }
-    Shader*         getShadowShader() { return &m_shadow; }
+    Shader*         getShadeShader() { return &m_shadeShader; }
+    Shader*         getShadowShader() { return &m_shadowShader; }
+    Shader*         getNormalShader() { return &m_normalShader; }
+    Shader*         getPositionShader() { return &m_positionShader; }
     const BoundingBox& getBoundingBox() const { return m_bbox; }
     
     void            render();
     void            renderShadow();
+    void            renderNormal();
+    void            renderPosition();
     
     void            render(Shader* _shader);
     void            renderBbox(Shader* _shader);
@@ -46,8 +50,10 @@ public:
     void            printVboInfo();
 
 protected:
-    Shader          m_shade;
-    Shader          m_shadow;
+    Shader          m_shadeShader;
+    Shader          m_shadowShader;
+    Shader          m_normalShader;
+    Shader          m_positionShader;
     
     Vbo*            m_model_vbo;
     Vbo*            m_bbox_vbo;
