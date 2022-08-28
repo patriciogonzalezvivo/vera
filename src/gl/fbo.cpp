@@ -45,7 +45,7 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
             color_texture = true;
             depth_texture = false;
         break;
-        case POSITION_TEXTURE:
+        case GBUFFER_TEXTURE:
             _filter = NEAREST;
             _wrap = CLAMP;
         case COLOR_TEXTURE_DEPTH_BUFFER:
@@ -105,12 +105,13 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
         format = GL_RGBA16;
         type = GL_UNSIGNED_BYTE;
 
-#elif defined(PLATFORM_LINUX)
-        format = GL_RGBA16F;
-        type = GL_FLOAT;
+// #elif defined(PLATFORM_LINUX)
+//         format = GL_RGBA16F;
+//         type = GL_FLOAT;
 
 #else
-        if (_type == COLOR_FLOAT_TEXTURE) {
+        if (_type == COLOR_FLOAT_TEXTURE || 
+            _type == GBUFFER_TEXTURE) {
             if ( haveExtension("OES_texture_float") ) {
                 format = GL_RGBA32F;
                 type = GL_FLOAT;

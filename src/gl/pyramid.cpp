@@ -25,13 +25,13 @@ void Pyramid::allocate(int _width, int _height) {
     for (unsigned int i = 0; i < m_depth; i++) {
         w *= 0.5f;
         h *= 0.5f;
-        m_downs[i].allocate(w, h, vera::COLOR_TEXTURE, vera::TextureFilter::NEAREST, vera::TextureWrap::CLAMP);
+        m_downs[i].allocate(w, h, vera::COLOR_FLOAT_TEXTURE, vera::TextureFilter::NEAREST, vera::TextureWrap::CLAMP);
     }
     
     for (unsigned int i = 0; i < m_depth; i++) {
         w *= 2.0f;
         h *= 2.0f;
-        m_ups[i].allocate(w, h, vera::COLOR_TEXTURE, vera::TextureFilter::NEAREST, vera::TextureWrap::CLAMP);
+        m_ups[i].allocate(w, h, vera::COLOR_FLOAT_TEXTURE, vera::TextureFilter::NEAREST, vera::TextureWrap::CLAMP);
     }
 }
 
