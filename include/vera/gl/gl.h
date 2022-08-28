@@ -60,11 +60,14 @@
 
 // MACOS
 #elif defined(__APPLE__)
-    #define GL_PROGRAM_BINARY_LENGTH 0x8741
+    #define GL_PROGRAM_BINARY_LENGTH    0x8741
+    #define GL_RGBA16F                  0x881A
+    #define GL_RGBA32F                  0x8814
+
     #define GL_SILENCE_DEPRECATION
     #include <OpenGL/gl.h>
     #include <OpenGL/glext.h>
-
+    
 // WINDOWS
 #elif defined(_WIN32)
     #include <GL/glew.h>
