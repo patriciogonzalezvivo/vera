@@ -101,14 +101,6 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
 
 #if defined(PLATFORM_RPI) || defined(DRIVER_GBM)
 
-#elif defined(__APPLE__)
-        format = GL_RGBA16;
-        type = GL_UNSIGNED_BYTE;
-
-// #elif defined(PLATFORM_LINUX)
-//         format = GL_RGBA16F;
-//         type = GL_FLOAT;
-
 #else
         if (_type == COLOR_FLOAT_TEXTURE || 
             _type == GBUFFER_TEXTURE) {
