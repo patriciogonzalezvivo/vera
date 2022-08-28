@@ -50,8 +50,7 @@ unsigned char* loadPixelsDepth(const std::string& _path, int *_width, int *_heig
                         &dm, &dm_size, &dm_type) == 1) {
 
         if (dm_type == TYPE_JPEG) {
-            int width, height;
-            return loadPixels(dm, dm_size, &width, &height, RGB, _vFlip);
+            return loadPixels(dm, dm_size, _width, _height, RGB, _vFlip);
         }
     }
 

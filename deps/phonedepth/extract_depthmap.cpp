@@ -5,6 +5,8 @@
 #include <inttypes.h>
 #include <string.h>
 #include <ctype.h>
+#include <iostream>
+
 #ifdef _WIN32
 
 #else
@@ -750,17 +752,17 @@ int extract_depth(const char *filename,
     // look for the Samsung data
     if (parse_samsung_trailer(file_data, file_size, cv, cv_size, dm, dm_size,
                                 &dm_width, &dm_height, dm_type, &orientation)) {
-        // printf("\nSamsung trailer depth data founded\n");
+        std::cout << "Samsung trailer depth data founded" << std::endl;
         data_found = 1;
     } 
     else if (parse_huawei_trailer(file_data, file_size, cv, cv_size, dm, dm_size,
                                   &dm_width, &dm_height, dm_type, &orientation)) {
-        // printf("\nHuawei trailer detph data founded\n");
+        std::cout << "Huawei trailer detph data founded" << std::endl;
         data_found = 1;
     }
     else if (parse_apple_trailer( trailer, cv, cv_size, dm, dm_size,
                                   dm_type, &extra, &extra_size, &extra_type)) {
-        // printf("\nApple depth data founded\n");
+        std::cout << "Apple depth data founded" << std::endl;
         data_found = 1;
     }
 
