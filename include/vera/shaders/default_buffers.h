@@ -8,10 +8,11 @@ precision mediump float;
 #endif
 
 uniform mat4        u_viewMatrix;
+uniform mat4        u_modelMatrix;
 varying vec4        v_position;
 
 void main(void) {
-    gl_FragColor = u_viewMatrix * v_position;
+    gl_FragColor = u_viewMatrix * u_modelMatrix * v_position;
 }
 )";
 
@@ -21,11 +22,12 @@ precision mediump float;
 #endif
 
 uniform mat4        u_viewMatrix;
+uniform mat4        u_modelMatrix;
 in      vec4        v_position;
 out     vec4        fragColor;
 
 void main(void) {
-    fragColor = u_viewMatrix * v_position;
+    fragColor = u_viewMatrix * u_modelMatrix * v_position;
 }
 )";
 
