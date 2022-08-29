@@ -13,17 +13,18 @@ void HaveDefines::addDefine(const std::string &_define, const std::string &_valu
     std::string define = toUpper( toUnderscore( purifyString(_define) ) );
 
     // if doesn't exist
-    if (m_defines.find(define) == m_defines.end()) {
+    DefinesMap_it it = m_defines.find(define);
+    if (it == m_defines.end()) {
         // add it
         // std::cout << "Adding: " << define <<  " " << _value << std::endl;
         m_defines[define] = _value;
         m_defineChange = true;
     }
     // if its different
-    else if ( m_defines[define] != _value){
+    else if ( it->second != _value){
         // change it
         // std::cout << "Changing: " << define <<  " " << _value << std::endl;
-        m_defines[define] = _value;
+        it->second = _value;
         m_defineChange = true;
     }
 }
