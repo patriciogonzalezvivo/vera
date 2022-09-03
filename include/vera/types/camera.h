@@ -58,8 +58,10 @@ public:
     virtual const glm::vec3&    getPosition() const;
     virtual const glm::mat4&    getViewMatrix() const;
     virtual const glm::mat3&    getNormalMatrix() const { return m_normalMatrix; }
+    virtual const glm::mat4&    getInverseViewMatrix() const { return m_inverseViewMatrix; }
     virtual const glm::mat4&    getProjectionMatrix() const { return m_projectionMatrix; }
     virtual const glm::mat4&    getProjectionViewMatrix() const { return m_projectionViewMatrix; }
+    virtual const glm::mat4&    getInverseProjectionMatrix() const { return m_inverseProjectionMatrix; }
 
 protected:
 
@@ -71,12 +73,15 @@ protected:
     virtual void        updateProjectionViewMatrix();
 
 private:
-    glm::mat4   m_projectionViewMatrix;
-
-    glm::mat4   m_projectionMatrix;
     glm::mat4   m_viewMatrix;
+    glm::mat4   m_inverseViewMatrix;
+    
     glm::mat3   m_normalMatrix;
-
+    
+    glm::mat4   m_projectionMatrix;
+    glm::mat4   m_projectionViewMatrix;
+    glm::mat4   m_inverseProjectionMatrix;
+    
     glm::vec3   m_target;
     glm::vec3   m_position_offset;
 

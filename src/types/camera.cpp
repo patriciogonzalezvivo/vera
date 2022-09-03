@@ -1,6 +1,7 @@
 #include "vera/types/camera.h"
 
 #include "vera/window.h"
+#include "vera/ops/math.h"
 
 #include <iostream>
 
@@ -86,6 +87,7 @@ void Camera::setVirtualOffset(float scale, int currentViewIndex, int totalViews,
     // determine the local direction of the offset 
     glm::vec3 offsetLocal = getXAxis() * offset;
     m_viewMatrix = glm::translate(getTransformMatrix(), offsetLocal);
+    m_normalMatrix = glm::transpose(glm::inverse(glm::mat3(m_viewMatrix)));
 
     const float fov =  glm::radians(14.0f);
     glm::mat4 projectionMatrix = glm::perspective(fov, getAspect(), getNearClip(), getFarClip());
@@ -96,7 +98,10 @@ void Camera::setVirtualOffset(float scale, int currentViewIndex, int totalViews,
     m_position_offset = -glm::vec3(glm::inverse(m_viewMatrix)[3]);
     m_projectionMatrix = projectionMatrix;
     m_projectionViewMatrix = projectionMatrix * m_viewMatrix;
-    m_normalMatrix = glm::transpose(glm::inverse(glm::mat3(m_viewMatrix)));
+
+    m_inverseViewMatrix = vera::inverse(m_viewMatrix);
+    m_inverseProjectionMatrix = vera::inverse(m_projectionMatrix);
+    
     bChange = true;
 
     // updateProjectionViewMatrix();
@@ -191,6 +196,10 @@ void Camera::updateCameraSettings() {
 void Camera::updateProjectionViewMatrix() {
     m_projectionViewMatrix = m_projectionMatrix * getViewMatrix();
     m_normalMatrix = glm::transpose(glm::inverse(glm::mat3(getViewMatrix())));
+
+    m_inverseViewMatrix = vera::inverse(getViewMatrix());
+    m_inverseProjectionMatrix = vera::inverse(m_projectionMatrix);
+    
     bChange = true;
 }
 

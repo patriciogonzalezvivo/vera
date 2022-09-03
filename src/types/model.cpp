@@ -11,9 +11,6 @@ namespace vera {
 Model::Model():
     m_model_vbo(nullptr), m_bbox_vbo(nullptr),
     m_name(""), m_area(0.0f) {
-
-    addDefine("LIGHT_SHADOWMAP", "u_lightShadowMap");
-    addDefine("LIGHT_SHADOWMAP_SIZE", "2048.0");
 }
 
 Model::Model(const std::string& _name, const Mesh &_mesh):
