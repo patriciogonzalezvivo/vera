@@ -1,3 +1,5 @@
+#include <regex>
+
 #include "vera/types/model.h"
 
 #include "vera/ops/meshes.h"
@@ -55,21 +57,25 @@ void Model::setName(const std::string& _str) {
 }
 
 void Model::addDefine(const std::string& _define, const std::string& _value) { 
-    m_shadeShader.addDefine(_define, _value); 
+    m_mainShader.addDefine(_define, _value); 
     m_shadowShader.addDefine(_define, _value);
     m_normalShader.addDefine(_define, _value);
     m_positionShader.addDefine(_define, _value);
+    for (size_t i = 0; i < m_buffersShaders.size(); i++)
+        m_buffersShaders[i].addDefine(_define, _value);
 }
 
 void Model::delDefine(const std::string& _define) { 
-    m_shadeShader.delDefine(_define);
+    m_mainShader.delDefine(_define);
     m_shadowShader.delDefine(_define); 
     m_normalShader.delDefine(_define);
     m_positionShader.delDefine(_define);
+    for (size_t i = 0; i < m_buffersShaders.size(); i++)
+        m_buffersShaders[i].delDefine(_define);
 };
 
 void Model::printDefines() {
-    m_shadeShader.printDefines();
+    m_mainShader.printDefines();
 }
 
 void Model::printVboInfo() {
@@ -121,16 +127,59 @@ bool Model::setGeom(const Mesh& _mesh) {
 }
 
 bool Model::setMaterial(const Material &_material) {
-    m_shadeShader.mergeDefines(&_material);
+    m_mainShader.mergeDefines(&_material);
     m_shadowShader.mergeDefines(&_material);
     m_normalShader.mergeDefines(&_material);
     m_positionShader.mergeDefines(&_material);
     return true;
 }
 
+// Count how many BUFFERS are in the shader
+int countSceneBuffers(const std::string& _source) {
+    // Split Source code in lines
+    std::vector<std::string> lines = vera::split(_source, '\n');
+
+    // Group results in a vector to check for duplicates
+    std::vector<std::string> results;
+
+    // Regext to search for #ifdef SCENE_BUFFER_[NUMBER], #if defined( SCENE_BUFFER_[NUMBER] ) and #elif defined( SCENE_BUFFER_[NUMBER] ) occurences
+    std::regex re(R"((?:^\s*#if|^\s*#elif)(?:\s+)(defined\s*\(\s*SCENE_BUFFER_)(\d+)(?:\s*\))|(?:^\s*#ifdef\s+SCENE_BUFFER_)(\d+))");
+    std::smatch match;
+
+    // For each line search for
+    for (unsigned int l = 0; l < lines.size(); l++) {
+
+        // if there are matches
+        if (std::regex_search(lines[l], match, re)) {
+            // Depending the case can be in the 2nd or 3rd group
+            std::string number = std::ssub_match(match[2]).str();
+            if (number.size() == 0) {
+                number = std::ssub_match(match[3]).str();
+            }
+
+            // Check if it's already defined
+            bool already = false;
+            for (unsigned int i = 0; i < results.size(); i++) {
+                if (results[i] == number) {
+                    already = true;
+                    break;
+                }
+            }
+
+            // If it's not add it
+            if (!already) {
+                results.push_back(number);
+            }
+        }
+    }
+
+    // return the number of results
+    return results.size();
+}
+
 bool Model::setShader(const std::string& _fragStr, const std::string& _vertStr, bool verbose) {
-    if (m_shadeShader.loaded())
-        m_shadeShader.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
+    if (m_mainShader.loaded())
+        m_mainShader.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
 
     if (m_shadowShader.loaded())
         m_shadowShader.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
@@ -141,15 +190,39 @@ bool Model::setShader(const std::string& _fragStr, const std::string& _vertStr, 
     if (m_positionShader.loaded())
         m_positionShader.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
 
-    return  m_shadeShader.load( _fragStr, _vertStr, SHOW_MAGENTA_SHADER, verbose) && 
+    int sceneBuffers_total = std::max(  countSceneBuffers(_vertStr), 
+                                        countSceneBuffers(_fragStr));
+
+    bool do_some_sceneBuffers_fail = false;
+    if ( sceneBuffers_total != int(m_buffersShaders.size()) ) {
+        for (size_t i = 0; i < m_buffersShaders.size(); i++)
+            if (m_buffersShaders[i].loaded())
+                m_buffersShaders[i].detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
+
+        m_buffersShaders.clear();
+
+        for (int i = 0; i < sceneBuffers_total; i++) {
+            // New Shader
+            m_buffersShaders.push_back( vera::Shader() );
+            m_buffersShaders[i].mergeDefines(&m_mainShader);
+            m_buffersShaders[i].addDefine("SCENE_BUFFER_" + vera::toString(i));
+            do_some_sceneBuffers_fail += !m_buffersShaders[i].load(_fragStr, _vertStr, vera::SHOW_MAGENTA_SHADER);
+        }
+    }
+    else
+        for (size_t i = 0; i < m_buffersShaders.size(); i++)
+            do_some_sceneBuffers_fail += !m_buffersShaders[i].load(_fragStr, _vertStr, vera::SHOW_MAGENTA_SHADER);
+
+    return  m_mainShader.load( _fragStr, _vertStr, SHOW_MAGENTA_SHADER, verbose) && 
             m_shadowShader.load( getDefaultSrc(FRAG_ERROR), _vertStr) &&
             m_normalShader.load( getDefaultSrc(FRAG_NORMAL), _vertStr) &&
-            m_positionShader.load( getDefaultSrc(FRAG_POSITION), _vertStr);
+            m_positionShader.load( getDefaultSrc(FRAG_POSITION), _vertStr) &&
+            !do_some_sceneBuffers_fail;
 }
 
 void Model::render() {
-    if (m_model_vbo && m_shadeShader.loaded())
-        m_model_vbo->render(&m_shadeShader);
+    if (m_model_vbo && m_mainShader.loaded())
+        m_model_vbo->render(&m_mainShader);
 }
 
 void Model::renderShadow() {
@@ -165,6 +238,12 @@ void Model::renderNormal() {
 void Model::renderPosition() {
     if (m_model_vbo && m_positionShader.loaded())
         m_model_vbo->render(&m_positionShader);
+}
+
+void Model::renderBuffer(size_t i) {
+    if (m_model_vbo && i < m_buffersShaders.size()) 
+        if (m_buffersShaders[i].loaded())
+            m_model_vbo->render(&(m_buffersShaders[i]));
 }
 
 void Model::render(Shader* _shader) {

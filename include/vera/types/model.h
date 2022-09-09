@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "boundingBox.h"
 #include "node.h"
 #include "material.h"
@@ -8,8 +10,9 @@
 #include "../gl/vbo.h"
 #include "../gl/shader.h"
 
-
 namespace vera {
+
+typedef std::vector<Shader>    ShaderList;
 
 class Model : public Node {
 public:
@@ -32,16 +35,19 @@ public:
     Vbo*            getVbo() { return m_model_vbo; }
     Vbo*            getVboBbox() { return m_bbox_vbo; }
     float           getArea() const { return m_area; }
-    Shader*         getShadeShader() { return &m_shadeShader; }
+    Shader*         getShader() { return &m_mainShader; }
     Shader*         getShadowShader() { return &m_shadowShader; }
     Shader*         getNormalShader() { return &m_normalShader; }
     Shader*         getPositionShader() { return &m_positionShader; }
+    Shader*         getBufferShader(size_t i) { return &(m_buffersShaders[i]); }
+    int             getTotalBufferShaders() { return m_buffersShaders.size(); }
     const BoundingBox& getBoundingBox() const { return m_bbox; }
     
     void            render();
     void            renderShadow();
     void            renderNormal();
     void            renderPosition();
+    void            renderBuffer(size_t i);
     
     void            render(Shader* _shader);
     void            renderBbox(Shader* _shader);
@@ -50,10 +56,11 @@ public:
     void            printVboInfo();
 
 protected:
-    Shader          m_shadeShader;
-    Shader          m_shadowShader;
-    Shader          m_normalShader;
-    Shader          m_positionShader;
+    Shader          m_mainShader;      // main pass shader
+    Shader          m_shadowShader;     // depth only shadow pass
+    Shader          m_normalShader;     // normal g buffer shader pass
+    Shader          m_positionShader;   // position g buffer shader pass
+    ShaderList      m_buffersShaders;  // N g buffer shaders passes
     
     Vbo*            m_model_vbo;
     Vbo*            m_bbox_vbo;
