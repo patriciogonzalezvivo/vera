@@ -131,6 +131,8 @@ bool Model::setMaterial(const Material &_material) {
     m_shadowShader.mergeDefines(&_material);
     m_normalShader.mergeDefines(&_material);
     m_positionShader.mergeDefines(&_material);
+    for (size_t i = 0; i < m_buffersShaders.size(); i++)
+        m_buffersShaders[i].mergeDefines(&_material);
     return true;
 }
 
