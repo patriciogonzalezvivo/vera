@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vector>
+#include <map>
 
 #include "boundingBox.h"
 #include "node.h"
@@ -12,7 +12,7 @@
 
 namespace vera {
 
-typedef std::vector<Shader>    ShaderList;
+typedef std::map<std::string, Shader*>    ShaderMap;
 
 class Model : public Node {
 public:
@@ -28,26 +28,19 @@ public:
 
     bool            setGeom(const Mesh& _mesh);
     void            setName(const std::string& _str);
-    bool            setShader(const std::string& _fragStr, const std::string& _vertStr, bool verbose);
     bool            setMaterial(const Material& _material);
+    bool            setShader(const std::string& _fragStr, const std::string& _vertStr, bool _verbose = false);
+    bool            setBufferShader(const std::string _bufferName, const std::string& _fragStr, const std::string& _vertStr, bool _verbose = false);
 
-    const std::string& getName() const { return m_name; }
-    Vbo*            getVbo() { return m_model_vbo; }
-    Vbo*            getVboBbox() { return m_bbox_vbo; }
-    float           getArea() const { return m_area; }
-    Shader*         getShader() { return &m_mainShader; }
-    Shader*         getShadowShader() { return &m_shadowShader; }
-    Shader*         getNormalShader() { return &m_normalShader; }
-    Shader*         getPositionShader() { return &m_positionShader; }
-    Shader*         getBufferShader(size_t i) { return &(m_buffersShaders[i]); }
-    int             getTotalBufferShaders() { return m_buffersShaders.size(); }
-    const BoundingBox& getBoundingBox() const { return m_bbox; }
-    
+    const std::string&  getName() const { return m_name; }
+    Vbo*                getVbo() { return m_model_vbo; }
+    Vbo*                getVboBbox() { return m_bbox_vbo; }
+    float               getArea() const { return m_area; }
+    const BoundingBox&  getBoundingBox() const { return m_bbox; }
+    Shader*             getShader() { return &mainShader; }
+    Shader*             getBufferShader(const std::string& _bufferName) { return gBuffersShaders[_bufferName]; }
+
     void            render();
-    void            renderShadow();
-    void            renderNormal();
-    void            renderPosition();
-    void            renderBuffer(size_t i);
     
     void            render(Shader* _shader);
     void            renderBbox(Shader* _shader);
@@ -55,13 +48,10 @@ public:
     void            printDefines();
     void            printVboInfo();
 
+    Shader          mainShader;         // main pass shader
+    ShaderMap       gBuffersShaders;    // shaders use for gBuffers
+
 protected:
-    Shader          m_mainShader;      // main pass shader
-    Shader          m_shadowShader;     // depth only shadow pass
-    Shader          m_normalShader;     // normal g buffer shader pass
-    Shader          m_positionShader;   // position g buffer shader pass
-    ShaderList      m_buffersShaders;  // N g buffer shaders passes
-    
     Vbo*            m_model_vbo;
     Vbo*            m_bbox_vbo;
 

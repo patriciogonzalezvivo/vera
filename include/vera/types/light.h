@@ -39,8 +39,6 @@ public:
     float               intensity;
     float               falloff;
 
-    // bool                bUpdateShadowMap;
-
 protected:
     virtual void        onPositionChanged() { bChange = true; };
     virtual void        onOrientationChanged() { bChange = true; };
