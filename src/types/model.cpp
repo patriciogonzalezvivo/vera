@@ -133,9 +133,6 @@ bool Model::setBufferShader(const std::string _name, const std::string& _fragStr
     ShaderMap::iterator it = gBuffersShaders.find(_name);
 
     if (it == gBuffersShaders.end()) {
-        if (_verbose)
-            std::cout << "Creating shader " << _name << " for model " << m_name << std::endl;
-            
         gBuffersShaders[_name] = new Shader();
         it = gBuffersShaders.find(_name);
     }
