@@ -8,9 +8,9 @@ file(GLOB ROOT_HEADER "${INCLUDE_FOLDER}/vera/*.h")
 file(GLOB GL_HEADER "${INCLUDE_FOLDER}/vera/gl/*.h")
 file(GLOB IO_HEADER "${INCLUDE_FOLDER}/vera/io/*.h")
 file(GLOB OPS_HEADER "${INCLUDE_FOLDER}/vera/ops/*.h")
-file(GLOB TYPES_HEADER "${INCLUDE_FOLDER}/vera/types/*.h")
-file(GLOB DEVICES_HEADER "${INCLUDE_FOLDER}/vera/devices/*.h")
 file(GLOB SHADERS_HEADER "${INCLUDE_FOLDER}/vera/shaders/*.h")
+file(GLOB TYPES_HEADER "${INCLUDE_FOLDER}/vera/types/*.h")
+file(GLOB XR_HEADER "${INCLUDE_FOLDER}/vera/xr/*.h")
 
 # SOURCE files
 set(VERA_SOURCES
@@ -289,7 +289,7 @@ target_include_directories(vera PUBLIC
 # install(FILES ${GL_HEADER} DESTINATION include/vera/gl)
 # install(FILES ${IO_HEADER} DESTINATION include/vera/io)
 # install(FILES ${OPS_HEADER} DESTINATION include/vera/ops)
-# install(FILES ${TYPES_HEADER} DESTINATION include/vera/types)
-# install(FILES ${DEVICES_HEADER} DESTINATION include/vera/devices)
 # install(FILES ${SHADERS_HEADER} DESTINATION include/vera/shaders)
+# install(FILES ${TYPES_HEADER} DESTINATION include/vera/types)
+# install(FILES ${XR_HEADER} DESTINATION include/vera/xr)
 
