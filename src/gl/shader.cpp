@@ -16,7 +16,9 @@ namespace vera {
 Shader::Shader():
     m_fragmentSource(""),
     m_vertexSource(""),
-    m_program(0), m_fragmentShader(0), m_vertexShader(0) {
+    m_program(0), m_fragmentShader(0), m_vertexShader(0),
+    m_error_screen(SHOW_MAGENTA_SHADER),
+    m_needsReloading(false) {
 
     // Adding default defines
     addDefine("GLSLVIEWER", 200);
@@ -59,56 +61,51 @@ void Shader::operator = (const Shader &_parent ) {
 void Shader::setSource(const std::string& _fragmentSrc, const std::string& _vertexSrc) {
     m_fragmentSource = _fragmentSrc;
     m_vertexSource = _vertexSrc;
+    m_needsReloading = true;
 }
 
 bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc, ShaderErrorResolve _onError, bool _verbose) {
-    std::chrono::time_point<std::chrono::steady_clock> start_time, end_time;
-    start_time = std::chrono::steady_clock::now();
-    m_defineChange = false;
-
     setVersionFromCode(_fragmentSrc);
     if (m_fragmentSource == "" || m_vertexSource =="") {
         m_fragmentSource = getDefaultSrc(FRAG_ERROR);
         m_vertexSource = getDefaultSrc(VERT_ERROR);
     }
-    m_vertexShader = compileShader(_vertexSrc, GL_VERTEX_SHADER, _verbose);
 
+    // VERTEX
+    m_vertexShader = compileShader(_vertexSrc, GL_VERTEX_SHADER, _verbose);
     if (!m_vertexShader) {
         if (_onError == SHOW_MAGENTA_SHADER) {
             load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), DONT_KEEP_SHADER, false);
             return false;
         }
         else if (_onError == REVERT_TO_PREVIOUS_SHADER) {
-            reload(SHOW_MAGENTA_SHADER, _verbose);
+            load(m_fragmentSource, m_vertexSource, SHOW_MAGENTA_SHADER, _verbose);
             return false;
         }
     }
 
+    // FRAGMENT
     m_fragmentShader = compileShader(_fragmentSrc, GL_FRAGMENT_SHADER, _verbose);
-
     if (!m_fragmentShader) {
         if (_onError == SHOW_MAGENTA_SHADER)
             load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), SHOW_MAGENTA_SHADER, false);
         else if (_onError == REVERT_TO_PREVIOUS_SHADER)
-            reload(SHOW_MAGENTA_SHADER, _verbose);
+            load(m_fragmentSource, m_vertexSource, SHOW_MAGENTA_SHADER, _verbose);
     }
 
+    // PROGRAM
     if (m_program != 0)
         glDeleteProgram(m_program);
-        
     m_program = glCreateProgram();
-
     glAttachShader(m_program, m_vertexShader);
     glAttachShader(m_program, m_fragmentShader);
     glLinkProgram(m_program);
 
+    // SUCCESS
     if (_onError != DONT_KEEP_SHADER) {
         m_fragmentSource = _fragmentSrc;
         m_vertexSource = _vertexSrc;
     }
-
-    end_time = std::chrono::steady_clock::now();
-    std::chrono::duration<double> load_time = end_time - start_time;
 
     GLint isLinked;
     glGetProgramiv(m_program, GL_LINK_STATUS, &isLinked);
@@ -136,28 +133,10 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
         glDeleteShader(m_vertexShader);
         glDeleteShader(m_fragmentShader);
 
-//         if (_verbose) {
-//             std::cerr << "shader load time: " << load_time.count() << "s";
-// #ifdef GL_PROGRAM_BINARY_LENGTH
-//             GLint proglen = 0;
-//             glGetProgramiv(m_program, GL_PROGRAM_BINARY_LENGTH, &proglen);
-//             if (proglen > 0)
-//                 std::cerr << " size: " << proglen;
-// #endif
-// #ifdef GL_PROGRAM_INSTRUCTIONS_ARB
-//             GLint icount = 0;
-//             glGetProgramivARB(m_program, GL_PROGRAM_INSTRUCTIONS_ARB, &icount);
-//             if (icount > 0)
-//                 std::cerr << " #instructions: " << icount;
-// #endif
-//             std::cerr << std::endl;
-//         }
+        m_needsReloading = false;
+        // m_defineChange = false;
         return true;
     }
-}
-
-bool Shader::reload(ShaderErrorResolve _onError, bool _verbose) {
-    return load(m_fragmentSource, m_vertexSource, _onError, _verbose);
 }
 
 const GLint Shader::getAttribLocation(const std::string& _attribute) const {
@@ -165,13 +144,12 @@ const GLint Shader::getAttribLocation(const std::string& _attribute) const {
 }
 
 void Shader::use() {
-    textureIndex = 0;
+    if (!loaded() || m_needsReloading || m_defineChange)
+        load(m_fragmentSource, m_vertexSource, m_error_screen, false);
 
-    if (m_defineChange || !loaded() )
-        reload(SHOW_MAGENTA_SHADER, false);
-
-    if (!inUse())
+    if (!inUse()) 
         glUseProgram(getProgram());
+    textureIndex = 0;
 }
 
 bool Shader::inUse() const {
@@ -212,7 +190,7 @@ GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbos
         // copy the rest of the shader into srcBody
         std::ostringstream srcOss("");
         std::string dataRead;
-        while(std::getline(srcIss,dataRead)){
+        while (std::getline(srcIss,dataRead)) {
             srcOss << dataRead << '\n';
         }
         srcBody = srcOss.str();
@@ -247,8 +225,14 @@ GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbos
         zeroBasedLineDirective = true; // ... glsl defaults to version 1.10, which starts numbering #line directives from 0.
     }
 
-    for (DefinesMap_it it = m_defines.begin(); it != m_defines.end(); it++)
-        prolog += "#define " + it->first + " " + it->second + '\n';
+    // Only update the define stack string when it change
+    if (m_defineChange) {
+        m_defineStack = "";
+        for (DefinesMap_it it = m_defines.begin(); it != m_defines.end(); it++)
+            m_defineStack += "#define " + it->first + " " + it->second + '\n';
+        m_defineChange = false;
+    }
+    prolog += m_defineStack;
 
     //
     // determine the #line offset to be used for conciliating lines in glsl error messages and the line number in the editor

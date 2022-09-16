@@ -29,8 +29,8 @@ public:
     bool            setGeom(const Mesh& _mesh);
     void            setName(const std::string& _str);
     bool            setMaterial(const Material& _material);
-    bool            setShader(const std::string& _fragStr, const std::string& _vertStr, bool _verbose = false);
-    bool            setBufferShader(const std::string _bufferName, const std::string& _fragStr, const std::string& _vertStr, bool _verbose = false);
+    void            setShader(const std::string& _fragStr, const std::string& _vertStr);
+    void            setBufferShader(const std::string _bufferName, const std::string& _fragStr, const std::string& _vertStr);
 
     const std::string&  getName() const { return m_name; }
     Vbo*                getVbo() { return m_model_vbo; }
@@ -48,10 +48,11 @@ public:
     void            printDefines();
     void            printVboInfo();
 
-    Shader          mainShader;         // main pass shader
-    ShaderMap       gBuffersShaders;    // shaders use for gBuffers
 
 protected:
+    Shader          mainShader;         // main pass shader
+    ShaderMap       gBuffersShaders;    // shaders use for gBuffers
+    
     Vbo*            m_model_vbo;
     Vbo*            m_bbox_vbo;
 

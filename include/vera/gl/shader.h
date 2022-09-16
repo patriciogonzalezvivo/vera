@@ -30,10 +30,10 @@ public:
 
     void    operator = (const Shader &_parent );
     void    setSource(const std::string& _fragmentSrc, const std::string& _vertexSrc);
+    void    setDefaultErrorBehaviour(ShaderErrorResolve _error) { m_error_screen = _error; }
 
-    void    use();
     bool    load(const std::string& _fragmentSrc, const std::string& _vertexSrc, ShaderErrorResolve _onError = SHOW_MAGENTA_SHADER, bool _verbose = false);
-    bool    reload(ShaderErrorResolve _onError = SHOW_MAGENTA_SHADER, bool _verbose = false);
+    void    use();
     
     const   GLuint  getProgram() const { return m_program; };
     const   GLuint  getFragmentShader() const { return m_fragmentShader; };
@@ -85,16 +85,20 @@ public:
 
     size_t  textureIndex;
 
-private:
+protected:
     GLuint      compileShader(const std::string& _src, GLenum _type, bool _verbose);
     GLint       getUniformLocation(const std::string& _uniformName) const;
 
+    std::string m_defineStack;
     std::string m_fragmentSource;
     std::string m_vertexSource;
     
     GLuint      m_program;
     GLuint      m_fragmentShader;
     GLuint      m_vertexShader;
+
+    ShaderErrorResolve m_error_screen;
+    bool        m_needsReloading;
 };
 
 }

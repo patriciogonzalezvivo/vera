@@ -24,7 +24,17 @@ QuiltProperties::QuiltProperties(int _width, int _height, int _cols, int _rows) 
     totalViews = _cols * _rows;
 };
 
-void setQuiltProperties(const QuiltProperties& _quilt) { quilt = _quilt; }
+void setQuiltProperties(const QuiltProperties& _quilt) { 
+    quilt = _quilt; 
+
+    quilt_shader.addDefine("QUILT");
+    quilt_shader.addDefine("QUILT_WIDTH", vera::toString( quilt.width ));
+    quilt_shader.addDefine("QUILT_HEIGHT", vera::toString( quilt.height ));
+    quilt_shader.addDefine("QUILT_COLUMNS", vera::toString( quilt.columns ));
+    quilt_shader.addDefine("QUILT_ROWS", vera::toString( quilt.rows ));
+    quilt_shader.addDefine("QUILT_TOTALVIEWS", vera::toString( quilt.totalViews ));
+    quilt_shader.setSource(vera::getLenticularFragShader(vera::getVersion()), vera::getDefaultSrc(vera::VERT_BILLBOARD));
+}
 
 static int quilt_resolutions[8][4] = {
     {2048, 2048, 4, 8},
@@ -38,8 +48,8 @@ static int quilt_resolutions[8][4] = {
 };
 
 void setQuiltProperties(size_t _index) {
-    quilt = QuiltProperties(quilt_resolutions[_index][0], quilt_resolutions[_index][1], 
-                            quilt_resolutions[_index][2], quilt_resolutions[_index][3] );
+    setQuiltProperties( QuiltProperties(quilt_resolutions[_index][0], quilt_resolutions[_index][1], 
+                                        quilt_resolutions[_index][2], quilt_resolutions[_index][3] ) );
 }
 
 int getQuiltWidth() { return quilt.width; }
@@ -50,7 +60,6 @@ int getQuiltTotalViews() { return quilt.totalViews; }
 int getQuiltCurrentViewIndex() { return currentViewIndex; }
 
 void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _renderFnc, bool _justQuilt) {
-
     Camera* cam = getCamera();
     if (!cam)
         return;
@@ -66,16 +75,8 @@ void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _
 
     if (!_justQuilt) {
 
-        if (!quilt_fbo.isAllocated()) {
+        if (!quilt_fbo.isAllocated())
             quilt_fbo.allocate(quilt.width, quilt.height, COLOR_TEXTURE_DEPTH_BUFFER);
-            quilt_shader.load(vera::getLenticularFragShader(vera::getVersion()), vera::getDefaultSrc(vera::VERT_BILLBOARD));
-            quilt_shader.addDefine("QUILT");
-            quilt_shader.addDefine("QUILT_WIDTH", vera::toString( quilt.width ));
-            quilt_shader.addDefine("QUILT_HEIGHT", vera::toString( quilt.height ));
-            quilt_shader.addDefine("QUILT_COLUMNS", vera::toString( quilt.columns ));
-            quilt_shader.addDefine("QUILT_ROWS", vera::toString( quilt.rows ));
-            quilt_shader.addDefine("QUILT_TOTALVIEWS", vera::toString( quilt.totalViews ));
-        }
 
         Camera* cam = getCamera();
         if (cam)

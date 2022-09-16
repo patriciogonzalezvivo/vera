@@ -462,7 +462,7 @@ void image(const Texture *_tex) {
 
     if (billboard_shader == nullptr) {
         billboard_shader = new Shader();
-        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
+        billboard_shader->setSource( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
     }
 
     billboard_shader->use();
@@ -481,7 +481,7 @@ void image(const Texture *_tex, float _x, float _y, float _width, float _height)
 
     if (billboard_shader == nullptr) {
         billboard_shader = new Shader();
-        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
+        billboard_shader->setSource( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
     }
 
     if (_width == 0)
@@ -505,7 +505,7 @@ void image(const TextureStream &_stream) { image(&_stream); }
 void image(const TextureStream *_stream) {
     if (billboard_shader == nullptr) {
         billboard_shader = new Shader();
-        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
+        billboard_shader->setSource( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
     }
 
     billboard_shader->use();
@@ -521,7 +521,7 @@ void image(const TextureStream &_stream, float _x, float _y, float _width, float
 void image(const TextureStream *_stream, float _x, float _y, float _width, float _height, bool _debug) {
     if (billboard_shader == nullptr) {
         billboard_shader = new Shader();
-        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
+        billboard_shader->setSource( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
     }
 
     if (_width == 0)
@@ -551,7 +551,7 @@ void image(const Fbo &_fbo) { image(&_fbo); }
 void image(const Fbo *_fbo) {
     if (billboard_shader == nullptr) {
         billboard_shader = new Shader();
-        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
+        billboard_shader->setSource( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
     }
 
     billboard_shader->use();
@@ -567,7 +567,7 @@ void image(const Fbo &_fbo, float _x, float _y, float _width, float _height) { i
 void image(const Fbo *_fbo, float _x, float _y, float _width, float _height) { 
     if (billboard_shader == nullptr) {
         billboard_shader = new Shader();
-        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
+        billboard_shader->setSource( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
     }
 
     if (_width == 0)
@@ -591,7 +591,7 @@ void imageDepth(const Fbo &_fbo, float _x, float _y, float _width, float _height
 void imageDepth(const Fbo *_fbo, float _x, float _y, float _width, float _height, float _far, float _near) { 
     if (billboard_shader == nullptr) {
         billboard_shader = new Shader();
-        billboard_shader->load( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
+        billboard_shader->setSource( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
     }
 
     if (_width == 0)

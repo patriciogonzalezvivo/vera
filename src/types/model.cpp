@@ -51,7 +51,6 @@ void Model::addDefine(const std::string& _define, const std::string& _value) {
     mainShader.addDefine(_define, _value); 
     for (vera::ShaderMap::iterator it = gBuffersShaders.begin(); it != gBuffersShaders.end(); ++it)
         it->second->addDefine(_define, _value);
-
 }
 
 void Model::delDefine(const std::string& _define) { 
@@ -122,29 +121,23 @@ bool Model::setGeom(const Mesh& _mesh) {
     return true;
 }
 
-bool Model::setShader(const std::string& _fragStr, const std::string& _vertStr, bool _verbose) {
-    if (mainShader.loaded())
-        mainShader.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
-
-    return  mainShader.load( _fragStr, _vertStr, SHOW_MAGENTA_SHADER, _verbose);
+void Model::setShader(const std::string& _fragStr, const std::string& _vertStr) {
+    mainShader.setSource(_fragStr, _vertStr);
 }
 
-bool Model::setBufferShader(const std::string _name, const std::string& _fragStr, const std::string& _vertStr, bool _verbose) {
+void Model::setBufferShader(const std::string _name, const std::string& _fragStr, const std::string& _vertStr) {
     ShaderMap::iterator it = gBuffersShaders.find(_name);
 
     if (it == gBuffersShaders.end()) {
         gBuffersShaders[_name] = new Shader();
         it = gBuffersShaders.find(_name);
     }
-    else {
+    else
         if (it->second == nullptr)
             it->second = new Shader();
-        else if (it->second->loaded())
-            it->second->detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
-    }
 
     it->second->mergeDefines(&mainShader);
-    return it->second->load( _fragStr, _vertStr, SHOW_MAGENTA_SHADER, _verbose);
+    it->second->setSource( _fragStr, _vertStr);
 }
 
 void Model::printDefines() {

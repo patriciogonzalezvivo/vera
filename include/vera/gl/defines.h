@@ -16,23 +16,23 @@ public:
     HaveDefines();
     virtual ~HaveDefines();
 
-    void    addDefine( const std::string &_define, int _n );
-    void    addDefine( const std::string &_define, float _n );
-    void    addDefine( const std::string &_define, double _n );
-    void    addDefine( const std::string &_define, glm::vec2 _v );
-    void    addDefine( const std::string &_define, glm::vec3 _v );
-    void    addDefine( const std::string &_define, glm::vec4 _v );
-    void    addDefine( const std::string& _define, float* _value, int _nValues);
-    void    addDefine( const std::string& _define, double* _value, int _nValues);
-    void    addDefine( const std::string &_define, const std::string &_value = "");
-    void    delDefine( const std::string &_define );
+    virtual void    addDefine( const std::string &_define, int _n );
+    virtual void    addDefine( const std::string &_define, float _n );
+    virtual void    addDefine( const std::string &_define, double _n );
+    virtual void    addDefine( const std::string &_define, glm::vec2 _v );
+    virtual void    addDefine( const std::string &_define, glm::vec3 _v );
+    virtual void    addDefine( const std::string &_define, glm::vec4 _v );
+    virtual void    addDefine( const std::string& _define, float* _value, int _nValues);
+    virtual void    addDefine( const std::string& _define, double* _value, int _nValues);
+    virtual void    addDefine( const std::string &_define, const std::string &_value = "");
+    virtual void    delDefine( const std::string &_define );
 
-    void    mergeDefines( HaveDefines *_haveDefines );
-    void    mergeDefines( const HaveDefines *_haveDefines );
-    void    mergeDefines( const DefinesMap &_defines );
-    void    replaceDefines( const DefinesMap &_defines );
+    virtual void    mergeDefines( HaveDefines *_haveDefines );
+    virtual void    mergeDefines( const HaveDefines *_haveDefines );
+    virtual void    mergeDefines( const DefinesMap &_defines );
+    virtual void    replaceDefines( const DefinesMap &_defines );
     
-    void    printDefines();
+    virtual void    printDefines();
 
 protected:
     DefinesMap  m_defines;
