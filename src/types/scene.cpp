@@ -154,6 +154,32 @@ bool Scene::addTexture(const std::string& _name, const std::string& _path, bool 
     return false;
 }
 
+bool Scene::addTexture(const std::string& _name, const Image& _image, bool _flip, bool _verbose) {
+    if (textures.find(_name) == textures.end()) {
+        Texture* tex = new Texture();
+
+        // TODO:
+        //  - flip
+
+        // load an image into the texture
+        if (tex->load(_image)) {
+            
+            // the image is loaded finish add the texture to the uniform list
+            textures[_name] = tex;
+            
+            if (_verbose) {
+                std::cout << "uniform sampler2D   " << _name  << ";"<< std::endl;
+                std::cout << "uniform vec2        " << _name  << "Resolution;"<< std::endl;
+            }
+
+            return true;
+        }
+        else
+            delete tex;
+    }
+    return false;
+}
+
 bool Scene::addBumpTexture(const std::string& _name, const std::string& _path, bool _flip, bool _verbose) {
     if (textures.find(_name) == textures.end()) {
         struct stat st;

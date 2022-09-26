@@ -30,6 +30,12 @@ public :
     glm::vec3           getVertex(const glm::vec3& _barycenterCoord ) const;
 
     glm::vec3           getCentroid() const { return (m_vertices[0] + m_vertices[1] + m_vertices[2]) * 0.3333333333333f; }
+    glm::vec3           getMin() const { return glm::vec3(  std::min(m_vertices[0].x, std::min(m_vertices[1].x, m_vertices[2].x)),
+                                                            std::min(m_vertices[0].y, std::min(m_vertices[1].y, m_vertices[2].y)),
+                                                            std::min(m_vertices[0].z, std::min(m_vertices[1].z, m_vertices[2].z)) ); }
+    glm::vec3           getMax() const { return glm::vec3(  std::max(m_vertices[0].x, std::max(m_vertices[1].x, m_vertices[2].x)),
+                                                            std::max(m_vertices[0].y, std::max(m_vertices[1].y, m_vertices[2].y)),
+                                                            std::max(m_vertices[0].z, std::max(m_vertices[1].z, m_vertices[2].z)) ); }
     glm::vec3           getBarycentricOf( const glm::vec3& _p ) const;
     
     bool                haveColors() const { return !m_colors.empty(); }
@@ -56,16 +62,23 @@ public :
     glm::vec4           getTangent(const glm::vec3& _barycenterCoord ) const;
     
     // MaterialConstPtr    material = nullptr;
+    // size_t              closestCoorner(const glm::vec3& _p) const;
+    // glm::vec3           closest(const glm::vec3& _p) const;
 
-    static bool         compare(const Triangle& a, const Triangle& b, int axis) {
-        return a.getCentroid()[axis] < b.getCentroid()[axis];
+    float               signedDistance(const glm::vec3& _p) const;
+    // float               unsignedDistance(const glm::vec3& _p) const;
+
+    static bool         compare(const Triangle& _a, const Triangle& _b, size_t _axis) {
+        return _a.getCentroid()[_axis] < _b.getCentroid()[_axis];
     }
-
     static bool         compareX (const Triangle& a, const Triangle& b) { return compare(a, b, 0); }
     static bool         compareY (const Triangle& a, const Triangle& b) { return compare(a, b, 1); }
     static bool         compareZ (const Triangle& a, const Triangle& b) { return compare(a, b, 2); }
+
     
 private:
+    void                _closestPoint(const glm::vec3& _point, glm::vec3& _nearest_point, glm::vec3& _pseudonormal, float& _squareDistnace) const;
+
     glm::vec3               m_vertices[3];
     glm::vec3               m_normal;
     float                   m_area;

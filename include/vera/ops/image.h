@@ -32,6 +32,7 @@ Mesh                toTerrain(  const Image& _image,
                                 const int _maxPoints = 0 );
 
 Image               toSdf(const Image& _image, float _on = 1.0f);
+Image               toSdf(const Mesh& _mesh, int _resolution = 8);
 std::vector<Image>  toSdf(const Mesh& _mesh, float _scale, bool _absolute = false);
 
 Image               mergeChannels(const Image& _red, const Image& _green, const Image& _blue);

@@ -52,6 +52,7 @@ set(VERA_SOURCES
     ${SOURCE_FOLDER}/ops/pixel.cpp 
     ${SOURCE_FOLDER}/ops/string.cpp
     ${SOURCE_FOLDER}/ops/time.cpp
+    ${SOURCE_FOLDER}/types/bvh.cpp
     ${SOURCE_FOLDER}/types/camera.cpp
     ${SOURCE_FOLDER}/types/font.cpp
     ${SOURCE_FOLDER}/types/image.cpp

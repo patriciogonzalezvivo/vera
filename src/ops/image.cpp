@@ -1,6 +1,5 @@
 #include "vera/ops/image.h"
 
-
 #include <stdio.h>
 #include <cstring>
 #include <vector>
@@ -14,6 +13,7 @@
 #include <glm/gtx/normal.hpp>
 #include <glm/gtx/hash.hpp>
 
+#include "vera/types/bvh.h"
 #include "vera/ops/math.h"
 #include "vera/ops/geom.h"
 #include "vera/ops/string.h"
@@ -1038,12 +1038,73 @@ Mesh toTerrain( const Image& _image,
     return mesh;
 }
 
+Image   toSdf(const Mesh& _mesh, int _resolution) {
+    Mesh mesh = _mesh;
+    center(mesh);
+    std::vector<Triangle> tris = mesh.getTriangles();
+    BVH acc;
+    acc.load(tris);
+
+    glm::vec3   bdiagonal   = acc.getDiagonal();
+    float       max_dist    = std::max(bdiagonal.x, std::max(bdiagonal.y, bdiagonal.z));
+    max_dist = glm::length(bdiagonal);
+    // acc.expand(max_dist * 0.1f);
+    
+    int voxel_resolution = std::pow(2, _resolution);
+    float voxel_size = 1.0/float(voxel_resolution);
+    int tiles = std::sqrt(voxel_resolution);
+    int image_resolution = voxel_resolution * tiles;
+
+    Image rta;
+    rta.allocate(image_resolution, image_resolution, 1);
+
+    for (int z = 0; z < voxel_resolution; z++)
+        for (int y = 0; y < voxel_resolution; y++)
+            for (int x = 0; x < voxel_resolution; x++) {
+                // for each voxel convert it into a point in the space containing a mesh
+                glm::vec3 p = glm::vec3(x, y, z) * voxel_size;
+                p = acc.min + p * bdiagonal;
+
+                std::vector<Triangle> elements;
+                float c = max_dist;
+
+                BoundingBox bbox;
+                bbox.set(p);
+                bbox.expand(max_dist * 0.1f);
+                acc.hit(bbox, elements);
+
+                if (elements.size() == 0)
+                    elements = acc.elements;
+
+                for (size_t i = 0; i < elements.size(); i++) {
+                    float d = elements[i].signedDistance(p);
+
+                    // glm::vec3 closest = elements[i].getCentroid();
+                    // glm::vec3 dir = closest - p;
+                    // float s = (glm::dot(dir, elements[i].getNormal()) >= 0.0) ? -1.0 : 1.0;
+                    // float d = glm::distance(closest, p) * s;
+
+                    if (abs(d) < abs(c))
+                        c = d;
+                }
+
+                size_t tileX = (z % tiles) * voxel_resolution; 
+                size_t tileY = floor(z / tiles) * voxel_resolution;
+                size_t index = rta.getIndex(tileX + x, tileY + y);
+                if (index < rta.size())
+                    rta.setValue(index, (c/max_dist) * 0.5 + 0.5 );
+            }
+
+    return rta;
+}
+
+
 std::vector<Image>  toSdf(const Mesh& _mesh, float _scale, bool _absolute) {
     Mesh tmp = _mesh;
     center(tmp);
     std::vector<Triangle> elements = tmp.getTriangles();
     BoundingBox bbox = getBoundingBox( elements );
-
+    
     int width = bbox.getWidth() * _scale;
     int height = bbox.getHeight() * _scale;
     int depth = bbox.getDepth() * _scale;

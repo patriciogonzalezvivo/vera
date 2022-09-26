@@ -98,16 +98,16 @@ bool Texture::load(int _width, int _height, int _channels, int _bits, const void
     else std::cout << "Unrecognize GLenum type for " << _bits << " bits" << std::endl;
 
     if (_width  == m_width  && _height  == m_height &&
-        _filter == m_filter && _wrap    == m_wrap &&
-        format  == m_format && type     == m_type )
-        return update(0,0,_width,_height, _data);
+        _filter == m_filter && _wrap    == m_wrap   &&
+        format  == m_format && type     == m_type   )
+        return update(0, 0, _width, _height, _data);
 
-    m_width = _width;
-    m_height = _height;
-    m_format = format;
-    m_type = type;
-    m_filter = _filter;
-    m_wrap = _wrap;
+    m_width     = _width;
+    m_height    = _height;
+    m_filter    = _filter;
+    m_format    = format;
+    m_type      = type;
+    m_wrap      = _wrap;
 
     // Generate an OpenGL texture ID for this texturez
     if (m_id == 0)

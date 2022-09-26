@@ -14,6 +14,7 @@
 #include "../gl/pingpong.h"
 #include "../gl/pyramid.h"
 
+#include "image.h"
 #include "light.h"
 #include "camera.h"
 #include "model.h"
@@ -50,6 +51,7 @@ public:
     // Textures
     TexturesMap         textures;
     virtual bool        addTexture(const std::string& _name, const std::string& _path, bool _flip = true, bool _verbose = true);
+    virtual bool        addTexture(const std::string& _name, const Image& _image, bool _flip = true, bool _verbose = true);
     virtual bool        addBumpTexture(const std::string& _name, const std::string& _path, bool _flip = true, bool _verbose = true);
     virtual void        printTextures();
     virtual void        clearTextures();

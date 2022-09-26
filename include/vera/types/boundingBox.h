@@ -17,14 +17,14 @@ public:
     
     void        set(const glm::vec2& _center) { set(glm::vec3(_center, 0.0f)); }
     void        set(const glm::vec3& _center) { min = _center; max = _center; }
-    void        set(const glm::vec4& _bbox) { min.x = _bbox.x; min.y = _bbox.y; max.x = _bbox.z; max.y = _bbox.w; }
-    void        operator = (const glm::vec4& _bbox) { set(_bbox); }
+    void        set(const glm::vec4& _b) { min.x = _b.x; min.y = _b.y; max.x = _b.z; max.y = _b.w; }
+    void        operator = (const glm::vec4& _b) { set(_b); }
 
     float       getWidth() const { return fabs(max.x - min.x); }
     float       getHeight() const { return fabs(max.y - min.y); }
     float       getDepth() const { return fabs(max.z - min.z); }
     
-    glm::vec3   getCenter() const { return (min + max) * 0.5f; }
+    glm::vec3   getCenter() const { return min + (max - min) * 0.5f; }
     glm::vec3   getDiagonal() const { return max - min; }
     glm::vec4   get2DBoundingBox() const { return glm::vec4(min.x, min.y, max.x, max.y); }
     
@@ -38,10 +38,27 @@ public:
     bool        contains(float _x, float _y, float _z) const { return containsX(_x) && containsY(_y) && containsZ(_z); }
     bool        contains(const glm::vec3& _v) const { return containsX(_v.x) && containsY(_v.y) && containsZ(_v.z); }
 
+    bool        intersects(const BoundingBox& _b) const {  return (min.x <= _b.max.x && max.x >= _b.min.x) && (min.y <= _b.max.y && max.y >= _b.min.y) && (min.z <= _b.max.z && max.z >= _b.min.z); }
+    // bool        intersects(const BoundingBox& _b) const { return (min.x < _b.max.x) && (max.x > _b.min.x) && (min.y < _b.max.y) && (max.y > _b.min.y) && (min.z < _b.max.z) && (max.z > _b.min.z) && *this != _b; }
+    // bool        operator==(const BoundingBox& _b) const { return (max.x == _b.max.x && max.y == _b.max.y && max.z == _b.max.z && min.x == _b.min.x && min.y == _b.min.y && min.z == _b.min.z); }
+    // bool        operator!=(const BoundingBox& _b) const { return (max.x != _b.max.x) || (max.y != _b.max.y) || (max.z != _b.max.z) || (min.x != _b.min.x) || (min.y != _b.min.y) || (min.z != _b.min.z); }
+
+    bool        intersects(const glm::vec3 _p, float _r2) const {
+        float dmin = 0.0f;
+        for( size_t i = 0; i < 3; i++ ) {
+            if( _p[i] < min[i] ) dmin += std::sqrt( _p[i] - min[i] ); 
+            else if( _p[i] > max[i] ) dmin += std::sqrt( _p[i] - max[i] );     
+        }
+        
+        if( dmin <= _r2 ) return true;
+        return false;
+    }
+
     void        expand(float _value) {
         min -= _value;
         max += _value;
     }
+
     void        expand(float _x, float _y) {
         min.x = std::min(min.x, _x);
         max.x = std::max(max.x, _x);
@@ -58,7 +75,6 @@ public:
 
     void        expand(const glm::vec2& _v) { expand(_v.x, _v.y); }
     void        expand(const glm::vec3& _v) { expand(_v.x, _v.y, _v.z); }
-    // void    expand(const Line& _l) { expand(_l[0]); expand(_l[1]); }
     void        expand(const Triangle& _t) { expand(_t[0]); expand(_t[1]); expand(_t[2]); }
     void        expand(const BoundingBox& _b) { expand(_b.min); expand(_b.max); }
 
