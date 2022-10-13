@@ -18,7 +18,6 @@ TextureCube::TextureCube()
 }
 
 TextureCube::~TextureCube() {
-    glDeleteTextures(1, &m_id);
 }
 
 bool TextureCube::load(const std::string &_path, bool _vFlip) {
