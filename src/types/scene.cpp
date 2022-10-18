@@ -89,7 +89,8 @@ void Scene::update() {
 
 void Scene::clear() {
     clearTextures();
-    clearStreams();
+    // clearStreams();
+    streams.clear();
 
     clearCubemaps();
     

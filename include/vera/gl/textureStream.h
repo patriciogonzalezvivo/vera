@@ -10,6 +10,8 @@ namespace vera {
 class TextureStream : public Texture {
 public:
 
+    virtual ~TextureStream() {}
+    
     virtual void            setSpeed( float _speed ) {};
     virtual void            setTime( float _time ) {};
     virtual void            setPct( float _pct ) { setTime( _pct * getDuration() ); };
