@@ -49,22 +49,27 @@ void Model::clear() {
 
 void Model::addDefine(const std::string& _define, const std::string& _value) { 
     mainShader.addDefine(_define, _value); 
-    for (vera::ShaderMap::iterator it = gBuffersShaders.begin(); it != gBuffersShaders.end(); ++it)
-        it->second->addDefine(_define, _value);
+    for (vera::ShaderMap::iterator it = gBuffersShaders.begin(); it != gBuffersShaders.end(); ++it) {
+        if (it->second)
+            it->second->addDefine(_define, _value);
+    }
 }
 
 void Model::delDefine(const std::string& _define) { 
     mainShader.delDefine(_define);
-    for (vera::ShaderMap::iterator it = gBuffersShaders.begin(); it != gBuffersShaders.end(); ++it)
-        it->second->delDefine(_define);
+    for (vera::ShaderMap::iterator it = gBuffersShaders.begin(); it != gBuffersShaders.end(); ++it){
+        if (it->second)
+            it->second->delDefine(_define);
+    }
 
 };
 
 bool Model::setMaterial(const Material &_material) {
     mainShader.mergeDefines(&_material);
-    for (vera::ShaderMap::iterator it = gBuffersShaders.begin(); it != gBuffersShaders.end(); ++it)
-        it->second->mergeDefines(&_material);
-
+    for (vera::ShaderMap::iterator it = gBuffersShaders.begin(); it != gBuffersShaders.end(); ++it) {
+        if (it->second)
+            it->second->mergeDefines(&_material);
+    }
     return true;
 }
 

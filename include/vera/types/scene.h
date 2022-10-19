@@ -61,7 +61,6 @@ public:
     virtual bool        addStreamingTexture(const std::string& _name, const std::string& _url, bool _flip = true, bool _device = false, bool _verbose = true);
     virtual bool        addStreamingAudioTexture(const std::string& _name, const std::string& device_id, bool _flip = false, bool _verbose = true);
     virtual void        printStreams();
-    virtual void        clearStreams();
 
     virtual void        setStreamPlay(const std::string& _name);
     virtual void        setStreamStop(const std::string& _name);

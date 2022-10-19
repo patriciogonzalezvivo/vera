@@ -89,8 +89,6 @@ void Scene::update() {
 
 void Scene::clear() {
     clearTextures();
-    // clearStreams();
-    streams.clear();
 
     clearCubemaps();
     
@@ -226,6 +224,7 @@ void Scene::clearTextures() {
     for (TexturesMap::iterator it = textures.begin(); it != textures.end(); ++it)
         delete (it->second);
     textures.clear();
+    streams.clear();
 }
 
 bool Scene::addStreamingTexture( const std::string& _name, const std::string& _url, bool _vflip, bool _device, bool _verbose) {
@@ -453,12 +452,6 @@ void Scene::setStreamsPct( float _pct ) {
 void Scene::setStreamsPrevs( size_t _total ) {
     m_streamsPrevs = _total;
     m_streamsPrevsChange = true;
-}
-
-void Scene::clearStreams() {
-    for (TextureStreamsMap::iterator it = streams.begin(); it != streams.end(); ++it)
-        delete (it->second);
-    streams.clear();
 }
 
 void Scene::printStreams() {

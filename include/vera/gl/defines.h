@@ -22,8 +22,8 @@ public:
     virtual void    addDefine( const std::string &_define, glm::vec2 _v );
     virtual void    addDefine( const std::string &_define, glm::vec3 _v );
     virtual void    addDefine( const std::string &_define, glm::vec4 _v );
-    virtual void    addDefine( const std::string& _define, float* _value, int _nValues);
-    virtual void    addDefine( const std::string& _define, double* _value, int _nValues);
+    virtual void    addDefine( const std::string &_define, float* _value, int _nValues);
+    virtual void    addDefine( const std::string &_define, double* _value, int _nValues);
     virtual void    addDefine( const std::string &_define, const std::string &_value = "");
     virtual void    delDefine( const std::string &_define );
 

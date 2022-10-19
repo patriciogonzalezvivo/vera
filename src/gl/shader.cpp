@@ -54,7 +54,6 @@ Shader::~Shader() {
 void Shader::operator = (const Shader &_parent ) {
     m_fragmentSource = _parent.m_fragmentSource;
     m_vertexSource = _parent.m_vertexSource;
-
     m_defineChange = true;
 }
 
