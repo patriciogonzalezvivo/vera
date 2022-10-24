@@ -18,7 +18,7 @@ Shader::Shader():
     m_vertexSource(""),
     m_program(0), m_fragmentShader(0), m_vertexShader(0),
     m_error_screen(SHOW_MAGENTA_SHADER),
-    m_needsReloading(false) {
+    m_needsReloading(true) {
 
     // Adding default defines
     addDefine("GLSLVIEWER", 200);
@@ -43,6 +43,8 @@ Shader::Shader():
     addDefine("PLATFORM_LINUX");
     
     #endif
+
+    m_defineChange = true;
 }
 
 Shader::~Shader() {
@@ -55,6 +57,7 @@ void Shader::operator = (const Shader &_parent ) {
     m_fragmentSource = _parent.m_fragmentSource;
     m_vertexSource = _parent.m_vertexSource;
     m_defineChange = true;
+    m_needsReloading = true;
 }
 
 void Shader::setSource(const std::string& _fragmentSrc, const std::string& _vertexSrc) {

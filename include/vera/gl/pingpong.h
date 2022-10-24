@@ -14,6 +14,7 @@ public:
     void clear(float _alpha = 0.0);
 
     Fbo& operator[](int n){ return m_fbos[n]; }
+    Fbo& buffer(int n){ return m_fbos[n]; }
 
     Fbo *src;       // Source       ->  Ping
     Fbo *dst;       // Destination  ->  Pong
