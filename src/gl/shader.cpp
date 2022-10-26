@@ -20,9 +20,6 @@ Shader::Shader():
     m_error_screen(SHOW_MAGENTA_SHADER),
     m_needsReloading(true) {
 
-    // Adding default defines
-    addDefine("GLSLVIEWER", 200);
-
     // Define PLATFORM
     #if defined(__APPLE__)
     addDefine("PLATFORM_OSX");
