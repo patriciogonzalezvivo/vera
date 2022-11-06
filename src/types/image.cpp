@@ -112,6 +112,21 @@ bool Image::load(const std::string& _path, bool _flip) {
     return false;
 }
 
+bool Image::save(const std::string& _filepath, bool _vFlip) {
+    size_t total = m_width * m_height;
+    unsigned short *pixels = new unsigned short[total * 4];
+    for (size_t i = 0; i < total; i++) {
+        glm::vec4 c = getColor(i);
+        pixels[i * 4 + 0] = c.r * 65535;
+        pixels[i * 4 + 1] = c.g * 65535;
+        pixels[i * 4 + 2] = c.b * 65535;
+        pixels[i * 4 + 3] = c.a * 65535;
+    }
+
+    return vera::savePixels16(_filepath, pixels, m_width, m_height);
+    freePixels(pixels);
+}
+
 bool Image::allocate(size_t _width, size_t _height, size_t _channels) {
     m_width = _width;
     m_height = _height;

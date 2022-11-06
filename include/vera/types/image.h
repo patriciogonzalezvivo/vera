@@ -18,6 +18,7 @@ public:
     virtual     ~Image();
 
     virtual bool    load(const std::string& _filepath, bool _vFlip = false);
+    virtual bool    save(const std::string& _filepath, bool _vFlip = false);
 
     virtual bool    allocate(size_t _width, size_t _height, size_t _channels);
     virtual bool    isAllocated() const { return m_data.size() != 0; }
