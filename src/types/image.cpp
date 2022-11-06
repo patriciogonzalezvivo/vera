@@ -117,6 +117,12 @@ bool Image::save(const std::string& _filepath, bool _vFlip) {
     unsigned short *pixels = new unsigned short[total * 4];
     for (size_t i = 0; i < total; i++) {
         glm::vec4 c = getColor(i);
+
+        if (m_channels == 1) {
+            c.g = c.r;
+            c.b = c.r;
+        }
+
         pixels[i * 4 + 0] = c.r * 65535;
         pixels[i * 4 + 1] = c.g * 65535;
         pixels[i * 4 + 2] = c.b * 65535;
