@@ -2,12 +2,12 @@ cmake_minimum_required(VERSION 3.2)
 
 project(vera CXX)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
-add_compile_options(-DGLM_FORCE_CXX11)
+add_compile_options(-DGLM_FORCE_CXX17)
 
 if (NO_X11 OR FORCE_GBM)
-    add_compile_options(-std=c++11 -fpermissive -Wno-psabi)
+    add_compile_options(-std=c++17 -fpermissive -Wno-psabi)
 endif()
 
 # The compiled library code is here
