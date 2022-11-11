@@ -114,22 +114,32 @@ bool Image::load(const std::string& _path, bool _flip) {
 
 bool Image::save(const std::string& _filepath, bool _vFlip) {
     size_t total = m_width * m_height;
-    unsigned short *pixels = new unsigned short[total * 4];
-    for (size_t i = 0; i < total; i++) {
-        glm::vec4 c = getColor(i);
-
-        if (m_channels == 1) {
-            c.g = c.r;
-            c.b = c.r;
+    unsigned char *pixels = new unsigned char[total * 4];
+    
+    if (m_channels == 1) {
+        for (size_t i = 0; i < m_data.size(); i++) {
+            float v = m_data[i];
+            pixels[i * 4 + 0] = (unsigned char)(v * 255);
+            pixels[i * 4 + 1] = (unsigned char)(v * 255);
+            pixels[i * 4 + 2] = (unsigned char)(v * 255);
+            pixels[i * 4 + 3] = (unsigned char)(255);
+        } 
+    }
+    else {
+        for (size_t y = 0; y < m_height; y++) {
+            for (size_t x = 0; x < m_width; x++) {
+                size_t index = getIndex(x, y);
+                glm::vec4 c = getColor( index );
+                
+                pixels[index * 4 + 0] = (unsigned char)(c.r * 255);
+                pixels[index * 4 + 1] = (unsigned char)(c.g * 255);
+                pixels[index * 4 + 2] = (unsigned char)(c.b * 255);
+                pixels[index * 4 + 3] = (unsigned char)(c.a * 255);
+            }
         }
-
-        pixels[i * 4 + 0] = c.r * 65535;
-        pixels[i * 4 + 1] = c.g * 65535;
-        pixels[i * 4 + 2] = c.b * 65535;
-        pixels[i * 4 + 3] = c.a * 65535;
     }
 
-    return vera::savePixels16(_filepath, pixels, m_width, m_height);
+    return vera::savePixels(_filepath, pixels, m_width, m_height);
     freePixels(pixels);
 }
 
