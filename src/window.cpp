@@ -180,6 +180,7 @@ std::function<void(float, float, int)>  onMousePress;
 std::function<void(float, float, int)>  onMouseDrag;
 std::function<void(float, float, int)>  onMouseRelease;
 std::function<void(float)>              onScroll;
+std::function<void(int, const char**)>  onDrop;
 
 void setViewportResizeCallback(std::function<void(int,int)> _callback) { onViewportResize = _callback; }
 void setKeyPressCallback(std::function<void(int)> _callback) { onKeyPress = _callback; }
@@ -188,6 +189,7 @@ void setMousePressCallback(std::function<void(float, float, int)> _callback) { o
 void setMouseDragCallback(std::function<void(float, float, int)> _callback) { onMouseDrag = _callback; }
 void setMouseReleaseCallback(std::function<void(float, float, int)> _callback) { onMouseRelease = _callback; }
 void setScrollCallback(std::function<void(float)>_callback) { onScroll = _callback; }
+void setDropCallback(std::function<void(int, const char**)>_callback) { onDrop = _callback; }
 
 #if defined(DRIVER_BROADCOM)
     DISPMANX_DISPLAY_HANDLE_T dispman_display;
@@ -809,6 +811,11 @@ int initGL(WindowProperties _prop) {
     glfwSetScrollCallback(window, [](GLFWwindow* _window, double xoffset, double yoffset) {
         if (onScroll)
             onScroll(-yoffset * fPixelDensity);
+    });
+
+    glfwSetDropCallback(window, [](GLFWwindow* window, int count, const char** paths) {
+        if (onDrop)
+            onDrop(count, paths);
     });
 
 #if defined(__EMSCRIPTEN__)

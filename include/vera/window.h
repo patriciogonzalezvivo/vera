@@ -132,5 +132,6 @@ void    setMousePressCallback(std::function<void(float, float, int)>);
 void    setMouseReleaseCallback(std::function<void(float, float, int)>);
 void    setMouseDragCallback(std::function<void(float, float, int)>);
 void    setScrollCallback(std::function<void(float)>);
+void    setDropCallback(std::function<void(int, const char**)>);
 
 }
