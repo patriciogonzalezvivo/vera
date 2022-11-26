@@ -199,267 +199,11 @@ varying mat3        v_tangentToWorld;
 #define LIGHT_INTENSITY     u_lightIntensity
 #define LIGHT_COORD         v_lightCoord
 
-#ifndef QTR_PI
-#define QTR_PI 0.78539816339
-#endif
-#ifndef HALF_PI
-#define HALF_PI 1.5707963267948966192313216916398
-#endif
-#ifndef PI
-#define PI 3.1415926535897932384626433832795
-#endif
-#ifndef TWO_PI
-#define TWO_PI 6.2831853071795864769252867665590
-#endif
-#ifndef TAU
-#define TAU 6.2831853071795864769252867665590
-#endif
-#ifndef ONE_OVER_PI
-#define ONE_OVER_PI 0.31830988618
-#endif
-#ifndef SQRT_HALF_PI
-#define SQRT_HALF_PI 1.25331413732
-#endif
-#ifndef PHI
-#define PHI 1.618033988749894848204586834
-#endif
-#ifndef EPSILON
-#define EPSILON 0.0000001
-#endif
-#ifndef GOLDEN_RATIO
-#define GOLDEN_RATIO 1.6180339887
-#endif
-#ifndef GOLDEN_RATIO_CONJUGATE 
-#define GOLDEN_RATIO_CONJUGATE 0.61803398875
-#endif
-#ifndef GOLDEN_ANGLE // (3.-sqrt(5.0))*PI radians
-#define GOLDEN_ANGLE 2.39996323
-#endif
+// #include "lygia/lighting/atmosphere.glsl"
+// #ifndef SCENE_CUBEMAP
+// #define ENVMAP_FNC(NORM, ROUGHNESS, METALLIC) atmosphere(NORM, normalize(u_light))
+// #endif
 
-/*
-original_author: Patricio Gonzalez Vivo
-description: clamp a value between 0 and 1
-use: saturation(<float|vec2|vec3|vec4> value)
-*/
-
-#ifndef FNC_SATURATE
-#define FNC_SATURATE
-// #define saturate(x) clamp(x, 0.0, 1.0)
-float saturate( float x){ return clamp(x, 0.0, 1.0); }
-vec2  saturate( vec2 x ){ return clamp(x, 0.0, 1.0); }
-vec3  saturate( vec3 x ){ return clamp(x, 0.0, 1.0); }
-vec4  saturate( vec4 x ){ return clamp(x, 0.0, 1.0); }
-#endif
-
-/*
-original_author: Patricio Gonzalez Vivo
-description: Generic Ray Structure
-*/
-
-#ifndef STR_RAY
-#define STR_RAY
-
-struct Ray {
-    vec3 origin;
-    vec3 direction;
-};
-#endif
-
-
-// Henyey-Greenstein phase function factor [-1, 1]
-// represents the average cosine of the scattered directions
-// 0 is isotropic scattering
-// > 1 is forward scattering, < 1 is backwards
-#ifndef HENYEYGREENSTEIN_SCATTERING
-#define HENYEYGREENSTEIN_SCATTERING 0.76
-#endif
-
-#ifndef FNC_HENYEYGREENSTEIN
-#define FNC_HENYEYGREENSTEIN
-float henyeyGreenstein(float mu) {
-    return max(0.0, (1.0 - HENYEYGREENSTEIN_SCATTERING*HENYEYGREENSTEIN_SCATTERING) / ((4. + PI) * pow(1.0 + HENYEYGREENSTEIN_SCATTERING*HENYEYGREENSTEIN_SCATTERING - 2.0 * HENYEYGREENSTEIN_SCATTERING * mu, 1.5)));
-}
-#endif
-
-
-#ifndef FNC_RAYLEIGH
-#define FNC_RAYLEIGH
-
-// Rayleigh phase
-float rayleigh(float mu) {
-    return 3. * (1. + mu*mu) / (16. * PI);
-}
-
-#endif
-
-/*
-description: Rayleigh and Mie scattering atmosphere system. Implementation of the techniques described here: https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/simulating-sky/simulating-colors-of-the-sky
-use: <vec3> atmosphere(<vec3> eye_dir, <vec3> sun_dir)
-OPTIONS:
-    ATMOSPHERE_FAST: use fast implementation from https://www.shadertoy.com/view/3dBSDW
-    ATMOSPHERE_RADIUS_MIN: planet radius
-    ATMOSPHERE_RADIUS_MAX: atmosphere radious
-    ATMOSPHERE_SUN_POWER: sun power. Default 20.0
-    ATMOSPHERE_LIGHT_SAMPLES: Defualt 8 
-    ATMOSPHERE_SAMPLES: Defualt 16
-    HENYEYGREENSTEIN_SCATTERING
-*/
-
-#ifndef ATMOSPHERE_RADIUS_MIN
-#define ATMOSPHERE_RADIUS_MIN 6360e3
-#endif
-
-#ifndef ATMOSPHERE_RADIUS_MAX
-#define ATMOSPHERE_RADIUS_MAX 6420e3
-#endif
-
-#ifndef ATMOSPHERE_SUN_POWER
-#define ATMOSPHERE_SUN_POWER 20.0
-#endif
-
-#ifndef ATMOSPHERE_LIGHT_SAMPLES
-#define ATMOSPHERE_LIGHT_SAMPLES 8
-#endif
-
-#ifndef ATMOSPHERE_SAMPLES
-#define ATMOSPHERE_SAMPLES 16
-#endif
-
-// scale height (m)
-// thickness of the atmosphere if its density were uniform
-#ifndef ATMOSPHERE_RAYLEIGH_THICKNESS
-#define ATMOSPHERE_RAYLEIGH_THICKNESS 7994.0
-#endif 
-
-#ifndef ATMOSPHERE_MIE_THICKNESS
-#define ATMOSPHERE_MIE_THICKNESS 1200.0
-#endif 
-
-// scattering coefficients at sea level (m)
-#ifndef ATMOSPHERE_RAYLEIGH_SCATTERING
-#define ATMOSPHERE_RAYLEIGH_SCATTERING vec3(5.5e-6, 13.0e-6, 22.4e-6)
-#endif 
-
-#ifndef ATMOSPHERE_MIE_SCATTERING
-#define ATMOSPHERE_MIE_SCATTERING vec3(21e-6)
-#endif 
-
-#ifndef FNC_ATMOSPHERE
-#define FNC_ATMOSPHERE
-
-bool atmosphere_intersect( const in Ray ray, inout float t0, inout float t1) {
-    vec3 rc = vec3(0.0, 0.0, 0.0) - ray.origin;
-    float radius2 = ATMOSPHERE_RADIUS_MAX * ATMOSPHERE_RADIUS_MAX;
-    float tca = dot(rc, ray.direction);
-    float d2 = dot(rc, rc) - tca * tca;
-    if (d2 > radius2) 
-        return false;
-
-    float thc = sqrt(radius2 - d2);
-    t0 = tca - thc;
-    t1 = tca + thc;
-    return true;
-}
-
-bool atmosphere_light(const in Ray ray, inout float optical_depthR, inout float optical_depthM) {
-    float t0 = 0.0;
-    float t1 = 0.0;
-    atmosphere_intersect(ray, t0, t1);
-
-    // this is the implementation using classical raymarching 
-    float march_pos = 0.;
-    float march_step = t1 / float(ATMOSPHERE_LIGHT_SAMPLES);
-    
-    for (int i = 0; i < ATMOSPHERE_LIGHT_SAMPLES; i++) {
-        vec3 s =    ray.origin +
-                    ray.direction * (march_pos + 0.5 * march_step);
-        float height = length(s) - ATMOSPHERE_RADIUS_MIN;
-        if (height < 0.)
-            return false;
-    
-        optical_depthR += exp(-height / ATMOSPHERE_RAYLEIGH_THICKNESS) * march_step;
-        optical_depthM += exp(-height / ATMOSPHERE_MIE_THICKNESS) * march_step;
-    
-        march_pos += march_step;
-    }
-
-    return true;
-}
-
-vec3 atmosphere(const in Ray ray, vec3 sun_dir) {
-    // "pierce" the atmosphere with the viewing ray
-    float t0 = 0.0;
-    float t1 = 0.0;
-    // atmosphere_intersect(ray, t0, t1);
-    if (!atmosphere_intersect(ray, t0, t1))
-        return vec3(0.0);
-
-    float march_step = t1 / float(ATMOSPHERE_SAMPLES);
-
-    // cosine of angle between view and light directions
-    float mu = dot(ray.direction, sun_dir);
-
-    // Rayleigh and Mie phase functions
-    // A black box indicating how light is interacting with the material
-    // Similar to BRDF except
-    // * it usually considers a single angle
-    //   (the phase angle between 2 directions)
-    // * integrates to 1 over the entire sphere of directions
-    float phaseR = rayleigh(mu);
-    float phaseM = henyeyGreenstein(mu);
-
-    // optical depth (or "average density")
-    // represents the accumulated extinction coefficients
-    // along the path, multiplied by the length of that path
-    float optical_depthR = 0.;
-    float optical_depthM = 0.;
-
-    vec3 sumR = vec3(0.0, 0.0, 0.0);
-    vec3 sumM = vec3(0.0, 0.0, 0.0);
-    float march_pos = 0.0;
-
-    for (int i = 0; i < ATMOSPHERE_SAMPLES; i++) {
-        vec3 s =    ray.origin +
-                    ray.direction * (march_pos + 0.5 * march_step);
-        float height = length(s) - ATMOSPHERE_RADIUS_MIN;
-
-        // integrate the height scale
-        float hr = exp(-height / ATMOSPHERE_RAYLEIGH_THICKNESS) * march_step;
-        float hm = exp(-height / ATMOSPHERE_MIE_THICKNESS) * march_step;
-        optical_depthR += hr;
-        optical_depthM += hm;
-
-        // gather the sunlight
-        Ray ray = Ray(s, sun_dir);
-
-        float optical_depth_lightR = 0.;
-        float optical_depth_lightM = 0.;
-
-        if ( atmosphere_light( ray, optical_depth_lightR, optical_depth_lightM) ) {
-            // If it's over the horizon
-            vec3 tau =  ATMOSPHERE_RAYLEIGH_SCATTERING * (optical_depthR + optical_depth_lightR) +
-                        ATMOSPHERE_MIE_SCATTERING * 1.1 * (optical_depthM + optical_depth_lightM);
-            vec3 attenuation = exp(-tau);
-            sumR += hr * attenuation;
-            sumM += hm * attenuation;
-        }
-
-        march_pos += march_step;
-    }
-
-    return  ATMOSPHERE_SUN_POWER * (sumR * phaseR * ATMOSPHERE_RAYLEIGH_SCATTERING +
-                                    sumM * phaseM * ATMOSPHERE_MIE_SCATTERING);
-}
-
-vec3 atmosphere(vec3 eye_dir, vec3 sun_dir) {
-    Ray ray = Ray(vec3(0., ATMOSPHERE_RADIUS_MIN + 1., 0.), eye_dir);
-    return atmosphere(ray, sun_dir);
-}
-
-#endif
-#ifndef SCENE_CUBEMAP
-#define ENVMAP_FNC(NORM, ROUGHNESS, METALLIC) atmosphere(NORM, normalize(u_light))
-#endif
 /*
 original_author: Patricio Gonzalez Vivo
 description: convert from linear to gamma color space.
@@ -494,6 +238,26 @@ float linear2gamma(in float v) {
 #endif
 }
 #endif
+
+
+
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: clamp a value between 0 and 1
+use: saturation(<float|vec2|vec3|vec4> value)
+*/
+
+#ifndef FNC_SATURATE
+#define FNC_SATURATE
+// #define saturate(x) clamp(x, 0.0, 1.0)
+float saturate( float x){ return clamp(x, 0.0, 1.0); }
+vec2  saturate( vec2 x ){ return clamp(x, 0.0, 1.0); }
+vec3  saturate( vec3 x ){ return clamp(x, 0.0, 1.0); }
+vec4  saturate( vec4 x ){ return clamp(x, 0.0, 1.0); }
+#endif
+
+
 
 
 
@@ -532,6 +296,8 @@ vec4 gamma2linear(in vec4 v) {
 }
 #endif
 
+
+
 #ifndef SAMPLER_FNC
 
 #if __VERSION__ >= 300
@@ -546,6 +312,7 @@ vec4 gamma2linear(in vec4 v) {
 // #define FNC_SAMPLE
 // vec4 sample(sampler2D tex, vec2 uv) { return SAMPLER_FNC(tex, uv); }
 // #endif
+
 
 /*
 original_author: Patricio Gonzalez Vivo
@@ -674,6 +441,7 @@ vec3 materialEmissive() {
 #endif
 
 
+
 /*
 original_author: Patricio Gonzalez Vivo
 description: get material normal property from GlslViewer's defines https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#material-defines 
@@ -713,6 +481,7 @@ float materialOcclusion() {
 }
 
 #endif
+
 
 
 
@@ -769,6 +538,8 @@ vec3 materialNormal() {
 #endif
 
 
+
+
 /*
 original_author: Patricio Gonzalez Vivo
 description: convert diffuse/specular/glossiness workflow to PBR metallic factor 
@@ -801,8 +572,6 @@ float toMetallic(vec3 diffuse, vec3 specular) {
 }
 
 #endif
-
-
 
 
 /*
@@ -866,6 +635,7 @@ float materialMetallic() {
 #endif
 
 
+
 /*
 original_author: Patricio Gonzalez Vivo
 description: get material roughness property from GlslViewer's defines https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#material-defines 
@@ -922,6 +692,9 @@ float materialRoughness() {
 
 #endif
 
+
+
+
 /*
 original_author: Patricio Gonzalez Vivo
 description: convertes from PBR roughness/metallic to a shininess factor (typaclly use on diffuse/specular/ambient workflow) 
@@ -939,7 +712,6 @@ float toShininess(float roughness, float metallic) {
 }
 
 #endif
-
 
 
 /*
@@ -967,6 +739,7 @@ float materialShininess() {
 }
 
 #endif
+
 
 /*
 original_author: Patricio Gonzalez Vivo
@@ -1032,6 +805,11 @@ struct Material {
 
 };
 #endif
+
+
+
+
+
 /*
 original_author: Patricio Gonzalez Vivo
 description: power of 5
@@ -1060,6 +838,7 @@ vec4 pow5(in vec4 x) {
     return x2 * x2 * x;
 }
 #endif
+
 
 
 #ifndef FNC_SCHLICK
@@ -1113,6 +892,9 @@ vec3 fresnel(const vec3 f0, float NoV) {
 
 #endif
 
+
+
+
 /*
 original_author: Patricio Gonzalez Vivo
 description: fast approximation to pow()
@@ -1127,6 +909,8 @@ float powFast(float a, float b) {
 }
 
 #endif
+
+
 
 
 /*
@@ -1150,6 +934,9 @@ vec4 tonemapACES(in vec4 x) {
     return vec4(tonemapACES(x.rgb), x.a);
 }
 #endif
+
+
+
 /*
 function: luminance
 description: Computes the luminance of the specified linear RGB color using the luminance coefficients from Rec. 709.
@@ -1161,6 +948,7 @@ use: luminance(<vec3|vec4> color)
 float luminance(in vec3 linear) { return dot(linear, vec3(0.2126, 0.7152, 0.0722)); }
 float luminance(in vec4 linear) { return luminance( linear.rgb ); }
 #endif
+
 
 /*
 original_author:
@@ -1233,6 +1021,7 @@ vec4 tonemapDebug(const vec4 x) { return vec4(tonemapDebug(x.rgb), x.a); }
 
 
 
+
 /*
 Author: [Jim Hejl, Richard Burgess-Dawson ]
 description: Haarm-Peter Duiker’s curve from John Hable's presentation "Uncharted 2 HDR Lighting", Page 140: http://www.gdcvault.com/play/1012459/Uncharted_2__HDR_Lighting
@@ -1249,11 +1038,14 @@ vec3 tonemapFilmic(vec3 color) {
 
 vec4 tonemapFilmic(const vec4 x) { return vec4( tonemapFilmic(x.rgb), x.a ); }
 #endif
+
+
 #ifndef FNC_TONEMAPLINEAR
 #define FNC_TONEMAPLINEAR
 vec3 tonemapLinear(const vec3 x) { return x; }
 vec4 tonemapLinear(const vec4 x) { return x; }
 #endif
+
 
 
 /*
@@ -1267,6 +1059,7 @@ use: <vec3|vec4> tonemapReinhard(<vec3|vec4> x)
 vec3 tonemapReinhard(const vec3 x) { return x / (1.0 + luminance(x)); }
 vec4 tonemapReinhard(const vec4 x) { return vec4( tonemapReinhard(x.rgb), x.a ); }
 #endif
+
 
 
 
@@ -1285,6 +1078,8 @@ vec3 tonemapReinhardJodie(const vec3 x) {
 }
 vec4 tonemapReinhardJodie(const vec4 x) { return vec4( tonemapReinhardJodie(x.rgb), x.a ); }
 #endif
+
+
 /*
 original_author:
 description: 
@@ -1314,6 +1109,8 @@ vec3 tonemapUncharted(const vec3 x) {
 
 vec4 tonemapUncharted(const vec4 x) { return vec4( tonemapUncharted(x.rgb), x.a); }
 #endif
+
+
 /*
 Author:John Hable
 description: tonemapping function from presentation "Uncharted 2 HDR Lighting", Page 142-143
@@ -1338,6 +1135,8 @@ vec3 tonemapUncharted2(vec3 color) {
 
 vec4 tonemapUncharted2(const vec4 x) { return vec4( tonemapUncharted2(x.rgb), x.a); }
 #endif
+
+
 /*
 original_author: Unreal Engine 4.0
 description:  Adapted to be close to TonemapACES, with similar range. Gamma 2.2 correction is baked in, don't use with sRGB conversion! https://docs.unrealengine.com/4.26/en-US/RenderingAndGraphics/PostProcessEffects/ColorGrading/
@@ -1349,6 +1148,7 @@ use: <vec3|vec4> tonemapUnreal(<vec3|vec4> x)
 vec3 tonemapUnreal(const vec3 x) { return x / (x + 0.155) * 1.019; }
 vec4 tonemapUnreal(const vec4 x) { return vec4(tonemapUnreal(x.rgb), x.a); }
 #endif
+
 
 /*
 original_author: Patricio Gonzalez Vivo  
@@ -1396,50 +1196,6 @@ vec3 fakeCube(vec3 _normal) {
     return fakeCube(_normal, materialShininess() );
 }
 
-#endif
-
-
-/*
-original_author: Patricio Gonzalez Vivo
-description: get enviroment map light comming from a normal direction and acording to some roughness/metallic value. If there is no SCENE_CUBEMAP texture it creates a fake cube
-use: <vec3> envMap(<vec3> _normal, <float> _roughness [, <float> _metallic])
-options:
-    - SCENE_CUBEMAP: pointing to the cubemap texture
-    - ENVMAP_MAX_MIP_LEVEL: defualt 8
-    - ENVMAP_FNC(NORMAL, ROUGHNESS, METALLIC)
-*/
-
-#ifndef SAMPLE_CUBE_FNC
-#define SAMPLE_CUBE_FNC(CUBEMAP, NORM, LOD) textureCube(CUBEMAP, NORM, LOD)
-#endif
-
-#ifndef ENVMAP_MAX_MIP_LEVEL
-#define ENVMAP_MAX_MIP_LEVEL 3.0
-#endif
-
-#ifndef FNC_ENVMAP
-#define FNC_ENVMAP
-vec3 envMap(vec3 _normal, float _roughness, float _metallic) {
-
-// ENVMAP overwrites cube sampling  
-#if defined(ENVMAP_FNC) 
-    return ENVMAP_FNC(_normal, _roughness, _metallic);
-
-// Cubemap sampling
-#elif defined(SCENE_CUBEMAP)
-    float lod = ENVMAP_MAX_MIP_LEVEL * _roughness;
-    return SAMPLE_CUBE_FNC( SCENE_CUBEMAP, _normal, lod).rgb;
-
-// Default
-#else
-    return fakeCube(_normal, toShininess(_roughness, _metallic));
-
-#endif
-}
-
-vec3 envMap(vec3 _normal, float _roughness) {
-    return envMap(_normal, _roughness, 1.0);
-}
 #endif
 
 
@@ -1496,6 +1252,58 @@ vec3 sphericalHarmonics(const vec3 n) {
 
 #endif
 
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: get enviroment map light comming from a normal direction and acording to some roughness/metallic value. If there is no SCENE_CUBEMAP texture it creates a fake cube
+use: <vec3> envMap(<vec3> _normal, <float> _roughness [, <float> _metallic])
+options:
+    - SCENE_CUBEMAP: pointing to the cubemap texture
+    - ENVMAP_MAX_MIP_LEVEL: defualt 8
+    - ENVMAP_FNC(NORMAL, ROUGHNESS, METALLIC)
+*/
+
+#ifndef SAMPLE_CUBE_FNC
+#define SAMPLE_CUBE_FNC(CUBEMAP, NORM, LOD) textureCube(CUBEMAP, NORM, LOD)
+#endif
+
+#ifndef ENVMAP_MAX_MIP_LEVEL
+#define ENVMAP_MAX_MIP_LEVEL 3.0
+#endif
+
+#ifndef FNC_ENVMAP
+#define FNC_ENVMAP
+vec3 envMap(vec3 _normal, float _roughness, float _metallic) {
+
+// ENVMAP overwrites cube sampling  
+#if defined(ENVMAP_FNC) 
+    return ENVMAP_FNC(_normal, _roughness, _metallic);
+
+// Cubemap sampling - spherical harmonics
+#elif defined(SCENE_CUBEMAP) && defined(SCENE_SH_ARRAY) && !defined(TARGET_MOBILE)
+    return mix(
+        SAMPLE_CUBE_FNC( SCENE_CUBEMAP, _normal, (ENVMAP_MAX_MIP_LEVEL * _roughness) ).rgb,
+        sphericalHarmonics(_normal),
+        _roughness * _roughness * _roughness
+    );
+
+// Cubemap sampling
+#elif defined(SCENE_CUBEMAP)
+    return SAMPLE_CUBE_FNC( SCENE_CUBEMAP, _normal, (ENVMAP_MAX_MIP_LEVEL * _roughness) ).rgb;
+
+// Default
+#else
+    return fakeCube(_normal, toShininess(_roughness, _metallic));
+
+#endif
+}
+
+vec3 envMap(vec3 _normal, float _roughness) {
+    return envMap(_normal, _roughness, 1.0);
+}
+#endif
+
+
 /*
 original_author: Patricio Gonzalez Vivo
 description: resolve fresnel coeficient
@@ -1535,6 +1343,8 @@ vec3 fresnelReflection(vec3 R, float f0, float NoV) {
 }
 
 #endif
+
+
 /*
 original_author: Patricio Gonzalez Vivo
 description: calculate point light
@@ -1615,6 +1425,9 @@ float specularBlinnPhongRoughnes(vec3 L, vec3 N, vec3 V, float NoV, float NoL, f
 }
 
 #endif
+
+
+
 #ifndef FNC_BECKMANN
 #define FNC_BECKMANN
 
@@ -1632,95 +1445,44 @@ float beckmann(float _NoH, float roughness) {
 
 
 
-
-#ifndef SPECULAR_POW
-#if defined(TARGET_MOBILE) || defined(PLATFORM_RPI) || defined(PLATFORM_WEBGL)
-#define SPECULAR_POW(A,B) powFast(A,B)
-#else
-#define SPECULAR_POW(A,B) pow(A,B)
+#ifndef QTR_PI
+#define QTR_PI 0.78539816339
 #endif
+#ifndef HALF_PI
+#define HALF_PI 1.5707963267948966192313216916398
 #endif
-
-#ifndef FNC_SPECULAR_COOKTORRANCE
-#define FNC_SPECULAR_COOKTORRANCE
-
-// https://github.com/stackgl/glsl-specular-cook-torrance
-float specularCookTorrance(vec3 _L, vec3 _N, vec3 _V, float _NoV, float _NoL, float _roughness, float _fresnel) {
-    float NoV = max(_NoV, 0.0);
-    float NoL = max(_NoL, 0.0);
-
-    //Half angle vector
-    vec3 H = normalize(_L + _V);
-
-    //Geometric term
-    float NoH = max(dot(_N, H), 0.0);
-    float VoH = max(dot(_V, H), 0.000001);
-    float LoH = max(dot(_L, H), 0.000001);
-
-    float x = 2.0 * NoH / VoH;
-    float G = min(1.0, min(x * NoV, x * NoL));
-    
-    //Distribution term
-    float D = beckmann(NoH, _roughness);
-
-    //Fresnel term
-    float F = SPECULAR_POW(1.0 - NoV, _fresnel);
-
-    //Multiply terms and done
-    return max(G * F * D / max(PI * NoV * NoL, 0.00001), 0.0);
-}
-
-// https://github.com/glslify/glsl-specular-cook-torrance
-float specularCookTorrance(vec3 L, vec3 N, vec3 V, float roughness, float fresnel) {
-    float NoV = max(dot(N, V), 0.0);
-    float NoL = max(dot(N, L), 0.0);
-    return specularCookTorrance(L, N, V, NoV, NoL, roughness, fresnel);
-}
-
-float specularCookTorrance(vec3 L, vec3 N, vec3 V, float roughness) {
-    return specularCookTorrance(L, N, V, roughness, 0.04);
-}
-
+#ifndef PI
+#define PI 3.1415926535897932384626433832795
 #endif
-#ifndef FNC_SPECULAR_GAUSSIAN
-#define FNC_SPECULAR_GAUSSIAN
-
-// https://github.com/glslify/glsl-specular-gaussian
-float specularGaussian(vec3 L, vec3 N, vec3 V, float roughness) {
-    vec3 H = normalize(L + V);
-    float theta = acos(dot(H, N));
-    float w = theta / roughness;
-    return exp(-w*w);
-}
-
-float specularGaussian(vec3 L, vec3 N, vec3 V, float roughness, float fresnel) {
-    return specularGaussian(L, N, V, roughness);
-}
-
-float specularGaussian(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness, float fresnel) {
-    return specularGaussian(L, N, V, roughness);
-}
-
+#ifndef TWO_PI
+#define TWO_PI 6.2831853071795864769252867665590
+#endif
+#ifndef TAU
+#define TAU 6.2831853071795864769252867665590
+#endif
+#ifndef ONE_OVER_PI
+#define ONE_OVER_PI 0.31830988618
+#endif
+#ifndef SQRT_HALF_PI
+#define SQRT_HALF_PI 1.25331413732
+#endif
+#ifndef PHI
+#define PHI 1.618033988749894848204586834
+#endif
+#ifndef EPSILON
+#define EPSILON 0.0000001
+#endif
+#ifndef GOLDEN_RATIO
+#define GOLDEN_RATIO 1.6180339887
+#endif
+#ifndef GOLDEN_RATIO_CONJUGATE 
+#define GOLDEN_RATIO_CONJUGATE 0.61803398875
+#endif
+#ifndef GOLDEN_ANGLE // (3.-sqrt(5.0))*PI radians
+#define GOLDEN_ANGLE 2.39996323
 #endif
 
 
-#ifndef FNC_SPECULAR_BECKMANN
-#define FNC_SPECULAR_BECKMANN
-
-float specularBeckmann(vec3 L, vec3 N, vec3 V, float roughness) {
-    float NoH = dot(N, normalize(L + V));
-    return beckmann(NoH, roughness);
-}
-
-float specularBeckmann(vec3 L, vec3 N, vec3 V, float roughness, float fresnel) {
-    return specularBeckmann(L, N, V, roughness);
-}
-
-float specularBeckmann(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness, float fresnel) {
-    return specularBeckmann(L, N, V, roughness);
-}
-
-#endif
 
 /*
 original_author: Patricio Gonzalez Vivo
@@ -1742,6 +1504,7 @@ use: saturateMediump(<float|vec2|vec3|vec4> value)
 #endif
 
 #endif
+
 
 #ifndef FNC_GGX
 #define FNC_GGX
@@ -1770,8 +1533,12 @@ float GGX(float NoH, float roughness) {
 }
 
 float GGX(vec3 N, vec3 H, float NoH, float roughness) {
+#if defined(TARGET_MOBILE)
     vec3 NxH = cross(N, H);
     float oneMinusNoHSquared = dot(NxH, NxH);
+#else
+    float oneMinusNoHSquared = 1.0 - NoH * NoH;
+#endif
 
     float a = NoH * roughness;
     float k = roughness / (oneMinusNoHSquared + a * a);
@@ -1780,6 +1547,103 @@ float GGX(vec3 N, vec3 H, float NoH, float roughness) {
 }
 
 #endif
+
+
+#ifndef SPECULAR_POW
+#if defined(TARGET_MOBILE) || defined(PLATFORM_RPI) || defined(PLATFORM_WEBGL)
+#define SPECULAR_POW(A,B) powFast(A,B)
+#else
+#define SPECULAR_POW(A,B) pow(A,B)
+#endif
+#endif
+
+#ifndef SPECULAR_COOKTORRANCE_DIFFUSE_FNC
+#define SPECULAR_COOKTORRANCE_DIFFUSE_FNC GGX
+// #define SPECULAR_COOKTORRANCE_DIFFUSE_FNC beckmann
+#endif 
+
+#ifndef FNC_SPECULAR_COOKTORRANCE
+#define FNC_SPECULAR_COOKTORRANCE
+
+// https://github.com/stackgl/glsl-specular-cook-torrance
+float specularCookTorrance(vec3 _L, vec3 _N, vec3 _V, float _NoV, float _NoL, float _roughness, float _fresnel) {
+    float NoV = max(_NoV, 0.0);
+    float NoL = max(_NoL, 0.0);
+
+    // Half angle vector
+    vec3 H = normalize(_L + _V);
+
+    // Geometric term
+    float NoH = max(dot(_N, H), 0.0);
+    float VoH = max(dot(_V, H), 0.000001);
+
+    float x = 2.0 * NoH / VoH;
+    float G = min(1.0, min(x * NoV, x * NoL));
+    
+    // Distribution term
+    float D = SPECULAR_COOKTORRANCE_DIFFUSE_FNC(NoH, _roughness);
+
+    // Fresnel term
+    float F = SPECULAR_POW(1.0 - NoV, _fresnel);
+
+    // Multiply terms and done
+    return max(G * F * D / max(PI * NoV * NoL, 0.00001), 0.0);
+}
+
+// https://github.com/glslify/glsl-specular-cook-torrance
+float specularCookTorrance(vec3 L, vec3 N, vec3 V, float roughness, float fresnel) {
+    return specularCookTorrance(L, N, V, dot(N, V), dot(N, L), roughness, fresnel);
+}
+
+float specularCookTorrance(vec3 L, vec3 N, vec3 V, float roughness) {
+    return specularCookTorrance(L, N, V, roughness, 0.04);
+}
+
+#endif
+
+
+#ifndef FNC_SPECULAR_GAUSSIAN
+#define FNC_SPECULAR_GAUSSIAN
+
+// https://github.com/glslify/glsl-specular-gaussian
+float specularGaussian(vec3 L, vec3 N, vec3 V, float roughness) {
+    vec3 H = normalize(L + V);
+    float theta = acos(dot(H, N));
+    float w = theta / roughness;
+    return exp(-w*w);
+}
+
+float specularGaussian(vec3 L, vec3 N, vec3 V, float roughness, float fresnel) {
+    return specularGaussian(L, N, V, roughness);
+}
+
+float specularGaussian(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness, float fresnel) {
+    return specularGaussian(L, N, V, roughness);
+}
+
+#endif
+
+
+
+#ifndef FNC_SPECULAR_BECKMANN
+#define FNC_SPECULAR_BECKMANN
+
+float specularBeckmann(vec3 L, vec3 N, vec3 V, float roughness) {
+    float NoH = dot(N, normalize(L + V));
+    return beckmann(NoH, roughness);
+}
+
+float specularBeckmann(vec3 L, vec3 N, vec3 V, float roughness, float fresnel) {
+    return specularBeckmann(L, N, V, roughness);
+}
+
+float specularBeckmann(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness, float fresnel) {
+    return specularBeckmann(L, N, V, roughness);
+}
+
+#endif
+
+
 
 
 
@@ -1806,7 +1670,6 @@ float smithGGXCorrelated_Fast(float NoV, float NoL, float roughness) {
 }
 
 #endif
-
 
 
 #ifndef FNC_SPECULAR_GGX
@@ -1841,6 +1704,7 @@ float specularGGX(vec3 L, vec3 N, vec3 V, float roughness) {
 
 #endif
 
+
 /*
 original_author: Patricio Gonzalez Vivo
 description: calculate specular contribution
@@ -1865,6 +1729,9 @@ float specular(vec3 L, vec3 N, vec3 V, float roughness) { return SPECULAR_FNC(L,
 float specular(vec3 L, vec3 N, vec3 V, float roughness, float fresnel) { return SPECULAR_FNC(L, N, V, roughness, fresnel); }
 float specular(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness, float fresnel) { return SPECULAR_FNC(L, N, V, NoV, NoL, roughness, fresnel); }
 #endif
+
+
+
 /*
 original_author: Patricio Gonzalez Vivo
 description: calculate diffuse contribution using lambert equation
@@ -1879,6 +1746,8 @@ float diffuseLambert(vec3 L, vec3 N) { return max(0.0, dot(N, L)); }
 float diffuseLambert(vec3 L, vec3 N, vec3 V, float roughness) { return diffuseLambert(L, N); }
 float diffuseLambert(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness) { return diffuseLambert(L, N); }
 #endif
+
+
 /*
 original_author: Patricio Gonzalez Vivo
 description: calculate diffuse contribution using Oren and Nayar equation https://en.wikipedia.org/wiki/Oren%E2%80%93Nayar_reflectance_model
@@ -1940,6 +1809,7 @@ float diffuseBurley(vec3 L, vec3 N, vec3 V, float roughness) {
 
 #endif
 
+
 /*
 original_author: Patricio Gonzalez Vivo
 description: calculate diffuse contribution
@@ -1957,6 +1827,8 @@ options:
 float diffuse(vec3 _L, vec3 _N, vec3 _V, float _roughness) { return DIFFUSE_FNC(_L, _N, _V, _roughness); }
 float diffuse(vec3 _L, vec3 _N, vec3 _V, float _NoV, float _NoL, float _roughness) { return DIFFUSE_FNC(_L, _N, _V, _NoV, _NoL, _roughness); }
 #endif
+
+
 #ifndef FNC_LIGHT_FALLOFF
 #define FNC_LIGHT_FALLOFF
 float falloff(float _dist, float _lightRadius) {
@@ -1965,6 +1837,7 @@ float falloff(float _dist, float _lightRadius) {
     return att;
 }
 #endif
+
 
 #ifndef SURFACE_POSITION
 #define SURFACE_POSITION vec3(0.0, 0.0, 0.0)
@@ -2018,7 +1891,6 @@ void lightPoint(vec3 _diffuseColor, vec3 _specularColor, vec3 _N, vec3 _V, float
 
 
 
-
 /*
 original_author: Patricio Gonzalez Vivo
 description: calculate directional light
@@ -2048,24 +1920,23 @@ options:
 
 void lightDirectional(vec3 _diffuseColor, vec3 _specularColor, vec3 _N, vec3 _V, float _NoV, float _roughness, float _f0, float _shadow, inout vec3 _diffuse, inout vec3 _specular) {
     #ifdef LIGHT_DIRECTION
-    vec3 s = normalize(LIGHT_DIRECTION);
+    vec3    D = normalize(LIGHT_DIRECTION);
     #else 
-    vec3 s = normalize(LIGHT_POSITION);
+    vec3    D = normalize(LIGHT_POSITION);
     #endif
-    float NoL = dot(_N, s);
-    float dif = diffuseOrenNayar(s, _N, _V, _NoV, NoL, _roughness);
-    float spec = specularCookTorrance(s, _N, _V, _NoV, NoL, _roughness, _f0);
+    float NoL = dot(_N, D);
+    float dif = diffuseOrenNayar(D, _N, _V, _NoV, NoL, _roughness);
+    float spec = specularCookTorrance(D, _N, _V, _NoV, NoL, _roughness, _f0);
     _diffuse  += max(vec3(0.0), LIGHT_INTENSITY * (_diffuseColor * LIGHT_COLOR * dif) * _shadow);
     _specular += max(vec3(0.0), LIGHT_INTENSITY * (_specularColor * LIGHT_COLOR * spec) * _shadow);
 }
-
 
 // void lightDirectional(float3 _diffuseColor, float3 _specularColor, float3 _N, float3 _V, float _NoV, float _roughness, float _f0, inout float3 _diffuse, inout float3 _specular) {
 //     return lightDirectional(_diffuseColor, _specularColor, _N, _V, _NoV, _roughness, _f0, 1.0, _diffuse, _specular);
 // }
 
-
 #endif
+
 
 
 
@@ -2098,6 +1969,7 @@ vec3 reflection(vec3 _V, vec3 _N, float _roughness) {
 #endif
 
 
+
 #if !defined(TARGET_MOBILE) && !defined(PLATFORM_RPI) && !defined(PLATFORM_WEBGL)
 #define IBL_SPECULAR_OCCLUSION
 #endif
@@ -2112,6 +1984,8 @@ float specularAO(float NoV, float ao, float roughness) {
 #endif
 }
 #endif
+
+
 #ifndef FNC_ENVBRDFAPPROX
 #define FNC_ENVBRDFAPPROX
 
@@ -2125,6 +1999,7 @@ vec3 envBRDFApprox(vec3 _specularColor, float _NoV, float _roughness) {
 }
 
 #endif
+
 
 /*
 original_author: Patricio Gonzalez Vivo
@@ -2185,6 +2060,7 @@ vec4 pbr(const Material _mat) {
     float specIntensity =   (2.0 * _mat.metallic) * 
                             saturate(-1.1 + NoV + _mat.metallic) *          // Fresnel
                             (_mat.metallic + (.95 - _mat.roughness) * 2.0); // make smaller highlights brighter
+                            // (_mat.metallic + (1.0 - _mat.roughness)); // make smaller highlights brighter
 
     vec3 Fr = vec3(0.0, 0.0, 0.0);
     Fr = tonemap( envMap(R, _mat.roughness, _mat.metallic) ) * E * specIntensity;
@@ -2217,8 +2093,12 @@ vec4 pbr(const Material _mat) {
     // Final Sum
     // ------------------------
     vec4 color  = vec4(0.0, 0.0, 0.0, 1.0);
-    color.rgb  += Fd * IBL_LUMINANCE + lightDiffuse;     // Diffuse
-    color.rgb  += Fr * IBL_LUMINANCE + lightSpecular;    // Specular
+    // Diffuse
+    color.rgb  += Fd * IBL_LUMINANCE;
+    color.rgb  += lightDiffuse;     
+    // Specular
+    color.rgb  += Fr * IBL_LUMINANCE;
+    color.rgb  += lightSpecular;    
     color.rgb  *= _mat.ambientOcclusion;
     color.rgb  += _mat.emissive;
     color.a     = _mat.albedo.a;
@@ -2226,10 +2106,6 @@ vec4 pbr(const Material _mat) {
     return color;
 }
 #endif
-
-
-
-
 
 
 
@@ -2275,6 +2151,7 @@ float sampleShadow(in sampler2D shadowMap, in vec2 size, in vec2 uv, in float co
 
 #endif
 
+
 /*
 original_author: Patricio Gonzalez Vivo
 description: sample shadow map using PCF
@@ -2299,6 +2176,7 @@ float sampleShadowLerp(sampler2D depths, vec2 size, vec2 uv, float compare) {
 }
 
 #endif
+
 
 /*
 original_author: Patricio Gonzalez Vivo
@@ -2329,6 +2207,7 @@ float sampleShadowPCF(sampler2D depths, vec2 size, vec2 uv, float compare) {
 
 #endif
 
+
 /*
 original_author: Patricio Gonzalez Vivo
 description: sample shadow map using PCF
@@ -2358,6 +2237,8 @@ float shadow(sampler2D shadoMap, vec2 size, vec2 uv, float compare) {
 }
 
 #endif 
+
+
 // https://en.wikipedia.org/wiki/Refractive_index
 
 #ifndef IOR_AIR
@@ -2516,6 +2397,8 @@ Material materialNew() {
 
 #endif
 
+
+
 float checkBoard(vec2 uv, vec2 _scale) {
     uv = floor(fract(uv * _scale) * 2.0);
     return min(1.0, uv.x + uv.y) - (uv.x * uv.y);
@@ -2534,7 +2417,7 @@ void main(void) {
     #if defined(FLOOR) && defined(MODEL_VERTEX_TEXCOORD)
     material.albedo.rgb = vec3(0.5) + checkBoard(uv, vec2(8.0)) * 0.5;
     #else
-    // material.roughness = 0.9;
+    // material.roughness = 0.00;
     // material.metallic = 0.99;
     #endif
 
