@@ -142,7 +142,7 @@ Material extractMaterial(const tinygltf::Model& _model, const tinygltf::Material
         const tinygltf::Image &image = _model.images[tex.source];
         std::string name = image.name + image.uri;
         if (name.empty())
-            name = "texture" + toString(texCounter++);
+            name = mat.name + toString(texCounter++);
         name = getUniformName(name);
 
         if (_verbose)
@@ -161,7 +161,7 @@ Material extractMaterial(const tinygltf::Model& _model, const tinygltf::Material
         const tinygltf::Image &image = _model.images[_model.textures[_material.emissiveTexture.index].source];
         std::string name = image.name + image.uri;
         if (name.empty())
-            name = "texture" + toString(texCounter++);
+            name = mat.name + toString(texCounter++);
         name = getUniformName(name);
 
         if (_verbose)
@@ -183,7 +183,7 @@ Material extractMaterial(const tinygltf::Model& _model, const tinygltf::Material
         const tinygltf::Image &image = _model.images[tex.source];
         std::string name = image.name + image.uri;
         if (name.empty())
-            name = "texture" + toString(texCounter++);
+            name = mat.name + toString(texCounter++);
         name = getUniformName(name);
 
         if (_verbose)
@@ -215,7 +215,7 @@ Material extractMaterial(const tinygltf::Model& _model, const tinygltf::Material
         const tinygltf::Image &image = _model.images[_model.textures[_material.occlusionTexture.index].source];
         std::string name = image.name + image.uri;
         if (name.empty())
-            name = "texture" + toString(texCounter++);
+            name = mat.name + toString(texCounter++);
         name = getUniformName(name);
 
         if (_verbose)
@@ -237,7 +237,7 @@ Material extractMaterial(const tinygltf::Model& _model, const tinygltf::Material
         const tinygltf::Image &image = _model.images[_model.textures[_material.normalTexture.index].source];
         std::string name = image.name + image.uri;
         if (name.empty())
-            name = "texture" + toString(texCounter++);
+            name = mat.name + toString(texCounter++);
         name = getUniformName(name);
 
         if (_verbose)

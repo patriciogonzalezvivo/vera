@@ -147,102 +147,24 @@ const std::string default_scene_frag0 = R"(
 precision mediump float;
 #endif
 
-uniform vec3    u_camera;
-uniform vec2    u_resolution;
+uniform sampler2D   u_scene;
+uniform sampler2D   u_sceneDepth;
 
-varying vec4    v_position;
+uniform mat4        u_projectionMatrix;
 
-#ifdef MODEL_VERTEX_COLOR
-varying vec4    v_color;
-#endif
-
-#ifdef MODEL_VERTEX_NORMAL
-varying vec3    v_normal;
-#endif
-
-#ifdef MODEL_VERTEX_TEXCOORD
-varying vec2    v_texcoord;
-#endif
-
-#ifdef MODEL_VERTEX_TANGENT
-varying mat3    v_tangentToWorld;
-varying vec4    v_tangent;
-#endif
-
-// #define MATERIAL_ANISOTROPY 0.9
-// #define MATERIAL_ANISOTROPY_DIRECTION vec3(0.2, 0.4, 0.23)
-
-// #define DIFFUSE_BURLEY
-// #define DIFFUSE_LAMBERT
-// #define DIFFUSE_ORENNAYAR
-// #define SPECULAR_GAUSSIAN
-// #define SPECULAR_BLECKMANN
-// #define SPECULAR_COOKTORRANCE
-// #define SPECULAR_PHONG
-// #define SPECULAR_BLINNPHONG
-// #define LIGHT_SHADOWMAP_BIAS 0.005
-
-#if defined(PLATFORM_RPI) || defined(PLATFORM_WEBGL)
-#define TARGET_MOBILE
-#endif
-
-#ifndef TONEMAP_FNC
-#define TONEMAP_FNC tonemap_reinhard
-#endif
-
-
-#ifndef FNC_MYPOW
-#define FNC_MYPOW
-
-float myPow(float a, float b) {
-        return a / ((1. - b) * a + b);
-}
-
-#endif
-
-#ifndef FNC_SATURATE
-#define FNC_SATURATE
-
-#define saturate(x)        clamp(x, 0.0, 1.0)
-
-#endif
-
-#if !defined(TARGET_MOBILE) && !defined(GAMMA)
-#define GAMMA 2.2
-#endif
-
-#ifndef FNC_LINEAR2GAMMA
-#define FNC_LINEAR2GAMMA
-vec3 linear2gamma(in vec3 v) {
-#ifdef GAMMA
-  return pow(v, vec3(1. / GAMMA));
-#else
-  // assume gamma 2.0
-  return sqrt(v);
-#endif
-}
-
-vec4 linear2gamma(in vec4 v) {
-  return vec4(linear2gamma(v.rgb), v.a);
-}
-
-float linear2gamma(in float v) {
-#ifdef GAMMA
-  return pow(v, 1. / GAMMA);
-#else
-  // assume gamma 2.0
-  return sqrt(v);
-#endif
-}
-#endif
-
-#ifndef HEADER_LIGHT
-#define HEADER_LIGHT
+uniform vec3        u_camera;
+uniform float       u_cameraNearClip;
+uniform float       u_cameraFarClip;
 
 uniform vec3        u_light;
 uniform vec3        u_lightColor;
 uniform float       u_lightFalloff;
 uniform float       u_lightIntensity;
+
+uniform float       u_iblLuminance;
+
+uniform samplerCube u_cubeMap;
+uniform vec3        u_SH[9];
 
 #ifdef LIGHT_SHADOWMAP
 uniform sampler2D   u_lightShadowMap;
@@ -250,383 +172,338 @@ uniform mat4        u_lightMatrix;
 varying vec4        v_lightCoord;
 #endif
 
+uniform vec2        u_resolution;
+uniform float       u_time;
+
+varying vec4        v_position;
+varying vec4        v_color;
+varying vec3        v_normal;
+
+#ifdef MODEL_VERTEX_TEXCOORD
+varying vec2        v_texcoord;
 #endif
 
-#ifndef FNC_TEXTURESHADOW
-#define FNC_TEXTURESHADOW
+#ifdef MODEL_VERTEX_TANGENT
+varying vec4        v_tangent;
+varying mat3        v_tangentToWorld;
+#endif
 
-float textureShadow(const sampler2D _shadowMap, in vec4 _coord) {
-    vec3 shadowCoord = _coord.xyz / _coord.w;
-    return texture2D(_shadowMap, shadowCoord.xy).r;
+#define SURFACE_POSITION    v_position
+#define CAMERA_POSITION     u_camera
+#define IBL_LUMINANCE       u_iblLuminance
+
+// #define LIGHT_POSITION      u_light
+#define LIGHT_DIRECTION     u_light
+#define LIGHT_COLOR         u_lightColor
+#define LIGHT_FALLOFF       u_lightFalloff
+#define LIGHT_INTENSITY     u_lightIntensity
+#define LIGHT_COORD         v_lightCoord
+
+#ifndef QTR_PI
+#define QTR_PI 0.78539816339
+#endif
+#ifndef HALF_PI
+#define HALF_PI 1.5707963267948966192313216916398
+#endif
+#ifndef PI
+#define PI 3.1415926535897932384626433832795
+#endif
+#ifndef TWO_PI
+#define TWO_PI 6.2831853071795864769252867665590
+#endif
+#ifndef TAU
+#define TAU 6.2831853071795864769252867665590
+#endif
+#ifndef ONE_OVER_PI
+#define ONE_OVER_PI 0.31830988618
+#endif
+#ifndef SQRT_HALF_PI
+#define SQRT_HALF_PI 1.25331413732
+#endif
+#ifndef PHI
+#define PHI 1.618033988749894848204586834
+#endif
+#ifndef EPSILON
+#define EPSILON 0.0000001
+#endif
+#ifndef GOLDEN_RATIO
+#define GOLDEN_RATIO 1.6180339887
+#endif
+#ifndef GOLDEN_RATIO_CONJUGATE 
+#define GOLDEN_RATIO_CONJUGATE 0.61803398875
+#endif
+#ifndef GOLDEN_ANGLE // (3.-sqrt(5.0))*PI radians
+#define GOLDEN_ANGLE 2.39996323
+#endif
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: clamp a value between 0 and 1
+use: saturation(<float|vec2|vec3|vec4> value)
+*/
+
+#ifndef FNC_SATURATE
+#define FNC_SATURATE
+// #define saturate(x) clamp(x, 0.0, 1.0)
+float saturate( float x){ return clamp(x, 0.0, 1.0); }
+vec2  saturate( vec2 x ){ return clamp(x, 0.0, 1.0); }
+vec3  saturate( vec3 x ){ return clamp(x, 0.0, 1.0); }
+vec4  saturate( vec4 x ){ return clamp(x, 0.0, 1.0); }
+#endif
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: Generic Ray Structure
+*/
+
+#ifndef STR_RAY
+#define STR_RAY
+
+struct Ray {
+    vec3 origin;
+    vec3 direction;
+};
+#endif
+
+
+// Henyey-Greenstein phase function factor [-1, 1]
+// represents the average cosine of the scattered directions
+// 0 is isotropic scattering
+// > 1 is forward scattering, < 1 is backwards
+#ifndef HENYEYGREENSTEIN_SCATTERING
+#define HENYEYGREENSTEIN_SCATTERING 0.76
+#endif
+
+#ifndef FNC_HENYEYGREENSTEIN
+#define FNC_HENYEYGREENSTEIN
+float henyeyGreenstein(float mu) {
+    return max(0.0, (1.0 - HENYEYGREENSTEIN_SCATTERING*HENYEYGREENSTEIN_SCATTERING) / ((4. + PI) * pow(1.0 + HENYEYGREENSTEIN_SCATTERING*HENYEYGREENSTEIN_SCATTERING - 2.0 * HENYEYGREENSTEIN_SCATTERING * mu, 1.5)));
 }
+#endif
 
-float textureShadow(const sampler2D _shadowMap, in vec3 _coord) {
-    return textureShadow(_shadowMap, vec4(_coord, 1.0));
-}
 
-float textureShadow(const sampler2D depths, vec2 uv, float compare){
-    return step(compare, texture2D(depths, uv).r );
-}
+#ifndef FNC_RAYLEIGH
+#define FNC_RAYLEIGH
 
-float textureShadow(const sampler2D _shadowMap) {
-    #ifdef LIGHT_SHADOWMAP
-    return textureShadow(_shadowMap, v_lightCoord);
-    #else
-    return 1.0;
-    #endif
-}
-
-float textureShadow() {
-    #ifdef LIGHT_SHADOWMAP
-    return textureShadow(u_lightShadowMap);
-    #else
-    return 1.0;
-    #endif
+// Rayleigh phase
+float rayleigh(float mu) {
+    return 3. * (1. + mu*mu) / (16. * PI);
 }
 
 #endif
 
+/*
+description: Rayleigh and Mie scattering atmosphere system. Implementation of the techniques described here: https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/simulating-sky/simulating-colors-of-the-sky
+use: <vec3> atmosphere(<vec3> eye_dir, <vec3> sun_dir)
+OPTIONS:
+    ATMOSPHERE_FAST: use fast implementation from https://www.shadertoy.com/view/3dBSDW
+    ATMOSPHERE_RADIUS_MIN: planet radius
+    ATMOSPHERE_RADIUS_MAX: atmosphere radious
+    ATMOSPHERE_SUN_POWER: sun power. Default 20.0
+    ATMOSPHERE_LIGHT_SAMPLES: Defualt 8 
+    ATMOSPHERE_SAMPLES: Defualt 16
+    HENYEYGREENSTEIN_SCATTERING
+*/
 
-#ifndef FNC_SHADOW
-#define FNC_SHADOW
+#ifndef ATMOSPHERE_RADIUS_MIN
+#define ATMOSPHERE_RADIUS_MIN 6360e3
+#endif
 
-#ifdef LIGHT_SHADOWMAP
-//------------------------------------------------------------------------------
-// Shadowing configuration
-//------------------------------------------------------------------------------
+#ifndef ATMOSPHERE_RADIUS_MAX
+#define ATMOSPHERE_RADIUS_MAX 6420e3
+#endif
 
-#define SHADOW_SAMPLING_HARD              0
-#define SHADOW_SAMPLING_PCF_LOW           1
-#define SHADOW_SAMPLING_PCF_MEDIUM        2
-#define SHADOW_SAMPLING_PCF_HIGH          3
+#ifndef ATMOSPHERE_SUN_POWER
+#define ATMOSPHERE_SUN_POWER 20.0
+#endif
 
-#define SHADOW_SAMPLING_ERROR_DISABLED   0
-#define SHADOW_SAMPLING_ERROR_ENABLED    1
+#ifndef ATMOSPHERE_LIGHT_SAMPLES
+#define ATMOSPHERE_LIGHT_SAMPLES 8
+#endif
 
-#define SHADOW_RECEIVER_PLANE_DEPTH_BIAS_DISABLED   0
-#define SHADOW_RECEIVER_PLANE_DEPTH_BIAS_ENABLED    1
+#ifndef ATMOSPHERE_SAMPLES
+#define ATMOSPHERE_SAMPLES 16
+#endif
 
-#define SHADOW_RECEIVER_PLANE_DEPTH_BIAS_MIN_SAMPLING_METHOD    SHADOW_SAMPLING_PCF_MEDIUM
+// scale height (m)
+// thickness of the atmosphere if its density were uniform
+#ifndef ATMOSPHERE_RAYLEIGH_THICKNESS
+#define ATMOSPHERE_RAYLEIGH_THICKNESS 7994.0
+#endif 
 
-#ifdef TARGET_MOBILE
-  #define SHADOW_SAMPLING_METHOD            SHADOW_SAMPLING_PCF_LOW
-  #define SHADOW_SAMPLING_ERROR             SHADOW_SAMPLING_ERROR_DISABLED
-  #define SHADOW_RECEIVER_PLANE_DEPTH_BIAS  SHADOW_RECEIVER_PLANE_DEPTH_BIAS_DISABLED
+#ifndef ATMOSPHERE_MIE_THICKNESS
+#define ATMOSPHERE_MIE_THICKNESS 1200.0
+#endif 
+
+// scattering coefficients at sea level (m)
+#ifndef ATMOSPHERE_RAYLEIGH_SCATTERING
+#define ATMOSPHERE_RAYLEIGH_SCATTERING vec3(5.5e-6, 13.0e-6, 22.4e-6)
+#endif 
+
+#ifndef ATMOSPHERE_MIE_SCATTERING
+#define ATMOSPHERE_MIE_SCATTERING vec3(21e-6)
+#endif 
+
+#ifndef FNC_ATMOSPHERE
+#define FNC_ATMOSPHERE
+
+bool atmosphere_intersect( const in Ray ray, inout float t0, inout float t1) {
+    vec3 rc = vec3(0.0, 0.0, 0.0) - ray.origin;
+    float radius2 = ATMOSPHERE_RADIUS_MAX * ATMOSPHERE_RADIUS_MAX;
+    float tca = dot(rc, ray.direction);
+    float d2 = dot(rc, rc) - tca * tca;
+    if (d2 > radius2) 
+        return false;
+
+    float thc = sqrt(radius2 - d2);
+    t0 = tca - thc;
+    t1 = tca + thc;
+    return true;
+}
+
+bool atmosphere_light(const in Ray ray, inout float optical_depthR, inout float optical_depthM) {
+    float t0 = 0.0;
+    float t1 = 0.0;
+    atmosphere_intersect(ray, t0, t1);
+
+    // this is the implementation using classical raymarching 
+    float march_pos = 0.;
+    float march_step = t1 / float(ATMOSPHERE_LIGHT_SAMPLES);
+    
+    for (int i = 0; i < ATMOSPHERE_LIGHT_SAMPLES; i++) {
+        vec3 s =    ray.origin +
+                    ray.direction * (march_pos + 0.5 * march_step);
+        float height = length(s) - ATMOSPHERE_RADIUS_MIN;
+        if (height < 0.)
+            return false;
+    
+        optical_depthR += exp(-height / ATMOSPHERE_RAYLEIGH_THICKNESS) * march_step;
+        optical_depthM += exp(-height / ATMOSPHERE_MIE_THICKNESS) * march_step;
+    
+        march_pos += march_step;
+    }
+
+    return true;
+}
+
+vec3 atmosphere(const in Ray ray, vec3 sun_dir) {
+    // "pierce" the atmosphere with the viewing ray
+    float t0 = 0.0;
+    float t1 = 0.0;
+    // atmosphere_intersect(ray, t0, t1);
+    if (!atmosphere_intersect(ray, t0, t1))
+        return vec3(0.0);
+
+    float march_step = t1 / float(ATMOSPHERE_SAMPLES);
+
+    // cosine of angle between view and light directions
+    float mu = dot(ray.direction, sun_dir);
+
+    // Rayleigh and Mie phase functions
+    // A black box indicating how light is interacting with the material
+    // Similar to BRDF except
+    // * it usually considers a single angle
+    //   (the phase angle between 2 directions)
+    // * integrates to 1 over the entire sphere of directions
+    float phaseR = rayleigh(mu);
+    float phaseM = henyeyGreenstein(mu);
+
+    // optical depth (or "average density")
+    // represents the accumulated extinction coefficients
+    // along the path, multiplied by the length of that path
+    float optical_depthR = 0.;
+    float optical_depthM = 0.;
+
+    vec3 sumR = vec3(0.0, 0.0, 0.0);
+    vec3 sumM = vec3(0.0, 0.0, 0.0);
+    float march_pos = 0.0;
+
+    for (int i = 0; i < ATMOSPHERE_SAMPLES; i++) {
+        vec3 s =    ray.origin +
+                    ray.direction * (march_pos + 0.5 * march_step);
+        float height = length(s) - ATMOSPHERE_RADIUS_MIN;
+
+        // integrate the height scale
+        float hr = exp(-height / ATMOSPHERE_RAYLEIGH_THICKNESS) * march_step;
+        float hm = exp(-height / ATMOSPHERE_MIE_THICKNESS) * march_step;
+        optical_depthR += hr;
+        optical_depthM += hm;
+
+        // gather the sunlight
+        Ray ray = Ray(s, sun_dir);
+
+        float optical_depth_lightR = 0.;
+        float optical_depth_lightM = 0.;
+
+        if ( atmosphere_light( ray, optical_depth_lightR, optical_depth_lightM) ) {
+            // If it's over the horizon
+            vec3 tau =  ATMOSPHERE_RAYLEIGH_SCATTERING * (optical_depthR + optical_depth_lightR) +
+                        ATMOSPHERE_MIE_SCATTERING * 1.1 * (optical_depthM + optical_depth_lightM);
+            vec3 attenuation = exp(-tau);
+            sumR += hr * attenuation;
+            sumM += hm * attenuation;
+        }
+
+        march_pos += march_step;
+    }
+
+    return  ATMOSPHERE_SUN_POWER * (sumR * phaseR * ATMOSPHERE_RAYLEIGH_SCATTERING +
+                                    sumM * phaseM * ATMOSPHERE_MIE_SCATTERING);
+}
+
+vec3 atmosphere(vec3 eye_dir, vec3 sun_dir) {
+    Ray ray = Ray(vec3(0., ATMOSPHERE_RADIUS_MIN + 1., 0.), eye_dir);
+    return atmosphere(ray, sun_dir);
+}
+
+#endif
+#ifndef SCENE_CUBEMAP
+#define ENVMAP_FNC(NORM, ROUGHNESS, METALLIC) atmosphere(NORM, normalize(u_light))
+#endif
+/*
+original_author: Patricio Gonzalez Vivo
+description: convert from linear to gamma color space.
+use: linear2gamma(<float|vec3|vec4> color)
+*/
+
+#if !defined(GAMMA) && !defined(TARGET_MOBILE) && !defined(PLATFORM_RPI) && !defined(PLATFORM_WEBGL)
+#define GAMMA 2.2
+#endif
+
+#ifndef FNC_LINEAR2GAMMA
+#define FNC_LINEAR2GAMMA
+vec3 linear2gamma(in vec3 v) {
+#ifdef GAMMA
+    return pow(v, vec3(1. / GAMMA));
 #else
-  #define SHADOW_SAMPLING_METHOD            SHADOW_SAMPLING_PCF_HIGH
-  #define SHADOW_SAMPLING_ERROR             SHADOW_SAMPLING_ERROR_DISABLED
-  #define SHADOW_RECEIVER_PLANE_DEPTH_BIAS  SHADOW_RECEIVER_PLANE_DEPTH_BIAS_DISABLED
+    // assume gamma 2.0
+    return sqrt(v);
 #endif
+}
 
-#if SHADOW_SAMPLING_ERROR == SHADOW_SAMPLING_ERROR_ENABLED
-  #undef SHADOW_RECEIVER_PLANE_DEPTH_BIAS
-  #define SHADOW_RECEIVER_PLANE_DEPTH_BIAS  SHADOW_RECEIVER_PLANE_DEPTH_BIAS_ENABLED
-#elif SHADOW_SAMPLING_METHOD < SHADOW_RECEIVER_PLANE_DEPTH_BIAS_MIN_SAMPLING_METHOD
-  #undef SHADOW_RECEIVER_PLANE_DEPTH_BIAS
-  #define SHADOW_RECEIVER_PLANE_DEPTH_BIAS  SHADOW_RECEIVER_PLANE_DEPTH_BIAS_DISABLED
-#endif
+vec4 linear2gamma(in vec4 v) {
+    return vec4(linear2gamma(v.rgb), v.a);
+}
 
-#undef SHADOW_WIDTH
-#define SHADOW_WIDTH 0.01
-
-//------------------------------------------------------------------------------
-// Shadow sampling methods
-//------------------------------------------------------------------------------
-
-vec2 computeReceiverPlaneDepthBias(const vec3 position) {
-    // see: GDC '06: Shadow Mapping: GPU-based Tips and Techniques
-    vec2 bias;
-#if SHADOW_RECEIVER_PLANE_DEPTH_BIAS == SHADOW_RECEIVER_PLANE_DEPTH_BIAS_ENABLED
-    vec3 dx = dFdx(position);
-    vec3 dy = dFdy(position);
-    bias = vec2(dy.y * dx.z - dx.y * dy.z, dx.x * dy.z - dy.x * dx.z);
-    bias *= 1.0 / ((dx.x * dy.y) - (dx.y * dy.x));
+float linear2gamma(in float v) {
+#ifdef GAMMA
+    return pow(v, 1. / GAMMA);
 #else
-    bias = vec2(0.0);
-#endif
-    return bias;
-}
-
-float samplingBias(float depth, const vec2 rpdb, const vec2 texelSize) {
-#if SHADOW_SAMPLING_ERROR == SHADOW_SAMPLING_ERROR_ENABLED
-    float samplingError = min(dot(texelSize, abs(rpdb)), 0.01);
-    depth -= samplingError;
-#endif
-    return depth;
-}
-
-float sampleDepth(const sampler2D map, vec2 base, vec2 dudv, float depth, vec2 rpdb) {
-#if SHADOW_RECEIVER_PLANE_DEPTH_BIAS == SHADOW_RECEIVER_PLANE_DEPTH_BIAS_ENABLED
-    #if SHADOW_SAMPLING_METHOD >= SHADOW_RECEIVER_PLANE_DEPTH_BIAS_MIN_SAMPLING_METHOD
-    depth += dot(dudv, rpdb);
-    #endif
-#endif
-
-    float t = v_lightCoord.z - 0.005;
-#ifdef TARGET_MOBILE
-    return step(t, textureShadow(map, vec3(base + dudv, clamp(depth, 0.0, 1.0))));
-#else
-    return smoothstep(t-SHADOW_WIDTH, t+SHADOW_WIDTH, textureShadow(map, vec3(base + dudv, clamp(depth, 0.0, 1.0))));
-#endif
-}
-
-#if SHADOW_SAMPLING_METHOD == SHADOW_SAMPLING_HARD
-float ShadowSample_Hard(const sampler2D map, const vec2 size, const vec3 position) {
-    vec2 rpdb = computeReceiverPlaneDepthBias(position);
-    float depth = samplingBias(position.z, rpdb, vec2(1.0) / size);
-    return step(v_lightCoord.z * 0.5 - 0.005, textureShadow(map, vec3(position.xy, depth)));
-}
-#endif
-
-#if SHADOW_SAMPLING_METHOD == SHADOW_SAMPLING_PCF_LOW
-float ShadowSample_PCF_Low(const sampler2D map, const vec2 size, vec3 position) {
-    //  Castaño, 2013, "Shadow Mapping Summary Part 1"
-    vec2 texelSize = vec2(1.0) / size;
-
-    // clamp position to avoid overflows below, which cause some GPUs to abort
-    position.xy = clamp(position.xy, vec2(-1.0), vec2(2.0));
-
-    vec2 offset = vec2(0.5);
-    vec2 uv = (position.xy * size) + offset;
-    vec2 base = (floor(uv) - offset) * texelSize;
-    vec2 st = fract(uv);
-
-    vec2 uw = vec2(3.0 - 2.0 * st.x, 1.0 + 2.0 * st.x);
-    vec2 vw = vec2(3.0 - 2.0 * st.y, 1.0 + 2.0 * st.y);
-
-    vec2 u = vec2((2.0 - st.x) / uw.x - 1.0, st.x / uw.y + 1.0);
-    vec2 v = vec2((2.0 - st.y) / vw.x - 1.0, st.y / vw.y + 1.0);
-
-    u *= texelSize.x;
-    v *= texelSize.y;
-
-    vec2 rpdb = computeReceiverPlaneDepthBias(position);
-
-    float depth = samplingBias(position.z, rpdb, texelSize);
-    float sum = 0.0;
-
-    sum += uw.x * vw.x * sampleDepth(map, base, vec2(u.x, v.x), depth, rpdb);
-    sum += uw.y * vw.x * sampleDepth(map, base, vec2(u.y, v.x), depth, rpdb);
-
-    sum += uw.x * vw.y * sampleDepth(map, base, vec2(u.x, v.y), depth, rpdb);
-    sum += uw.y * vw.y * sampleDepth(map, base, vec2(u.y, v.y), depth, rpdb);
-
-    return sum * (1.0 / 16.0);
-}
-#endif
-
-#if SHADOW_SAMPLING_METHOD == SHADOW_SAMPLING_PCF_MEDIUM
-float ShadowSample_PCF_Medium(const sampler2D map, const vec2 size, vec3 position) {
-    //  Castaño, 2013, "Shadow Mapping Summary Part 1"
-    vec2 texelSize = vec2(1.0) / size;
-
-    // clamp position to avoid overflows below, which cause some GPUs to abort
-    position.xy = clamp(position.xy, vec2(-1.0), vec2(2.0));
-
-    vec2 offset = vec2(0.5);
-    vec2 uv = (position.xy * size) + offset;
-    vec2 base = (floor(uv) - offset) * texelSize;
-    vec2 st = fract(uv);
-
-    vec3 uw = vec3(4.0 - 3.0 * st.x, 7.0, 1.0 + 3.0 * st.x);
-    vec3 vw = vec3(4.0 - 3.0 * st.y, 7.0, 1.0 + 3.0 * st.y);
-
-    vec3 u = vec3((3.0 - 2.0 * st.x) / uw.x - 2.0, (3.0 + st.x) / uw.y, st.x / uw.z + 2.0);
-    vec3 v = vec3((3.0 - 2.0 * st.y) / vw.x - 2.0, (3.0 + st.y) / vw.y, st.y / vw.z + 2.0);
-
-    u *= texelSize.x;
-    v *= texelSize.y;
-
-    vec2 rpdb = computeReceiverPlaneDepthBias(position);
-
-    float depth = samplingBias(position.z, rpdb, texelSize);
-    float sum = 0.0;
-
-    sum += uw.x * vw.x * sampleDepth(map, base, vec2(u.x, v.x), depth, rpdb);
-    sum += uw.y * vw.x * sampleDepth(map, base, vec2(u.y, v.x), depth, rpdb);
-    sum += uw.z * vw.x * sampleDepth(map, base, vec2(u.z, v.x), depth, rpdb);
-
-    sum += uw.x * vw.y * sampleDepth(map, base, vec2(u.x, v.y), depth, rpdb);
-    sum += uw.y * vw.y * sampleDepth(map, base, vec2(u.y, v.y), depth, rpdb);
-    sum += uw.z * vw.y * sampleDepth(map, base, vec2(u.z, v.y), depth, rpdb);
-
-    sum += uw.x * vw.z * sampleDepth(map, base, vec2(u.x, v.z), depth, rpdb);
-    sum += uw.y * vw.z * sampleDepth(map, base, vec2(u.y, v.z), depth, rpdb);
-    sum += uw.z * vw.z * sampleDepth(map, base, vec2(u.z, v.z), depth, rpdb);
-
-    return sum * (1.0 / 144.0);
-}
-#endif
-
-#if SHADOW_SAMPLING_METHOD == SHADOW_SAMPLING_PCF_HIGH
-float ShadowSample_PCF_High(const sampler2D map, const vec2 size, vec3 position) {
-    //  Castaño, 2013, "Shadow Mapping Summary Part 1"
-    vec2 texelSize = vec2(1.0) / size;
-
-    // clamp position to avoid overflows below, which cause some GPUs to abort
-    position.xy = clamp(position.xy, vec2(-1.0), vec2(2.0));
-
-    vec2 offset = vec2(0.5);
-    vec2 uv = (position.xy * size) + offset;
-    vec2 base = (floor(uv) - offset) * texelSize;
-    vec2 st = fract(uv);
-
-    vec4 uw = vec4(
-         5.0 * st.x - 6.0,
-         11.0 * st.x - 28.0,
-        -(11.0 * st.x + 17.0),
-        -(5.0 * st.x + 1.0));
-    vec4 vw = vec4(
-         5.0 * st.y - 6.0,
-         11.0 * st.y - 28.0,
-        -(11.0 * st.y + 17.0),
-        -(5.0 * st.y + 1.0));
-
-    vec4 u = vec4(
-         (4.0 * st.x - 5.0) / uw.x - 3.0,
-         (4.0 * st.x - 16.0) / uw.y - 1.0,
-        -(7.0 * st.x + 5.0) / uw.z + 1.0,
-        -st.x / uw.w + 3.0);
-    vec4 v = vec4(
-         (4.0 * st.y - 5.0) / vw.x - 3.0,
-         (4.0 * st.y - 16.0) / vw.y - 1.0,
-        -(7.0 * st.y + 5.0) / vw.z + 1.0,
-        -st.y / vw.w + 3.0);
-
-    u *= texelSize.x;
-    v *= texelSize.y;
-
-    vec2 rpdb = computeReceiverPlaneDepthBias(position);
-
-    float depth = samplingBias(position.z, rpdb, texelSize);
-    float sum = 0.0;
-
-    sum += uw.x * vw.x * sampleDepth(map, base, vec2(u.x, v.x), depth, rpdb);
-    sum += uw.y * vw.x * sampleDepth(map, base, vec2(u.y, v.x), depth, rpdb);
-    sum += uw.z * vw.x * sampleDepth(map, base, vec2(u.z, v.x), depth, rpdb);
-    sum += uw.w * vw.x * sampleDepth(map, base, vec2(u.w, v.x), depth, rpdb);
-
-    sum += uw.x * vw.y * sampleDepth(map, base, vec2(u.x, v.y), depth, rpdb);
-    sum += uw.y * vw.y * sampleDepth(map, base, vec2(u.y, v.y), depth, rpdb);
-    sum += uw.z * vw.y * sampleDepth(map, base, vec2(u.z, v.y), depth, rpdb);
-    sum += uw.w * vw.y * sampleDepth(map, base, vec2(u.w, v.y), depth, rpdb);
-
-    sum += uw.x * vw.z * sampleDepth(map, base, vec2(u.x, v.z), depth, rpdb);
-    sum += uw.y * vw.z * sampleDepth(map, base, vec2(u.y, v.z), depth, rpdb);
-    sum += uw.z * vw.z * sampleDepth(map, base, vec2(u.z, v.z), depth, rpdb);
-    sum += uw.w * vw.z * sampleDepth(map, base, vec2(u.w, v.z), depth, rpdb);
-
-    sum += uw.x * vw.w * sampleDepth(map, base, vec2(u.x, v.w), depth, rpdb);
-    sum += uw.y * vw.w * sampleDepth(map, base, vec2(u.y, v.w), depth, rpdb);
-    sum += uw.z * vw.w * sampleDepth(map, base, vec2(u.z, v.w), depth, rpdb);
-    sum += uw.w * vw.w * sampleDepth(map, base, vec2(u.w, v.w), depth, rpdb);
-
-    return sum * (1.0 / 2704.0);
-}
-#endif
-
-//------------------------------------------------------------------------------
-// Shadow sampling dispatch
-//------------------------------------------------------------------------------
-
-/**
- * Samples the light visibility at the specified position in light (shadow)
- * space. The output is a filtered visibility factor that can be used to multiply
- * the light intensity.
- */
-
-float shadow( const sampler2D map, const vec3 shadowPosition) {
-    // vec2 size = vec2(textureSize(shadowMap, 0));
-    vec2 size = vec2(LIGHT_SHADOWMAP_SIZE);
-#if SHADOW_SAMPLING_METHOD == SHADOW_SAMPLING_HARD
-    return ShadowSample_Hard(map, size, shadowPosition);
-#elif SHADOW_SAMPLING_METHOD == SHADOW_SAMPLING_PCF_LOW
-    return ShadowSample_PCF_Low(map, size, shadowPosition);
-#elif SHADOW_SAMPLING_METHOD == SHADOW_SAMPLING_PCF_MEDIUM
-    return ShadowSample_PCF_Medium(map, size, shadowPosition);
-#elif SHADOW_SAMPLING_METHOD == SHADOW_SAMPLING_PCF_HIGH
-    return ShadowSample_PCF_High(map, size, shadowPosition);
-#endif
-}
-
-float shadow() {
-    vec3 shadowPosition = v_lightCoord.xyz * (1.0 / v_lightCoord.w);
-    return shadow(LIGHT_SHADOWMAP, shadowPosition);
-}
-
-#else
-
-float shadow( const sampler2D map, const vec3 shadowPosition) {
-    return 1.0;
-}
-
-float shadow() {
-    return 1.0;
-}    
-
-#endif
-#endif
-
-#ifndef FNC_REFLECTION
-#define FNC_REFLECTION
-
-vec3 reflection(vec3 _V, vec3 _N, float _roughness) {
-    return reflect(_V, _N);
-
-#ifdef MATERIAL_ANISOTROPY
-    vec3  anisotropicT = MATERIAL_ANISOTROPY_DIRECTION;
-    vec3  anisotropicB = MATERIAL_ANISOTROPY_DIRECTION;
-
-#ifdef MODERL_VERTEX_TANGENT
-    anisotropicT = normalize(v_tangentToWorld * MATE RIAL_ANISOTROPY_DIRECTION);
-    anisotropicB = normalize(cross(v_tangentToWorld[2], anisotropicT));
-#endif
-
-    vec3  anisotropyDirection = MATERIAL_ANISOTROPY >= 0.0 ? anisotropicB : anisotropicT;
-    vec3  anisotropicTangent  = cross(anisotropyDirection, _V);
-    vec3  anisotropicNormal   = cross(anisotropicTangent, anisotropyDirection);
-    float bendFactor          = abs(MATERIAL_ANISOTROPY) * saturate(5.0 * _roughness);
-    vec3  bentNormal          = normalize(mix(_N, anisotropicNormal, bendFactor));
-    return reflect(-_V, bentNormal);
-#else
-    return reflect(-_V, _N);
-#endif
-
-}
-
-#endif
-
-#ifndef TARGET_MOBILE
-#define IBL_SPECULAR_OCCLUSION
-#endif
-
-#ifndef FNC_SPECULARAO
-#define FNC_SPECULARAO
-float specularAO(float NoV, float ao, float roughness) {
-#if !defined(TARGET_MOBILE)
-    return saturate(pow(NoV + ao, exp2(-16.0 * roughness - 1.0)) - 1.0 + ao);
-#else
-    return 1.0;
+    // assume gamma 2.0
+    return sqrt(v);
 #endif
 }
 #endif
 
 
-#ifndef FNC_ENVBRDFAPPROX
-#define FNC_ENVBRDFAPPROX
 
-vec3 envBRDFApprox(vec3 _specularColor, float _NoV, float _roughness) {
-    vec4 c0 = vec4( -1, -0.0275, -0.572, 0.022 );
-    vec4 c1 = vec4( 1, 0.0425, 1.04, -0.04 );
-    vec4 r = _roughness * c0 + c1;
-    float a004 = min( r.x * r.x, exp2( -9.28 * _NoV ) ) * r.x + r.y;
-    vec2 AB = vec2( -1.04, 1.04 ) * a004 + r.zw;
-    return _specularColor * AB.x + AB.y;
-}
+/*
+original_author: Patricio Gonzalez Vivo
+description: convert from gamma to linear color space.
+use: gamma2linear(<float|vec3|vec4> color)
+*/
 
-#endif
-
-#if !defined(TARGET_MOBILE) && !defined(GAMMA)
+#if !defined(GAMMA) && !defined(TARGET_MOBILE) && !defined(PLATFORM_RPI) && !defined(PLATFORM_WEBGL)
 #define GAMMA 2.2
 #endif
 
@@ -634,36 +511,63 @@ vec3 envBRDFApprox(vec3 _specularColor, float _NoV, float _roughness) {
 #define FNC_GAMMA2LINEAR
 float gamma2linear(in float v) {
 #ifdef GAMMA
-  return pow(v, GAMMA);
+    return pow(v, GAMMA);
 #else
-  // assume gamma 2.0
-  return v * v;
+    // assume gamma 2.0
+    return v * v;
 #endif
 }
 
 vec3 gamma2linear(in vec3 v) {
 #ifdef GAMMA
-  return pow(v, vec3(GAMMA));
+    return pow(v, vec3(GAMMA));
 #else
-  // assume gamma 2.0
-  return v * v;
+    // assume gamma 2.0
+    return v * v;
 #endif
 }
 
 vec4 gamma2linear(in vec4 v) {
-  return vec4(gamma2linear(v.rgb), v.a);
+    return vec4(gamma2linear(v.rgb), v.a);
 }
 #endif
 
-#ifndef FNC_MATERIAL_BASECOLOR
-#define FNC_MATERIAL_BASECOLOR
+#ifndef SAMPLER_FNC
+
+#if __VERSION__ >= 300
+#define SAMPLER_FNC(TEX, UV) texture(TEX, UV)
+#else
+#define SAMPLER_FNC(TEX, UV) texture2D(TEX, UV)
+#endif
+
+#endif
+
+// #ifndef FNC_SAMPLE
+// #define FNC_SAMPLE
+// vec4 sample(sampler2D tex, vec2 uv) { return SAMPLER_FNC(tex, uv); }
+// #endif
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: get material BaseColor from GlslViewer's defines https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#material-defines 
+use: vec4 materialAlbedo()
+options:
+    - SAMPLER_FNC(TEX, UV): optional depending the target version of GLSL (texture2D(...) or texture(...))
+*/
+
+#ifndef FNC_MATERIAL_ALBEDO
+#define FNC_MATERIAL_ALBEDO
 
 #ifdef MATERIAL_BASECOLORMAP
 uniform sampler2D MATERIAL_BASECOLORMAP;
 #endif
 
-vec4 materialBaseColor() {
-    vec4 base = vec4(1.0);
+#ifdef MATERIAL_ALBEDOMAP
+uniform sampler2D MATERIAL_ALBEDOMAP;
+#endif
+
+vec4 materialAlbedo() {
+    vec4 albedo = vec4(0.5, 0.5, 0.5, 1.0);
     
 #if defined(MATERIAL_BASECOLORMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
@@ -673,24 +577,37 @@ vec4 materialBaseColor() {
     #if defined(MATERIAL_BASECOLORMAP_SCALE)
     uv *= (MATERIAL_BASECOLORMAP_SCALE).xy;
     #endif
-    base = gamma2linear( texture2D(MATERIAL_BASECOLORMAP, uv) );
+    albedo = gamma2linear( SAMPLER_FNC(MATERIAL_BASECOLORMAP, uv) );
+
+#elif defined(MATERIAL_ALBEDOMAP) && defined(MODEL_VERTEX_TEXCOORD)
+    vec2 uv = v_texcoord.xy;
+    #if defined(MATERIAL_ALBEDOMAP_OFFSET)
+    uv += (MATERIAL_ALBEDOMAP_OFFSET).xy;
+    #endif
+    #if defined(MATERIAL_ALBEDOMAP_SCALE)
+    uv *= (MATERIAL_ALBEDOMAP_SCALE).xy;
+    #endif
+    albedo = gamma2linear( SAMPLER_FNC(MATERIAL_ALBEDOMAP, uv) );
 
 #elif defined(MATERIAL_BASECOLOR)
-    base = MATERIAL_BASECOLOR;
+    albedo = MATERIAL_BASECOLOR;
+
+#elif defined(MATERIAL_ALBEDO)
+    albedo = MATERIAL_ALBEDO;
 
 #endif
 
 #if defined(MODEL_VERTEX_COLOR)
-    base *= v_color;
+    albedo *= v_color;
 #endif
 
-    return base;
+    return albedo;
 }
 
-#endif)";
+#endif
+)";
 
 const std::string default_scene_frag1 = R"(
-
 #ifndef FNC_MATERIAL_SPECULAR
 #define FNC_MATERIAL_SPECULAR
 
@@ -708,7 +625,7 @@ vec3 materialSpecular() {
     #if defined(MATERIAL_SPECULARMAP_SCALE)
     uv *= (MATERIAL_SPECULARMAP_SCALE).xy;
     #endif
-    spec = texture2D(MATERIAL_SPECULARMAP, uv).rgb;
+    spec = SAMPLER_FNC(MATERIAL_SPECULARMAP, uv).rgb;
 #elif defined(MATERIAL_SPECULAR)
     spec = MATERIAL_SPECULAR;
 #endif
@@ -718,6 +635,14 @@ vec3 materialSpecular() {
 #endif
 
 
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: get material emissive property from GlslViewer's defines https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#material-defines 
+use: vec4 materialEmissive()
+options:
+    - SAMPLER_FNC(TEX, UV): optional depending the target version of GLSL (texture2D(...) or texture(...))
+*/
 
 #ifndef FNC_MATERIAL_EMISSIVE
 #define FNC_MATERIAL_EMISSIVE
@@ -737,7 +662,7 @@ vec3 materialEmissive() {
     #if defined(MATERIAL_EMISSIVEMAP_SCALE)
     uv *= (MATERIAL_EMISSIVEMAP_SCALE).xy;
     #endif
-    emission = gamma2linear(texture2D(MATERIAL_EMISSIVEMAP, uv)).rgb;
+    emission = gamma2linear( SAMPLER_FNC(MATERIAL_EMISSIVEMAP, uv) ).rgb;
 
 #elif defined(MATERIAL_EMISSIVE)
     emission = MATERIAL_EMISSIVE;
@@ -749,6 +674,13 @@ vec3 materialEmissive() {
 #endif
 
 
+/*
+original_author: Patricio Gonzalez Vivo
+description: get material normal property from GlslViewer's defines https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#material-defines 
+use: vec4 materialOcclusion()
+options:
+    - SAMPLER_FNC(TEX, UV): optional depending the target version of GLSL (texture2D(...) or texture(...))
+*/
 
 #ifndef FNC_MATERIAL_OCCLUSION
 #define FNC_MATERIAL_OCCLUSION
@@ -767,10 +699,10 @@ float materialOcclusion() {
 
 #if defined(MATERIAL_OCCLUSIONMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    occlusion = texture2D(MATERIAL_OCCLUSIONMAP, uv).r;
+    occlusion = SAMPLER_FNC(MATERIAL_OCCLUSIONMAP, uv).r;
 #elif defined(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    occlusion = texture2D(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).r;
+    occlusion = SAMPLER_FNC(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).r;
 #endif
 
 #if defined(MATERIAL_OCCLUSIONMAP_STRENGTH)
@@ -783,6 +715,14 @@ float materialOcclusion() {
 #endif
 
 
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: get material normal property from GlslViewer's defines https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#material-defines 
+use: vec4 materialNormal()
+options:
+    - SAMPLER_FNC(TEX, UV): optional depending the target version of GLSL (texture2D(...) or texture(...))
+*/
 
 #ifndef FNC_MATERIAL_NORMAL
 #define FNC_MATERIAL_NORMAL
@@ -809,7 +749,7 @@ vec3 materialNormal() {
         #if defined(MATERIAL_NORMALMAP_SCALE)
     uv *= (MATERIAL_NORMALMAP_SCALE).xy;
         #endif
-    normal = texture2D(MATERIAL_NORMALMAP, uv).xyz;
+    normal = SAMPLER_FNC(MATERIAL_NORMALMAP, uv).xyz;
     normal = v_tangentToWorld * (normal * 2.0 - 1.0);
 
     #elif defined(MODEL_VERTEX_TANGENT) && defined(MODEL_VERTEX_TEXCOORD) && defined(MATERIAL_BUMPMAP_NORMALMAP)
@@ -820,9 +760,8 @@ vec3 materialNormal() {
         #if defined(MATERIAL_BUMPMAP_SCALE)
     uv *= (MATERIAL_BUMPMAP_SCALE).xy;
         #endif
-    normal = v_tangentToWorld * (texture2D(MATERIAL_BUMPMAP_NORMALMAP, uv).xyz * 2.0 - 1.0);
+    normal = v_tangentToWorld * ( SAMPLER_FNC(MATERIAL_BUMPMAP_NORMALMAP, uv).xyz * 2.0 - 1.0) ;
     #endif
-    
 #endif
 
     return normal;
@@ -830,16 +769,19 @@ vec3 materialNormal() {
 #endif
 
 
-
+/*
+original_author: Patricio Gonzalez Vivo
+description: convert diffuse/specular/glossiness workflow to PBR metallic factor 
+use: <float> toMetallic(<vec3> diffuse, <vec3> specular, <float> maxSpecular)
+*/
 
 #ifndef TOMETALLIC_MIN_REFLECTANCE
 #define TOMETALLIC_MIN_REFLECTANCE 0.04
 #endif
 
 #ifndef FNC_TOMETALLIC
-#define FNC_TOMETTALIC
+#define FNC_TOMETALLIC
 
-// Gets metallic factor from specular glossiness workflow inputs 
 float toMetallic(vec3 diffuse, vec3 specular, float maxSpecular) {
     float perceivedDiffuse = sqrt(0.299 * diffuse.r * diffuse.r + 0.587 * diffuse.g * diffuse.g + 0.114 * diffuse.b * diffuse.b);
     float perceivedSpecular = sqrt(0.299 * specular.r * specular.r + 0.587 * specular.g * specular.g + 0.114 * specular.b * specular.b);
@@ -850,7 +792,7 @@ float toMetallic(vec3 diffuse, vec3 specular, float maxSpecular) {
     float b = perceivedDiffuse * (1.0 - maxSpecular) / (1.0 - TOMETALLIC_MIN_REFLECTANCE) + perceivedSpecular - 2.0 * TOMETALLIC_MIN_REFLECTANCE;
     float c = TOMETALLIC_MIN_REFLECTANCE - perceivedSpecular;
     float D = max(b * b - 4.0 * a * c, 0.0);
-    return clamp((-b + sqrt(D)) / (2.0 * a), 0.0, 1.0);
+    return saturate((-b + sqrt(D)) / (2.0 * a));
 }
 
 float toMetallic(vec3 diffuse, vec3 specular) {
@@ -860,6 +802,16 @@ float toMetallic(vec3 diffuse, vec3 specular) {
 
 #endif
 
+
+
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: get material metalic property from GlslViewer's defines https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#material-defines 
+use: vec4 materialMetallic()
+options:
+    - SAMPLER_FNC(TEX, UV): optional depending the target version of GLSL (texture2D(...) or texture(...))
+*/
 
 #ifndef FNC_MATERIAL_METALLIC
 #define FNC_MATERIAL_METALLIC
@@ -889,21 +841,21 @@ float materialMetallic() {
     #if defined(MATERIAL_METALLICMAP_SCALE)
     uv *= (MATERIAL_METALLICMAP_SCALE).xy;
     #endif
-    metallic = texture2D(MATERIAL_METALLICMAP, uv).b;
+    metallic = SAMPLER_FNC(MATERIAL_METALLICMAP, uv).b;
 
 #elif defined(MATERIAL_ROUGHNESSMETALLICMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    metallic = texture2D(MATERIAL_ROUGHNESSMETALLICMAP, uv).b;
+    metallic = SAMPLER_FNC(MATERIAL_ROUGHNESSMETALLICMAP, uv).b;
 
 #elif defined(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    metallic = texture2D(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).b;
+    metallic = SAMPLER_FNC(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).b;
 
 #elif defined(MATERIAL_METALLIC)
     metallic = MATERIAL_METALLIC;
 
 #else
-    vec3 diffuse = materialBaseColor().rgb;
+    vec3 diffuse = materialAlbedo().rgb;
     vec3 specular = materialSpecular();
     metallic = toMetallic(diffuse, specular);
 #endif
@@ -914,6 +866,13 @@ float materialMetallic() {
 #endif
 
 
+/*
+original_author: Patricio Gonzalez Vivo
+description: get material roughness property from GlslViewer's defines https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#material-defines 
+use: vec4 materialRoughness()
+options:
+    - SAMPLER_FNC(TEX, UV): optional depending the target version of GLSL (texture2D(...) or texture(...))
+*/
 
 #ifndef FNC_MATERIAL_ROUGHNESS
 #define FNC_MATERIAL_ROUGHNESS
@@ -933,7 +892,7 @@ uniform sampler2D MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP;
 #endif
 
 float materialRoughness() {
-    float roughness = 0.1;
+    float roughness = 0.05;
 
 #if defined(MATERIAL_ROUGHNESSMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
@@ -943,15 +902,15 @@ float materialRoughness() {
     #if defined(MATERIAL_ROUGHNESSMAP_SCALE)
     uv *= (MATERIAL_ROUGHNESSMAP_SCALE).xy;
     #endif
-    roughness = texture2D(MATERIAL_ROUGHNESSMAP, uv).g;
+    roughness = max(roughness, SAMPLER_FNC(MATERIAL_ROUGHNESSMAP, uv).g);
 
 #elif defined(MATERIAL_ROUGHNESSMETALLICMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    roughness = texture2D(MATERIAL_ROUGHNESSMETALLICMAP, uv).g;
+    roughness = max(roughness, SAMPLER_FNC(MATERIAL_ROUGHNESSMETALLICMAP, uv).g);
 
 #elif defined(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    roughness = texture2D(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).g;
+    roughness = max(roughness, SAMPLER_FNC(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).g);
 
 #elif defined(MATERIAL_ROUGHNESS)
     roughness = MATERIAL_ROUGHNESS;
@@ -963,21 +922,31 @@ float materialRoughness() {
 
 #endif
 
-
-
+/*
+original_author: Patricio Gonzalez Vivo
+description: convertes from PBR roughness/metallic to a shininess factor (typaclly use on diffuse/specular/ambient workflow) 
+use: float toShininess(<float> roughness, <float> metallic)
+*/
 
 #ifndef FNC_TOSHININESS
 #define FNC_TOSHININESS
 
 float toShininess(float roughness, float metallic) {
-    float _smooth = .95 - roughness * 0.5;
-    _smooth *= _smooth;
-    _smooth *= _smooth;
-    return _smooth * (80. + 160. * (1.0-metallic));
+    float s = .95 - roughness * 0.5;
+    s *= s;
+    s *= s;
+    return s * (80. + 160. * (1.0-metallic));
 }
 
 #endif
 
+
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: get material shininess property from GlslViewer's defines https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#material-defines 
+use: vec4 materialShininess()
+*/
 
 #ifndef FNC_MATERIAL_SHININESS
 #define FNC_MATERIAL_SHININESS
@@ -999,33 +968,53 @@ float materialShininess() {
 
 #endif
 
+/*
+original_author: Patricio Gonzalez Vivo
+description: Generic Material Structure
+options:
+    - SURFACE_POSITION
+    - SHADING_SHADOWS
+    - MATERIAL_HAS_CLEAR_COAT
+    - MATERIAL_CLEARCOAT_ROUGHNESS
+    - MATERIAL_HAS_CLEAR_COAT_NORMAL
+    - SHADING_MODEL_SUBSURFACE
+    - MATERIAL_SUBSURFACE_COLOR
+    - SHADING_MODEL_CLOTH
+    - SHADING_MODEL_SPECULAR_GLOSSINESS
+*/
 
 #ifndef STR_MATERIAL
 #define STR_MATERIAL
 struct Material {
-    vec4    baseColor;
+    vec4    albedo;
     vec3    emissive;
-    vec3    normal;
+
+    vec3    position;       // world position of the surface
+    vec3    normal;         // world normal of the surface
+
+    #if defined(SCENE_BACK_SURFACE)
+    vec3    normal_back;    // world normal of the back surface of the model
+    #endif
     
-    vec3    f0;
-    float   reflectance;
+    vec3    ior;            // Index of Refraction
+    vec3    f0;             // reflectance at 0 degree
 
     float   roughness;
     float   metallic;
+    float   ambientOcclusion;   // default 1.0
+    float   shadow;             // default 1.0
 
-    float   ambientOcclusion;
-
-#if defined(MATERIAL_CLEARCOAT_THICKNESS)
+// #if defined(MATERIAL_HAS_CLEAR_COAT)
     float   clearCoat;
     float   clearCoatRoughness;
-    #if defined(MATERIAL_CLEARCOAT_THICKNESS_NORMAL)
-    vec3    clearCoatNormal;
+    #if defined(MATERIAL_HAS_CLEAR_COAT_NORMAL)
+    vec3    clearCoatNormal;    // default vec3(0.0, 0.0, 1.0);
     #endif
-#endif
+// #endif
 
 #if defined(SHADING_MODEL_SUBSURFACE)
-    float   thickness;
-    float   subsurfacePower;
+    float   thickness;          // default to 0.5
+    float   subsurfacePower;    // default to 12.234
 #endif
 
 #if defined(SHADING_MODEL_CLOTH)
@@ -1033,66 +1022,21 @@ struct Material {
 #endif
 
 #if defined(MATERIAL_SUBSURFACE_COLOR)
-    vec3    subsurfaceColor;
+    vec3    subsurfaceColor;    // defualt vec3(1.0)
 #endif
 
 #if defined(SHADING_MODEL_SPECULAR_GLOSSINESS)
     vec3    specularColor;
     float   glossiness;
 #endif
+
 };
 #endif
-
-#ifndef FNC_MATERIAL_INIT
-#define FNC_MATERIAL_INIT
-
-void initMaterial(out Material _mat) {
-    _mat.baseColor = materialBaseColor();
-    _mat.emissive = materialEmissive();
-    _mat.normal = materialNormal();
-    _mat.f0 = vec3(0.04);
-
-    _mat.roughness = materialRoughness();
-    _mat.metallic = materialMetallic();
-
-    _mat.reflectance = 0.5;
-    _mat.ambientOcclusion = materialOcclusion();
-
-#if defined(MATERIAL_CLEARCOAT_THICKNESS)
-    _mat.clearCoat = MATERIAL_CLEARCOAT_THICKNESS;
-    _mat.clearCoatRoughness = MATERIAL_CLEARCOAT_ROUGHNESS;
-#if defined(MATERIAL_CLEARCOAT_THICKNESS_NORMAL)
-    _mat.clearCoatNormal = vec3(0.0, 0.0, 1.0);
-#endif
-#endif
-
-#if defined(SHADING_MODEL_SUBSURFACE)
-    _mat.thickness = 0.5;
-    _mat.subsurfacePower = 12.234;
-    _mat.subsurfaceColor = vec3(1.0);
-#endif
-
-#if defined(SHADING_MODEL_CLOTH)
-    _mat.sheenColor = sqrt(_mat.baseColor.rgb);
-#endif
-
-#if defined(MATERIAL_SUBSURFACE_COLOR)
-    _mat.subsurfaceColor = vec3(0.0);
-#endif
-
-}
-
-Material MaterialInit() {
-    Material mat;
-    initMaterial(mat);
-    return mat;
-}
-
-#endif
-
-
-
-
+/*
+original_author: Patricio Gonzalez Vivo
+description: power of 5
+use: pow5(<float|vec2|vec3|vec4> x)
+*/
 
 #ifndef FNC_POW5
 #define FNC_POW5
@@ -1118,7 +1062,6 @@ vec4 pow5(in vec4 x) {
 #endif
 
 
-
 #ifndef FNC_SCHLICK
 #define FNC_SCHLICK
 
@@ -1139,23 +1082,74 @@ float schlick(float f0, float f90, float VoH) {
 #endif
 
 
+/*
+original_author: Patricio Gonzalez Vivo
+description: resolve fresnel coeficient
+use: 
+    - <vec3> fresnel(const <vec3> f0, <float> NoV)
+    - <vec3> fresnel(<vec3> V <vec3> N, <float> R0)
+*/
 
-#ifndef HEADER_IBL
-#define HEADER_IBL
-uniform samplerCube u_cubeMap;
-uniform vec3        u_SH[9];
-uniform float       u_iblLuminance;
+#ifndef FNC_FRESNEL
+#define FNC_FRESNEL
+
+vec3 fresnel(const vec3 f0, float NoV) {
+#if defined(TARGET_MOBILE) || defined(PLATFORM_RPI)
+    return schlick(f0, 1.0, NoV);
+#else
+    float f90 = saturate(dot(f0, vec3(50.0 * 0.33)));
+    return schlick(f0, f90, NoV);
+#endif
+}
+
+// float fresnelf(vec3 V, vec3 N, float R0) {
+//     float cosAngle = 1.0-max(dot(V, N), 0.0);
+//     float result = cosAngle * cosAngle;
+//     result = result * result;
+//     result = result * cosAngle;
+//     result = clamp(result * (1.0 - R0) + R0, 0.0, 1.0);
+//     return result;
+// }
+
+#endif
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: fast approximation to pow()
+use: powFast(<float> x, <float> exp)
+*/
+
+#ifndef FNC_POWFAST
+#define FNC_POWFAST
+
+float powFast(float a, float b) {
+    return a / ((1. - b) * a + b);
+}
+
 #endif
 
 
-// #define TONEMAP_FNC tonemap_linear
-// #define TONEMAP_FNC tonemap_reinhard
-// #define TONEMAP_FNC tonemap_unreal
-// #define TONEMAP_FNC tonemap_ACES
-// #define TONEMAP_FNC tonemap_ACES_rec2020_1k
-// #define TONEMAP_FNC tonemap_displayRange
+/*
+Author: Narkowicz 2015
+description: ACES Filmic Tone Mapping Curve. https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
+use: <vec3|vec4> tonemapACES(<vec3|vec4> x)
+*/
 
+#ifndef FNC_TONEMAPACES
+#define FNC_TONEMAPACES
+vec3 tonemapACES(vec3 x) {
+    const float a = 2.51;
+    const float b = 0.03;
+    const float c = 2.43;
+    const float d = 0.59;
+    const float e = 0.14;
+    return saturate((x*(a*x+b))/(x*(c*x+d)+e));
+}
 
+vec4 tonemapACES(in vec4 x) {
+    return vec4(tonemapACES(x.rgb), x.a);
+}
+#endif
 /*
 function: luminance
 description: Computes the luminance of the specified linear RGB color using the luminance coefficients from Rec. 709.
@@ -1164,128 +1158,46 @@ use: luminance(<vec3|vec4> color)
 
 #ifndef FNC_LUMINANCE
 #define FNC_LUMINANCE
-float luminance(const vec3 linear) {
-    return dot(linear, vec3(0.2126, 0.7152, 0.0722));
-}
-
-float luminance(const vec4 linear) {
-    return dot(linear.rgb, vec3(0.2126, 0.7152, 0.0722));
-}
+float luminance(in vec3 linear) { return dot(linear, vec3(0.2126, 0.7152, 0.0722)); }
+float luminance(in vec4 linear) { return luminance( linear.rgb ); }
 #endif
 
+/*
+original_author:
+description: |
+    Converts the input HDR RGB color into one of 16 debug colors that represent
+    the pixel's exposure. When the output is cyan, the input color represents
+    middle gray (18% exposure). Every exposure stop above or below middle gray
+    causes a color shift.
+ 
+    The relationship between exposures and colors is:
+ 
+    -5EV  - black
+    -4EV  - darkest blue
+    -3EV  - darker blue
+    -2EV  - dark blue
+    -1EV  - blue
+     OEV  - cyan
+    +1EV  - dark green
+    +2EV  - green
+    +3EV  - yellow
+    +4EV  - yellow-orange
+    +5EV  - orange
+    +6EV  - bright red
+    +7EV  - red
+    +8EV  - magenta
+    +9EV  - purple
+    +10EV - white
 
-#ifndef TONEMAP_FNC
-    #ifdef TARGET_MOBILE
-        #ifdef HAS_HARDWARE_CONVERSION_FUNCTION
-            #define TONEMAP_FNC tonemap_ACES
-        #else
-            #define TONEMAP_FNC tonemap_unreal
-        #endif
-    #else
-        #define TONEMAP_FNC     tonemap_ACES
-    #endif
-#endif
+use: <vec3|vec4> tonemapDebug(<vec3|vec4> x)
+*/
 
-#ifndef FNC_TONEMAP
-#define FNC_TONEMAP
-
-//------------------------------------------------------------------------------
-// Tone-mapping operators for LDR output
-//------------------------------------------------------------------------------
-
-vec3 tonemap_linear(const vec3 x) {
-    return x;
-}
-
-vec3 tonemap_reinhard(const vec3 x) {
-    // Reinhard et al. 2002, "Photographic Tone Reproduction for Digital Images", Eq. 3
-    return x / (1.0 + luminance(x));
-}
-
-vec3 tonemap_unreal(const vec3 x) {
-    // Unreal, Documentation: "Color Grading"
-    // Adapted to be close to Tonemap_ACES, with similar range
-    // Gamma 2.2 correction is baked in, don't use with sRGB conversion!
-    return x / (x + 0.155) * 1.019;
-}
-
-vec3 tonemap_ACES(const vec3 x) {
-    // Narkowicz 2015, "ACES Filmic Tone Mapping Curve"
-    const float a = 2.51;
-    const float b = 0.03;
-    const float c = 2.43;
-    const float d = 0.59;
-    const float e = 0.14;
-    return (x * (a * x + b)) / (x * (c * x + d) + e);
-}
-
-vec3 uncharted2Tonemap(const vec3 x) {
-    const float A = 0.15;
-    const float B = 0.50;
-    const float C = 0.10;
-    const float D = 0.20;
-    const float E = 0.02;
-    const float F = 0.30;
-    return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
-}
-
-vec3 tonemap_uncharted(const vec3 color) {
-    const float W = 11.2;
-    const float exposureBias = 2.0;
-    vec3 curr = uncharted2Tonemap(exposureBias * color);
-    vec3 whiteScale = 1.0 / uncharted2Tonemap(vec3(W));
-    return curr * whiteScale;
-}
-
-//------------------------------------------------------------------------------
-// Tone-mapping operators for HDR output
-//------------------------------------------------------------------------------
-
-vec3 tonemap_ACES_rec2020_1k(const vec3 x) {
-    // Narkowicz 2016, "HDR Display – First Steps"
-    const float a = 15.8;
-    const float b = 2.12;
-    const float c = 1.2;
-    const float d = 5.92;
-    const float e = 1.9;
-    return (x * (a * x + b)) / (x * (c * x + d) + e);
-}
-)";
-
-const std::string default_scene_frag2 = R"(
-//------------------------------------------------------------------------------
-// Debug tone-mapping operators, for LDR output
-//------------------------------------------------------------------------------
-
-/**
- * Converts the input HDR RGB color into one of 16 debug colors that represent
- * the pixel's exposure. When the output is cyan, the input color represents
- * middle gray (18% exposure). Every exposure stop above or below middle gray
- * causes a color shift.
- *
- * The relationship between exposures and colors is:
- *
- * -5EV  - black
- * -4EV  - darkest blue
- * -3EV  - darker blue
- * -2EV  - dark blue
- * -1EV  - blue
- *  OEV  - cyan
- * +1EV  - dark green
- * +2EV  - green
- * +3EV  - yellow
- * +4EV  - yellow-orange
- * +5EV  - orange
- * +6EV  - bright red
- * +7EV  - red
- * +8EV  - magenta
- * +9EV  - purple
- * +10EV - white
- */
+#ifndef FNC_TONEMAPDEBUG
+#define FNC_TONEMAPDEBUG
 
 #if !defined(PLATFORM_RPI) && !defined(PLATFORM_WEBGL)
-vec3 tonemap_displayRange(const vec3 x) {
-
+vec3 tonemapDebug(const vec3 x) {
+    
     // 16 debug colors + 1 duplicated at the end for easy indexing
     vec3 debugColors[17];
     debugColors[0] = vec3(0.0, 0.0, 0.0);         // black
@@ -1313,36 +1225,171 @@ vec3 tonemap_displayRange(const vec3 x) {
     int index = int(v);
     return mix(debugColors[index], debugColors[index + 1], v - float(index));
 }
+vec4 tonemapDebug(const vec4 x) { return vec4(tonemapDebug(x.rgb), x.a); }
 #endif
-
-//------------------------------------------------------------------------------
-// Tone-mapping dispatch
-//------------------------------------------------------------------------------
-
-/**
- * Tone-maps the specified RGB color. The input color must be in linear HDR and
- * pre-exposed. Our HDR to LDR tone mapping operators are designed to tone-map
- * the range [0..~8] to [0..1].
- */
-vec3 tonemap(const vec3 x) {
-    return TONEMAP_FNC(x);
-}
-
-vec3 tonemap(const vec4 x) {
-    return TONEMAP_FNC(x.xyz);
-}
 
 #endif
 
 
 
 
+/*
+Author: [Jim Hejl, Richard Burgess-Dawson ]
+description: Haarm-Peter Duiker’s curve from John Hable's presentation "Uncharted 2 HDR Lighting", Page 140: http://www.gdcvault.com/play/1012459/Uncharted_2__HDR_Lighting
+use: <vec3|vec4> tonemapFilmic(<vec3|vec4> x)
+*/
+
+#ifndef FNC_TONEMAPFILMIC
+#define FNC_TONEMAPFILMIC
+vec3 tonemapFilmic(vec3 color) {
+    color = max(vec3(0.0), color - 0.004);
+    color = (color * (6.2 * color + 0.5)) / (color * (6.2 * color + 1.7) + 0.06);
+    return color;
+}
+
+vec4 tonemapFilmic(const vec4 x) { return vec4( tonemapFilmic(x.rgb), x.a ); }
+#endif
+#ifndef FNC_TONEMAPLINEAR
+#define FNC_TONEMAPLINEAR
+vec3 tonemapLinear(const vec3 x) { return x; }
+vec4 tonemapLinear(const vec4 x) { return x; }
+#endif
+
+
+/*
+original_author: [Erik Reinhard, Michael Stark, Peter Shirley, James Ferwerda]
+description: Photographic Tone Reproduction for Digital Images. http://www.cmap.polytechnique.fr/~peyre/cours/x2005signal/hdr_photographic.pdf
+use: <vec3|vec4> tonemapReinhard(<vec3|vec4> x)
+*/
+
+#ifndef FNC_TONEMAPREINHARD
+#define FNC_TONEMAPREINHARD
+vec3 tonemapReinhard(const vec3 x) { return x / (1.0 + luminance(x)); }
+vec4 tonemapReinhard(const vec4 x) { return vec4( tonemapReinhard(x.rgb), x.a ); }
+#endif
+
+
+
+/*
+original_author: [Erik Reinhard, Michael Stark, Peter Shirley, James Ferwerda]
+description: Photographic Tone Reproduction for Digital Images. http://www.cmap.polytechnique.fr/~peyre/cours/x2005signal/hdr_photographic.pdf
+use: <vec3|vec4> tonemapReinhardJodie(<vec3|vec4> x)
+*/
+
+#ifndef FNC_TONEMAPREINHARDJODIE
+#define FNC_TONEMAPREINHARDJODIE
+vec3 tonemapReinhardJodie(const vec3 x) { 
+    float l = luminance(x);
+    vec3 tc = x / (x + 1.0);
+    return mix(x / (l + 1.0), tc, tc); 
+}
+vec4 tonemapReinhardJodie(const vec4 x) { return vec4( tonemapReinhardJodie(x.rgb), x.a ); }
+#endif
+/*
+original_author:
+description: 
+use: <vec3|vec4> tonemapUncharted(<vec3|vec4> x)
+*/
+
+#ifndef FNC_TONEMAPUNCHARTED
+#define FNC_TONEMAPUNCHARTED
+
+vec3 uncharted2Tonemap(const vec3 x) {
+    const float A = 0.15;
+    const float B = 0.50;
+    const float C = 0.10;
+    const float D = 0.20;
+    const float E = 0.02;
+    const float F = 0.30;
+    return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
+}
+
+vec3 tonemapUncharted(const vec3 x) {
+    const float W = 11.2;
+    const float exposureBias = 2.0;
+    vec3 curr = uncharted2Tonemap(exposureBias * x);
+    vec3 whiteScale = 1.0 / uncharted2Tonemap(vec3(W));
+    return curr * whiteScale;
+}
+
+vec4 tonemapUncharted(const vec4 x) { return vec4( tonemapUncharted(x.rgb), x.a); }
+#endif
+/*
+Author:John Hable
+description: tonemapping function from presentation "Uncharted 2 HDR Lighting", Page 142-143
+use: <vec3|vec4> tonemapUncharted2(<vec3|vec4> x)
+*/
+
+#ifndef FNC_TONEMAPUNCHARTED2
+#define FNC_TONEMAPUNCHARTED2
+vec3 tonemapUncharted2(vec3 color) {
+    float A = 0.15; // 0.22
+    float B = 0.50; // 0.30
+    float C = 0.10;
+    float D = 0.20;
+    float E = 0.02; // 0.01
+    float F = 0.30;
+    float W = 11.2;
+    
+    vec4 x = vec4(color, W);
+    x = ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
+    return x.xyz / x.w;
+}
+
+vec4 tonemapUncharted2(const vec4 x) { return vec4( tonemapUncharted2(x.rgb), x.a); }
+#endif
+/*
+original_author: Unreal Engine 4.0
+description:  Adapted to be close to TonemapACES, with similar range. Gamma 2.2 correction is baked in, don't use with sRGB conversion! https://docs.unrealengine.com/4.26/en-US/RenderingAndGraphics/PostProcessEffects/ColorGrading/
+use: <vec3|vec4> tonemapUnreal(<vec3|vec4> x)
+*/
+
+#ifndef FNC_TONEMAPUNREAL
+#define FNC_TONEMAPUNREAL
+vec3 tonemapUnreal(const vec3 x) { return x / (x + 0.155) * 1.019; }
+vec4 tonemapUnreal(const vec4 x) { return vec4(tonemapUnreal(x.rgb), x.a); }
+#endif
+
+/*
+original_author: Patricio Gonzalez Vivo  
+description: Tone maps the specified RGB color (meaning convert from HDR to LDR) inside the range [0..~8] to [0..1]. The input must be in linear HDR pre-exposed.
+use: tonemap(<vec3|vec4> rgb)
+options:
+    TONEMAP_FNC: tonemapLinear, tonemapReinhard, tonemapUnreal, tonemapACES, tonemapDebug, tonemapUncharter
+*/
+
+#ifndef TONEMAP_FNC
+#if defined(TARGET_MOBILE) || defined(PLATFORM_RPI) || defined(PLATFORM_WEBGL)
+    #define TONEMAP_FNC     tonemapUnreal
+#else
+    // #define TONEMAP_FNC     tonemapDebug
+    // #define TONEMAP_FNC     tonemapFilmic
+    // #define TONEMAP_FNC     tonemapACES
+    // #define TONEMAP_FNC     tonemapUncharted2
+    // #define TONEMAP_FNC     tonemapUncharted
+    #define TONEMAP_FNC     tonemapReinhardJodie
+    // #define TONEMAP_FNC     tonemapReinhard
+    // #define TONEMAP_FNC     tonemapUnreal
+    // #define TONEMAP_FNC     tonemapLinear
+#endif
+#endif
+
+#ifndef FNC_TONEMAP
+#define FNC_TONEMAP
+
+vec3 tonemap(const vec3 color) { return TONEMAP_FNC (color); }
+vec4 tonemap(const vec4 color) { return TONEMAP_FNC (color); }
+
+#endif
+)";
+
+const std::string default_scene_frag2 = R"(
 #ifndef FNC_FAKECUBE
 #define FNC_FAKECUBE
 
 vec3 fakeCube(vec3 _normal, float _shininnes) {
     vec3 rAbs = abs(_normal);
-    return vec3( myPow(max(max(rAbs.x, rAbs.y), rAbs.z) + 0.005, _shininnes) );
+    return vec3( powFast(max(max(rAbs.x, rAbs.y), rAbs.z) + 0.005, _shininnes) );
 }
 
 vec3 fakeCube(vec3 _normal) {
@@ -1352,19 +1399,38 @@ vec3 fakeCube(vec3 _normal) {
 #endif
 
 
+/*
+original_author: Patricio Gonzalez Vivo
+description: get enviroment map light comming from a normal direction and acording to some roughness/metallic value. If there is no SCENE_CUBEMAP texture it creates a fake cube
+use: <vec3> envMap(<vec3> _normal, <float> _roughness [, <float> _metallic])
+options:
+    - SCENE_CUBEMAP: pointing to the cubemap texture
+    - ENVMAP_MAX_MIP_LEVEL: defualt 8
+    - ENVMAP_FNC(NORMAL, ROUGHNESS, METALLIC)
+*/
+
+#ifndef SAMPLE_CUBE_FNC
+#define SAMPLE_CUBE_FNC(CUBEMAP, NORM, LOD) textureCube(CUBEMAP, NORM, LOD)
+#endif
+
 #ifndef ENVMAP_MAX_MIP_LEVEL
-#define ENVMAP_MAX_MIP_LEVEL 8.0
+#define ENVMAP_MAX_MIP_LEVEL 3.0
 #endif
 
 #ifndef FNC_ENVMAP
 #define FNC_ENVMAP
-
 vec3 envMap(vec3 _normal, float _roughness, float _metallic) {
 
-#if defined(SCENE_CUBEMAP)
-    float lod = ENVMAP_MAX_MIP_LEVEL * _roughness;
-    return textureCube( SCENE_CUBEMAP, _normal, lod).rgb;
+// ENVMAP overwrites cube sampling  
+#if defined(ENVMAP_FNC) 
+    return ENVMAP_FNC(_normal, _roughness, _metallic);
 
+// Cubemap sampling
+#elif defined(SCENE_CUBEMAP)
+    float lod = ENVMAP_MAX_MIP_LEVEL * _roughness;
+    return SAMPLE_CUBE_FNC( SCENE_CUBEMAP, _normal, lod).rgb;
+
+// Default
 #else
     return fakeCube(_normal, toShininess(_roughness, _metallic));
 
@@ -1374,14 +1440,21 @@ vec3 envMap(vec3 _normal, float _roughness, float _metallic) {
 vec3 envMap(vec3 _normal, float _roughness) {
     return envMap(_normal, _roughness, 1.0);
 }
-
 #endif
 
 
 
+/*
+original_author: Patricio Gonzalez Vivo
+description: return the spherical harmonic value facing a normal direction
+use: sphericalHarmonics( <vec3> normal)
+options:
+  SPHERICALHARMONICS_BANDS: 2 for RaspberryPi and WebGL for the rest is 3
+  SCENE_SH_ARRAY: in GlslViewer is u_SH
+*/
+
 #ifndef SPHERICALHARMONICS_BANDS
-// Number of spherical harmonics bands (1, 2 or 3)
-#if defined(TARGET_MOBILE)
+#if defined(TARGET_MOBILE) || defined(PLATFORM_RPI) || defined(PLATFORM_WEBGL)
 #define SPHERICALHARMONICS_BANDS           2
 #else
 #define SPHERICALHARMONICS_BANDS           3
@@ -1392,12 +1465,16 @@ vec3 envMap(vec3 _normal, float _roughness) {
 // #define SCENE_SH_ARRAY u_SH
 // #endif
 
+#ifndef SPHERICALHARMONICS_TONEMAP 
+#define SPHERICALHARMONICS_TONEMAP
+#endif
+
 #ifndef FNC_SPHERICALHARMONICS
 #define FNC_SPHERICALHARMONICS
 
 vec3 sphericalHarmonics(const vec3 n) {
 #ifdef SCENE_SH_ARRAY
-    return max(
+    return SPHERICALHARMONICS_TONEMAP ( max(
            0.282095 * SCENE_SH_ARRAY[0]
 #if SPHERICALHARMONICS_BANDS >= 2
         + -0.488603 * SCENE_SH_ARRAY[1] * (n.y)
@@ -1411,7 +1488,7 @@ vec3 sphericalHarmonics(const vec3 n) {
         + -1.092548 * SCENE_SH_ARRAY[7] * (n.z * n.x)
         +  0.546274 * SCENE_SH_ARRAY[8] * (n.x * n.x - n.y * n.y)
 #endif
-        , 0.0);
+        , 0.0) );
 #else
     return vec3(1.0);
 #endif
@@ -1419,53 +1496,64 @@ vec3 sphericalHarmonics(const vec3 n) {
 
 #endif
 
+/*
+original_author: Patricio Gonzalez Vivo
+description: resolve fresnel coeficient
+use: 
+    - <vec3> fresnel(const <vec3> f0, <float> LoH)
+    - <vec3> fresnel(<vec3> _R, <vec3> _f0, <float> _NoV)
+*/
 
-#ifndef FNC_FRESNEL
-#define FNC_FRESNEL
+#ifndef FNC_FRESNEL_REFLECTION
+#define FNC_FRESNEL_REFLECTION
 
-vec3 fresnel(const vec3 f0, float LoH) {
-#if defined(TARGET_MOBILE)
-    return schlick(f0, 1.0, LoH);
-#else
-    float f90 = saturate(dot(f0, vec3(50.0 * 0.33)));
-    return schlick(f0, f90, LoH);
-#endif
-}
-
-vec3 fresnel(vec3 _R, vec3 _f0, float _NoV) {
-    vec3 frsnl = fresnel(_f0, _NoV);
-    // frsnl = schlick(_f0, vec3(1.0), _NoV);
+vec3 fresnelReflection(vec3 R, vec3 f0, float NoV) {
+    vec3 frsnl = fresnel(f0, NoV);
 
     vec3 reflectColor = vec3(0.0);
-    #if defined(SCENE_SH_ARRAY)
-    reflectColor = tonemap( sphericalHarmonics(_R) );
+    #if defined(FRESNEL_REFLECTION_FNC)
+    reflection = FRESNEL_REFLECTION_FNC(R);
+
+    #elif defined(ENVMAP_FNC) 
+    reflectColor = ENVMAP_FNC(R, 0.001, 0.001);
+    
+    #elif defined(SCENE_CUBEMAP)
+    reflectColor = SAMPLE_CUBE_FNC( SCENE_CUBEMAP, R, ENVMAP_MAX_MIP_LEVEL).rgb;
+
+    #elif defined(SCENE_SH_ARRAY)
+    reflectColor = sphericalHarmonics(R);
+
     #else
-    reflectColor = fakeCube(_R);
+    reflectColor = fakeCube(R);
     #endif
 
     return reflectColor * frsnl;
 }
 
+vec3 fresnelReflection(vec3 R, float f0, float NoV) {
+    return fresnelReflection(R, vec3(f0, f0, f0), NoV);
+}
+
 #endif
-
-
-
-// #define SPECULAR_BLINNPHONG
-// #define SPECULAR_PHONG
-// #define SPECULAR_GGX
-// #define SPECULAR_BLECKMANN
-// #define SPECULAR_GAUSSIAN
-// #define SPECULAR_COOKTORRANCE
-// #define DIFFUSE_BURLEY
-// #define DIFFUSE_ORENNAYAR
-// #define DIFFUSE_LAMBERT
+/*
+original_author: Patricio Gonzalez Vivo
+description: calculate point light
+use: lightPoint(<vec3> _diffuseColor, <vec3> _specularColor, <vec3> _N, <vec3> _V, <float> _NoV, <float> _f0, out <vec3> _diffuse, out <vec3> _specular)
+options:
+    - DIFFUSE_FNC: diffuseOrenNayar, diffuseBurley, diffuseLambert (default)
+    - SURFACE_POSITION: in glslViewer is v_position
+    - LIGHT_POSITION: in glslViewer is u_light
+    - LIGHT_COLOR: in glslViewer is u_lightColor
+    - LIGHT_INTENSITY: in glslViewer is  u_lightIntensity
+    - LIGHT_FALLOFF: in glslViewer is u_lightFalloff
+*/
 
 
 
 
 #ifndef SPECULAR_POW
-#ifdef TARGET_MOBILE
-#define SPECULAR_POW(A,B) myPow(A,B)
+#if defined(TARGET_MOBILE) || defined(PLATFORM_RPI) || defined(PLATFORM_WEBGL)
+#define SPECULAR_POW(A,B) powFast(A,B)
 #else
 #define SPECULAR_POW(A,B) pow(A,B)
 #endif
@@ -1480,13 +1568,25 @@ float specularPhong(vec3 L, vec3 N, vec3 V, float shininess) {
     return SPECULAR_POW(max(0.0, dot(R, -V)), shininess);
 }
 
+float specularPhongRoughness(vec3 L, vec3 N, vec3 V, float roughness) {
+    return specularPhong(L, N, V, toShininess(roughness, 0.0) );
+}
+
+float specularPhongRoughness(vec3 L, vec3 N, vec3 V, float roughness, float fresnel) {
+    return specularPhongRoughness(L, N, V, roughness );
+}
+
+float specularPhongRoughness(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness, float fresnel) {
+    return specularPhongRoughness(L, N, V, roughness);
+}
+
 #endif
 
 
 
 #ifndef SPECULAR_POW
-#ifdef TARGET_MOBILE
-#define SPECULAR_POW(A,B) myPow(A,B)
+#if defined(TARGET_MOBILE) || defined(PLATFORM_RPI) || defined(PLATFORM_WEBGL)
+#define SPECULAR_POW(A,B) powFast(A,B)
 #else
 #define SPECULAR_POW(A,B) pow(A,B)
 #endif
@@ -1502,10 +1602,19 @@ float specularBlinnPhong(vec3 L, vec3 N, vec3 V, float shininess) {
     return SPECULAR_POW(max(0.0, dot(N, H)), shininess);
 }
 
+float specularBlinnPhongRoughnes(vec3 L, vec3 N, vec3 V, float roughness) {
+    return specularBlinnPhong(L, N, V, toShininess(roughness, 0.0) );
+}
+
+float specularBlinnPhongRoughnes(vec3 L, vec3 N, vec3 V, float roughness, float fresnel) {
+    return specularBlinnPhongRoughnes(L, N, V, roughness);
+}
+
+float specularBlinnPhongRoughnes(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness, float fresnel) {
+    return specularBlinnPhongRoughnes(L, N, V, roughness);
+}
+
 #endif
-
-
-
 #ifndef FNC_BECKMANN
 #define FNC_BECKMANN
 
@@ -1522,9 +1631,11 @@ float beckmann(float _NoH, float roughness) {
 #endif
 
 
+
+
 #ifndef SPECULAR_POW
-#ifdef TARGET_MOBILE
-#define SPECULAR_POW(A,B) myPow(A,B)
+#if defined(TARGET_MOBILE) || defined(PLATFORM_RPI) || defined(PLATFORM_WEBGL)
+#define SPECULAR_POW(A,B) powFast(A,B)
 #else
 #define SPECULAR_POW(A,B) pow(A,B)
 #endif
@@ -1556,7 +1667,7 @@ float specularCookTorrance(vec3 _L, vec3 _N, vec3 _V, float _NoV, float _NoL, fl
     float F = SPECULAR_POW(1.0 - NoV, _fresnel);
 
     //Multiply terms and done
-    return  G * F * D / max(3.14159265 * NoV * NoL, 0.000001);
+    return max(G * F * D / max(PI * NoV * NoL, 0.00001), 0.0);
 }
 
 // https://github.com/glslify/glsl-specular-cook-torrance
@@ -1566,22 +1677,31 @@ float specularCookTorrance(vec3 L, vec3 N, vec3 V, float roughness, float fresne
     return specularCookTorrance(L, N, V, NoV, NoL, roughness, fresnel);
 }
 
+float specularCookTorrance(vec3 L, vec3 N, vec3 V, float roughness) {
+    return specularCookTorrance(L, N, V, roughness, 0.04);
+}
+
 #endif
-
-
 #ifndef FNC_SPECULAR_GAUSSIAN
 #define FNC_SPECULAR_GAUSSIAN
 
 // https://github.com/glslify/glsl-specular-gaussian
 float specularGaussian(vec3 L, vec3 N, vec3 V, float roughness) {
-  vec3 H = normalize(L + V);
-  float theta = acos(dot(H, N));
-  float w = theta / roughness;
-  return exp(-w*w);
+    vec3 H = normalize(L + V);
+    float theta = acos(dot(H, N));
+    float w = theta / roughness;
+    return exp(-w*w);
+}
+
+float specularGaussian(vec3 L, vec3 N, vec3 V, float roughness, float fresnel) {
+    return specularGaussian(L, N, V, roughness);
+}
+
+float specularGaussian(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness, float fresnel) {
+    return specularGaussian(L, N, V, roughness);
 }
 
 #endif
-
 
 
 #ifndef FNC_SPECULAR_BECKMANN
@@ -1592,14 +1712,21 @@ float specularBeckmann(vec3 L, vec3 N, vec3 V, float roughness) {
     return beckmann(NoH, roughness);
 }
 
+float specularBeckmann(vec3 L, vec3 N, vec3 V, float roughness, float fresnel) {
+    return specularBeckmann(L, N, V, roughness);
+}
+
+float specularBeckmann(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness, float fresnel) {
+    return specularBeckmann(L, N, V, roughness);
+}
+
 #endif
 
-
-
-#ifndef ONE_OVER_PI
-#define ONE_OVER_PI 0.31830988618
-#endif
-
+/*
+original_author: Patricio Gonzalez Vivo
+description: clamp a value between 0 and the medium precision max (65504.0) for floating points
+use: saturateMediump(<float|vec2|vec3|vec4> value)
+*/
 
 #ifndef FNC_SATURATEMEDIUMP
 #define FNC_SATURATEMEDIUMP
@@ -1608,7 +1735,7 @@ float specularBeckmann(vec3 L, vec3 N, vec3 V, float roughness) {
 #define MEDIUMP_FLT_MAX    65504.0
 #endif
 
-#ifdef TARGET_MOBILE
+#if defined(TARGET_MOBILE) || defined(PLATFORM_WEBGL) || defined(PLATFORM_RPI)
 #define saturateMediump(x) min(x, MEDIUMP_FLT_MAX)
 #else
 #define saturateMediump(x) x
@@ -1616,44 +1743,43 @@ float specularBeckmann(vec3 L, vec3 N, vec3 V, float roughness) {
 
 #endif
 
-
 #ifndef FNC_GGX
 #define FNC_GGX
 
-    // Walter et al. 2007, "Microfacet Models for Refraction through Rough Surfaces"
+// Walter et al. 2007, "Microfacet Models for Refraction through Rough Surfaces"
 
-    // In mediump, there are two problems computing 1.0 - NoH^2
-    // 1) 1.0 - NoH^2 suffers floating point cancellation when NoH^2 is close to 1 (highlights)
-    // 2) NoH doesn't have enough precision around 1.0
-    // Both problem can be fixed by computing 1-NoH^2 in highp and providing NoH in highp as well
+// In mediump, there are two problems computing 1.0 - NoH^2
+// 1) 1.0 - NoH^2 suffers floating point cancellation when NoH^2 is close to 1 (highlights)
+// 2) NoH doesn't have enough precision around 1.0
+// Both problem can be fixed by computing 1-NoH^2 in highp and providing NoH in highp as well
 
-    // However, we can do better using Lagrange's identity:
-    //      ||a x b||^2 = ||a||^2 ||b||^2 - (a . b)^2
-    // since N and H are unit vectors: ||N x H||^2 = 1.0 - NoH^2
-    // This computes 1.0 - NoH^2 directly (which is close to zero in the highlights and has
-    // enough precision).
-    // Overall this yields better performance, keeping all computations in mediump
+// However, we can do better using Lagrange's identity:
+//      ||a x b||^2 = ||a||^2 ||b||^2 - (a . b)^2
+// since N and H are unit vectors: ||N x H||^2 = 1.0 - NoH^2
+// This computes 1.0 - NoH^2 directly (which is close to zero in the highlights and has
+// enough precision).
+// Overall this yields better performance, keeping all computations in mediump
 
-float GGX(float NoH, float linearRoughness) {
+float GGX(float NoH, float roughness) {
     float oneMinusNoHSquared = 1.0 - NoH * NoH;
-    float a = NoH * linearRoughness;
-    float k = linearRoughness / (oneMinusNoHSquared + a * a);
+    
+    float a = NoH * roughness;
+    float k = roughness / (oneMinusNoHSquared + a * a);
     float d = k * k * ONE_OVER_PI;
     return saturateMediump(d);
 }
 
-float GGX(vec3 N, vec3 H, float NoH, float linearRoughness) {
+float GGX(vec3 N, vec3 H, float NoH, float roughness) {
     vec3 NxH = cross(N, H);
     float oneMinusNoHSquared = dot(NxH, NxH);
 
-    float a = NoH * linearRoughness;
-    float k = linearRoughness / (oneMinusNoHSquared + a * a);
+    float a = NoH * roughness;
+    float k = roughness / (oneMinusNoHSquared + a * a);
     float d = k * k * ONE_OVER_PI;
     return saturateMediump(d);
 }
 
 #endif
-
 
 
 
@@ -1682,16 +1808,16 @@ float smithGGXCorrelated_Fast(float NoV, float NoL, float roughness) {
 #endif
 
 
+
 #ifndef FNC_SPECULAR_GGX
 #define FNC_SPECULAR_GGX
 
 float specularGGX(vec3 _L, vec3 _N, vec3 _V, float _NoV, float _NoL, float _roughness, float _fresnel) {
     float NoV = max(_NoV, 0.0);
     float NoL = max(_NoL, 0.0);
-    vec3 s = normalize(u_light - v_position.xyz);
 
-    vec3 H = normalize(s + _V);
-    float LoH = saturate(dot(s, H));
+    vec3 H = normalize(_L + _V);
+    float LoH = saturate(dot(_L, H));
     float NoH = saturate(dot(_N, H));
 
     // float NoV, float NoL, float roughness
@@ -1709,91 +1835,57 @@ float specularGGX(vec3 L, vec3 N, vec3 V, float roughness, float fresnel) {
     return specularGGX(L, N, V, NoV, NoL, roughness, fresnel);
 }
 
+float specularGGX(vec3 L, vec3 N, vec3 V, float roughness) {
+    return specularGGX(L, N, V, roughness, 0.04);
+}
+
 #endif
 
+/*
+original_author: Patricio Gonzalez Vivo
+description: calculate specular contribution
+use: 
+    - specular(<vec3> L, <vec3> N, <vec3> V, <float> roughness[, <float> fresnel])
+    - specular(<vec3> L, <vec3> N, <vec3> V, <float> NoV, <float> NoL, <float> roughness, <float> fresnel)
+options:
+    - SPECULAR_FNC: specularGaussian, specularBeckmann, specularCookTorrance (default), specularPhongRoughness, specularBlinnPhongRoughnes (default on mobile)
+*/
 
+#ifndef SPECULAR_FNC
+#if defined(TARGET_MOBILE) || defined(PLATFORM_RPI) || defined(PLATFORM_WEBGL)
+#define SPECULAR_FNC specularBlinnPhongRoughnes
+#else
+#define SPECULAR_FNC specularCookTorrance
+#endif  
+#endif
 
 #ifndef FNC_SPECULAR
 #define FNC_SPECULAR
-
-float specular(vec3 L, vec3 N, vec3 V, float roughness) {
-
-#if defined(SPECULAR_GAUSSIAN)
-    return specularGaussian(L, N, V, roughness);
-    
-#elif defined(SPECULAR_BLECKMANN)
-    return specularBeckmann(L, N, V, roughness);
-
-#elif defined(SPECULAR_COOKTORRANCE)
-    float f0 = 0.04;
-    return specularCookTorrance(L, N, V, roughness, f0);
-
-#elif defined(SPECULAR_PHONG)
-    float shininess = toShininess(roughness, 0.0);
-    return specularPhong(L, N, V, shininess);
-
-#elif defined(SPECULAR_BLINNPHONG)
-    float shininess = toShininess(roughness, 0.0);
-    return specularBlinnPhong(L, N, V, shininess);
-#else
-
-    #ifdef TARGET_MOBILE
-    float shininess = toShininess(roughness, 0.0);
-    return specularBlinnPhong(L, N, V, shininess);
-    #else
-    float f0 = 0.04;
-    return specularCookTorrance(L, N, V, roughness, f0);
-    #endif  
-
+float specular(vec3 L, vec3 N, vec3 V, float roughness) { return SPECULAR_FNC(L, N, V, roughness); }
+float specular(vec3 L, vec3 N, vec3 V, float roughness, float fresnel) { return SPECULAR_FNC(L, N, V, roughness, fresnel); }
+float specular(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness, float fresnel) { return SPECULAR_FNC(L, N, V, NoV, NoL, roughness, fresnel); }
 #endif
-}
-
-float specular(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness, float fresnel) {
-#if defined(SPECULAR_GAUSSIAN)
-    return specularGaussian(L, N, V, roughness);
-
-#elif defined(SPECULAR_BLECKMANN)
-    return specularBeckmann(L, N, V, roughness);
-
-#elif defined(SPECULAR_COOKTORRANCE)
-    return specularCookTorrance(L, N, V, roughness, fresnel);
-
-#elif defined(SPECULAR_GGX)
-    return specularGGX(L, N, V, roughness, fresnel);
-
-#elif defined(SPECULAR_PHONG)
-    float shininess = toShininess(roughness, 0.0);
-    return specularPhong(L, N, V, shininess);
-
-#elif defined(SPECULAR_BLINNPHONG)
-    float shininess = toShininess(roughness, 0.0);
-    return specularBlinnPhong(L, N, V, shininess);
-#else
-
-    #ifdef TARGET_MOBILE
-    float shininess = toShininess(roughness, 0.0);
-    return specularBlinnPhong(L, N, V, shininess);
-    #else
-    return specularCookTorrance(L, N, V, roughness, fresnel);
-    #endif  
-
-#endif
-}
-
-#endif
-
-
+/*
+original_author: Patricio Gonzalez Vivo
+description: calculate diffuse contribution using lambert equation
+use: 
+    - <float> diffuseLambert(<vec3> light, <vec3> normal [, <vec3> view, <float> roughness] )
+    - <float> diffuseLambert(<vec3> L, <vec3> N, <vec3> V, <float> NoV, <float> NoL, <float> roughness)
+*/
 
 #ifndef FNC_DIFFUSE_LAMBERT
 #define FNC_DIFFUSE_LAMBERT
-
-// https://github.com/glslify/glsl-diffuse-lambert
-float diffuseLambert(vec3 L, vec3 N) {
-    return max(0.0, dot(N, L));
-}
-
+float diffuseLambert(vec3 L, vec3 N) { return max(0.0, dot(N, L)); }
+float diffuseLambert(vec3 L, vec3 N, vec3 V, float roughness) { return diffuseLambert(L, N); }
+float diffuseLambert(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness) { return diffuseLambert(L, N); }
 #endif
-
+/*
+original_author: Patricio Gonzalez Vivo
+description: calculate diffuse contribution using Oren and Nayar equation https://en.wikipedia.org/wiki/Oren%E2%80%93Nayar_reflectance_model
+use: 
+    - <float> diffuseOrenNayar(<vec3> light, <vec3> normal, <vec3> view, <float> roughness )
+    - <float> diffuseOrenNayar(<vec3> L, <vec3> N, <vec3> V, <float> NoV, <float> NoL, <float> roughness)
+*/
 
 #ifndef FNC_DIFFUSE_ORENNAYAR
 #define FNC_DIFFUSE_ORENNAYAR
@@ -1811,10 +1903,9 @@ float diffuseOrenNayar(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float rough
     return max(0.0, NoL) * (A + B * s / t);
 }
 
-// https://github.com/glslify/glsl-diffuse-oren-nayar
 float diffuseOrenNayar(vec3 L, vec3 N, vec3 V, float roughness) {
-    float NoV = (dot(N, V), 0.001);
-    float NoL = (dot(N, L), 0.001);
+    float NoV = max(dot(N, V), 0.001);
+    float NoL = max(dot(N, L), 0.001);
     return diffuseOrenNayar(L, N, V, NoV, NoL, roughness);
 }
 
@@ -1822,7 +1913,6 @@ float diffuseOrenNayar(vec3 L, vec3 N, vec3 V, float roughness) {
 )";
 
 const std::string default_scene_frag3 = R"(
-
 #ifndef FNC_DIFFUSE_BURLEY
 #define FNC_DIFFUSE_BURLEY
 
@@ -1850,175 +1940,609 @@ float diffuseBurley(vec3 L, vec3 N, vec3 V, float roughness) {
 
 #endif
 
+/*
+original_author: Patricio Gonzalez Vivo
+description: calculate diffuse contribution
+use: lightSpot(<vec3> _diffuseColor, <vec3> _specularColor, <vec3> _N, <vec3> _V, <float> _NoV, <float> _f0, out <vec3> _diffuse, out <vec3> _specular)
+options:
+    - DIFFUSE_FNC: diffuseOrenNayar, diffuseBurley, diffuseLambert (default)
+*/
+
+#ifndef DIFFUSE_FNC 
+#define DIFFUSE_FNC diffuseLambert
+#endif
 
 #ifndef FNC_DIFFUSE
 #define FNC_DIFFUSE
-
-float diffuse(vec3 L, vec3 N, vec3 V, float roughness) {
-#if defined(DIFFUSE_ORENNAYAR)
-    return diffuseOrenNayar(L, N, V, roughness);
-
-#elif defined(DIFFUSE_BURLEY)
-    return diffuseBurley(L, N, V, roughness);
-
-#else
-    return diffuseLambert(L, N);
-
-#endif    
-}
-
-float diffuse(vec3 _L, vec3 _N, vec3 _V, float _NoV, float _NoL, float _roughness) {
-#if defined(DIFFUSE_ORENNAYAR)
-    return diffuseOrenNayar(_L, _N, _V, _NoV, _NoL, _roughness);
-
-#elif defined(DIFFUSE_BURLEY)
-    return diffuseBurley(_L, _N, _V, _NoV, _NoL, _roughness);
-
-#else
-    return diffuseLambert(_L, _N);
-#endif    
-}
-
+float diffuse(vec3 _L, vec3 _N, vec3 _V, float _roughness) { return DIFFUSE_FNC(_L, _N, _V, _roughness); }
+float diffuse(vec3 _L, vec3 _N, vec3 _V, float _NoV, float _NoL, float _roughness) { return DIFFUSE_FNC(_L, _N, _V, _NoV, _NoL, _roughness); }
 #endif
-
-
-#ifndef FNC_FALLOFF
-#define FNC_FALLOFF
-
+#ifndef FNC_LIGHT_FALLOFF
+#define FNC_LIGHT_FALLOFF
 float falloff(float _dist, float _lightRadius) {
     float att = clamp(1.0 - _dist * _dist / (_lightRadius * _lightRadius), 0.0, 1.0);
     att *= att;
     return att;
 }
-
 #endif
 
+#ifndef SURFACE_POSITION
+#define SURFACE_POSITION vec3(0.0, 0.0, 0.0)
+#endif
+
+#ifndef LIGHT_POSITION
+#define LIGHT_POSITION  vec3(0.0, 10.0, -50.0)
+#endif
+
+#ifndef LIGHT_COLOR
+#define LIGHT_COLOR    vec3(0.5, 0.5, 0.5)
+#endif
+
+#ifndef LIGHT_INTENSITY
+#define LIGHT_INTENSITY 1.0
+#endif
+
+#ifndef LIGHT_FALLOFF
+#define LIGHT_FALLOFF   0.0
+#endif
 
 #ifndef FNC_LIGHT_POINT
 #define FNC_LIGHT_POINT
 
-void lightPoint(vec3 _diffuseColor, vec3 _specularColor, vec3 _N, vec3 _V, float _NoV, float _roughness, float _f0, out vec3 _diffuse, out vec3 _specular) {
-    vec3 s = normalize(u_light - v_position.xyz);
+void lightPoint(vec3 _diffuseColor, vec3 _specularColor, vec3 _N, vec3 _V, float _NoV, float _roughness, float _f0, float _shadow, inout vec3 _diffuse, inout vec3 _specular) {
+    vec3 toLight = LIGHT_POSITION - (SURFACE_POSITION).xyz;
+    float toLightLength = length(toLight);
+    vec3 s = toLight/toLightLength;
+
     float NoL = dot(_N, s);
 
-    float dif = diffuse(s, _N, _V, _NoV, NoL, _roughness) * ONE_OVER_PI;
+    float dif = diffuse(s, _N, _V, _NoV, NoL, _roughness);// * ONE_OVER_PI;
     float spec = specular(s, _N, _V, _NoV, NoL, _roughness, _f0);
 
-    float fall = 1.0;
-    if (u_lightFalloff > 0.0)
-        fall = falloff(length(u_light - v_position.xyz), u_lightFalloff);
-    
-    _diffuse = u_lightIntensity * (_diffuseColor * u_lightColor * dif * fall);
-    _specular = u_lightIntensity * (_specularColor * u_lightColor * spec * fall);
+    vec3 lightContribution = LIGHT_COLOR * LIGHT_INTENSITY * _shadow;
+    #ifdef LIGHT_FALLOFF
+    if (LIGHT_FALLOFF > 0.0)
+        lightContribution *= falloff(toLightLength, LIGHT_FALLOFF);
+    #endif
+
+    _diffuse +=  max(vec3(0.0), _diffuseColor * lightContribution * dif);
+    _specular += max(vec3(0.0), _specularColor * lightContribution * spec);
+}
+
+void lightPoint(vec3 _diffuseColor, vec3 _specularColor, vec3 _N, vec3 _V, float _NoV, float _roughness, float _f0, inout vec3 _diffuse, inout vec3 _specular) {
+    lightPoint(_diffuseColor, _specularColor, _N, _V,  _NoV, _roughness, _f0, 1.0, _diffuse, _specular);
 }
 
 #endif
 
+
+
+
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: calculate directional light
+use: lightDirectional(<vec3> _diffuseColor, <vec3> _specularColor, <vec3> _N, <vec3> _V, <float> _NoV, <float> _f0, out <vec3> _diffuse, out <vec3> _specular)
+options:
+    - DIFFUSE_FNC: diffuseOrenNayar, diffuseBurley, diffuseLambert (default)
+    - LIGHT_POSITION: in GlslViewer is u_light
+    - LIGHT_DIRECTION
+    - LIGHT_COLOR: in GlslViewer is u_lightColor
+    - LIGHT_INTENSITY: in GlslViewer is u_lightIntensity
+*/
+
+#ifndef LIGHT_POSITION
+#define LIGHT_POSITION vec3(0.0, 10.0, -50.0)
+#endif
+
+#ifndef LIGHT_COLOR
+#define LIGHT_COLOR vec3(0.5)
+#endif
+
+#ifndef LIGHT_INTENSITY
+#define LIGHT_INTENSITY 1.0
+#endif
+
+#ifndef FNC_LIGHT_DIRECTIONAL
+#define FNC_LIGHT_DIRECTIONAL
+
+void lightDirectional(vec3 _diffuseColor, vec3 _specularColor, vec3 _N, vec3 _V, float _NoV, float _roughness, float _f0, float _shadow, inout vec3 _diffuse, inout vec3 _specular) {
+    #ifdef LIGHT_DIRECTION
+    vec3 s = normalize(LIGHT_DIRECTION);
+    #else 
+    vec3 s = normalize(LIGHT_POSITION);
+    #endif
+    float NoL = dot(_N, s);
+    float dif = diffuseOrenNayar(s, _N, _V, _NoV, NoL, _roughness);
+    float spec = specularCookTorrance(s, _N, _V, _NoV, NoL, _roughness, _f0);
+    _diffuse  += max(vec3(0.0), LIGHT_INTENSITY * (_diffuseColor * LIGHT_COLOR * dif) * _shadow);
+    _specular += max(vec3(0.0), LIGHT_INTENSITY * (_specularColor * LIGHT_COLOR * spec) * _shadow);
+}
+
+
+// void lightDirectional(float3 _diffuseColor, float3 _specularColor, float3 _N, float3 _V, float _NoV, float _roughness, float _f0, inout float3 _diffuse, inout float3 _specular) {
+//     return lightDirectional(_diffuseColor, _specularColor, _N, _V, _NoV, _roughness, _f0, 1.0, _diffuse, _specular);
+// }
+
+
+#endif
+
+
+
+#ifndef FNC_REFLECTION
+#define FNC_REFLECTION
+
+vec3 reflection(vec3 _V, vec3 _N, float _roughness) {
+        // Reflect
+#ifdef MATERIAL_ANISOTROPY
+    vec3  anisotropicT = MATERIAL_ANISOTROPY_DIRECTION;
+    vec3  anisotropicB = MATERIAL_ANISOTROPY_DIRECTION;
+
+#ifdef MODERL_VERTEX_TANGENT
+    anisotropicT = normalize(v_tangentToWorld * MATE RIAL_ANISOTROPY_DIRECTION);
+    anisotropicB = normalize(cross(v_tangentToWorld[2], anisotropicT));
+#endif
+
+    vec3  anisotropyDirection = MATERIAL_ANISOTROPY >= 0.0 ? anisotropicB : anisotropicT;
+    vec3  anisotropicTangent  = cross(anisotropyDirection, _V);
+    vec3  anisotropicNormal   = cross(anisotropicTangent, anisotropyDirection);
+    float bendFactor          = abs(MATERIAL_ANISOTROPY) * saturate(5.0 * _roughness);
+    vec3  bentNormal          = normalize(mix(_N, anisotropicNormal, bendFactor));
+    return reflect(-_V, bentNormal);
+#else
+    return reflect(-_V, _N);
+#endif
+
+}
+
+#endif
+
+
+#if !defined(TARGET_MOBILE) && !defined(PLATFORM_RPI) && !defined(PLATFORM_WEBGL)
+#define IBL_SPECULAR_OCCLUSION
+#endif
+
+#ifndef FNC_SPECULARAO
+#define FNC_SPECULARAO
+float specularAO(float NoV, float ao, float roughness) {
+#if !defined(TARGET_MOBILE) && !defined(PLATFORM_RPI) && !defined(PLATFORM_WEBGL)
+    return saturate(pow(NoV + ao, exp2(-16.0 * roughness - 1.0)) - 1.0 + ao);
+#else
+    return 1.0;
+#endif
+}
+#endif
+#ifndef FNC_ENVBRDFAPPROX
+#define FNC_ENVBRDFAPPROX
+
+vec3 envBRDFApprox(vec3 _specularColor, float _NoV, float _roughness) {
+    vec4 c0 = vec4(-1.0, -0.0275, -0.572,  0.022 );
+    vec4 c1 = vec4( 1.0,  0.0425,  1.040, -0.040 );
+    vec4 r = _roughness * c0 + c1;
+    float a004 = min( r.x * r.x, exp2( -9.28 * _NoV ) ) * r.x + r.y;
+    vec2 AB = vec2( -1.04, 1.04 ) * a004 + r.zw;
+    return _specularColor * AB.x + AB.y;
+}
+
+#endif
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: simple PBR shading model
+use: <vec4> pbr( <Material> _material ) 
+options:
+    - DIFFUSE_FNC: diffuseOrenNayar, diffuseBurley, diffuseLambert (default)
+    - SPECULAR_FNC: specularGaussian, specularBeckmann, specularCookTorrance (default), specularPhongRoughness, specularBlinnPhongRoughnes (default on mobile)
+    - LIGHT_POSITION: in GlslViewer is u_light
+    - LIGHT_COLOR in GlslViewer is u_lightColor
+    - CAMERA_POSITION: in GlslViewer is u_camera
+*/
+
+#ifndef CAMERA_POSITION
+#define CAMERA_POSITION vec3(0.0, 0.0, -10.0)
+#endif
+
+#ifndef LIGHT_POSITION
+#define LIGHT_POSITION  vec3(0.0, 10.0, -50.0)
+#endif
+
+#ifndef LIGHT_COLOR
+#define LIGHT_COLOR     vec3(0.5, 0.5, 0.5)
+#endif
+
+#ifndef IBL_LUMINANCE
+#define IBL_LUMINANCE   1.0
+#endif
 
 #ifndef FNC_PBR
 #define FNC_PBR
 
-void lightWithShadow(vec3 _diffuseColor, vec3 _specularColor, vec3 _N, vec3 _V, float _NoV, float _roughness, float _f0, inout vec3 _diffuse, inout vec3 _specular) {
-    vec3 lightDiffuse = vec3(0.0);
-    vec3 lightSpecular = vec3(0.0);
-
-    lightPoint(_diffuseColor, _specularColor, _N, _V, _NoV, _roughness, _f0, lightDiffuse, lightSpecular);
-    // calcPointLight(_comp, lightDiffuse, lightSpecular);
-    // calcDirectionalLight(_comp, lightDiffuse, lightSpecular);
-
-    float shadows = 1.0;
-
-#if defined(LIGHT_SHADOWMAP) && defined(LIGHT_SHADOWMAP_SIZE)
-    shadows = shadow();
-#endif
-
-    _diffuse += lightDiffuse * shadows;
-    _specular += saturate(lightSpecular) * shadows;
-}
-
 vec4 pbr(const Material _mat) {
     // Calculate Color
+    vec3    diffuseColor = _mat.albedo.rgb * (vec3(1.0) - _mat.f0) * (1.0 - _mat.metallic);
+    vec3    specularColor = mix(_mat.f0, _mat.albedo.rgb, _mat.metallic);
 
-    vec3    diffuseColor = _mat.baseColor.rgb * (vec3(1.0) - _mat.f0) * (1.0 - _mat.metallic);
-    vec3    specularColor = mix(_mat.f0, _mat.baseColor.rgb, _mat.metallic);
-
-    vec3    N = _mat.normal;                            // Normal
-    vec3    V = normalize(v_position.xyz - u_camera);   // View
-    float NoV = dot(N, V);                              // Normal . View
-    float f0  = max(_mat.f0.r, max(_mat.f0.g, _mat.f0.b));
-    float roughness = _mat.roughness;
-    
-    // Reflect
-    vec3    R = reflection(V, N, roughness);
+    vec3    N       = _mat.normal;                                  // Normal
+    vec3    V       = normalize(CAMERA_POSITION - _mat.position);   // View
+    float   NoV     = dot(N, V);                                    // Normal . View
+    vec3    R       = reflection(V, N, _mat.roughness);
 
     // Ambient Occlusion
     // ------------------------
     float ssao = 1.0;
-#ifdef SCENE_SSAO
-    ssao = texture2D(SCENE_SSAO, gl_FragCoord.xy/u_resolution).r;
-#endif 
+// #if defined(FNC_SSAO) && defined(SCENE_DEPTH) && defined(RESOLUTION) && defined(CAMERA_NEAR_CLIP) && defined(CAMERA_FAR_CLIP)
+//     vec2 pixel = 1.0/RESOLUTION;
+//     ssao = ssao(SCENE_DEPTH, gl_FragCoord.xy*pixel, pixel, 1.);
+// #endif 
     float diffuseAO = min(_mat.ambientOcclusion, ssao);
-    float specularAO = specularAO(NoV, diffuseAO, roughness);
+    float specularAO = specularAO(NoV, diffuseAO, _mat.roughness);
 
     // Global Ilumination ( mage Based Lighting )
     // ------------------------
-    vec3 E = envBRDFApprox(specularColor, NoV, roughness);
+    vec3 E = envBRDFApprox(specularColor, NoV, _mat.roughness);
 
-    vec3 Fr = vec3(0.0);
-    Fr = tonemap( envMap(R, roughness, _mat.metallic) ) * E;
-    Fr += fresnel(R, _mat.f0, NoV) * _mat.metallic;
+    // This is a bit of a hack to pop the metalics
+    float specIntensity =   (2.0 * _mat.metallic) * 
+                            saturate(-1.1 + NoV + _mat.metallic) *          // Fresnel
+                            (_mat.metallic + (.95 - _mat.roughness) * 2.0); // make smaller highlights brighter
+
+    vec3 Fr = vec3(0.0, 0.0, 0.0);
+    Fr = tonemap( envMap(R, _mat.roughness, _mat.metallic) ) * E * specIntensity;
+    Fr += tonemap( fresnelReflection(R, _mat.f0, NoV) ) * _mat.metallic * (1.0-_mat.roughness) * 0.2;
     Fr *= specularAO;
 
-    vec3 Fd = vec3(0.0);
-    vec3 diffuseIrradiance = vec3(1.0);
+    vec3 Fd = vec3(0.0, 0.0, 0.0);
+    Fd = diffuseColor;
     #if defined(SCENE_SH_ARRAY)
-    diffuseIrradiance *= tonemap( sphericalHarmonics(N) );
+    Fd *= tonemap( sphericalHarmonics(N) );
     #endif
-    Fd = diffuseColor * diffuseIrradiance * diffuseAO;// * (1.0 - E);
+    Fd *= diffuseAO;
+    Fd *= (1.0 - E);
 
     // Local Ilumination
     // ------------------------
-    vec3 lightDiffuse = vec3(0.0);
-    vec3 lightSpecular = vec3(0.0);
-    lightWithShadow(diffuseColor, specularColor, N, V, NoV, roughness, f0, lightDiffuse, lightSpecular);
+    vec3 lightDiffuse = vec3(0.0, 0.0, 0.0);
+    vec3 lightSpecular = vec3(0.0, 0.0, 0.0);
+    
+    {
+        #if defined(LIGHT_DIRECTION)
+        float f0 = max(_mat.f0.r, max(_mat.f0.g, _mat.f0.b));
+        lightDirectional(diffuseColor, specularColor, N, V, NoV, _mat.roughness, f0, _mat.shadow, lightDiffuse, lightSpecular);
+        #elif defined(LIGHT_POSITION)
+        float f0 = max(_mat.f0.r, max(_mat.f0.g, _mat.f0.b));
+        lightPoint(diffuseColor, specularColor, N, V, NoV, _mat.roughness, f0, _mat.shadow, lightDiffuse, lightSpecular);
+        #endif
+    }
     
     // Final Sum
     // ------------------------
-    vec4 color = vec4(0.0);
-    color.rgb += Fd * u_iblLuminance + lightDiffuse;     // Diffuse
-    color.rgb += Fr * u_iblLuminance + lightSpecular;    // Specular
-    color.rgb *= _mat.ambientOcclusion;
-    color.rgb += _mat.emissive;
-    color.a = _mat.baseColor.a;
+    vec4 color  = vec4(0.0, 0.0, 0.0, 1.0);
+    color.rgb  += Fd * IBL_LUMINANCE + lightDiffuse;     // Diffuse
+    color.rgb  += Fr * IBL_LUMINANCE + lightSpecular;    // Specular
+    color.rgb  *= _mat.ambientOcclusion;
+    color.rgb  += _mat.emissive;
+    color.a     = _mat.albedo.a;
 
-    return linear2gamma(color);
+    return color;
+}
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: sampler shadowMap 
+use: 
+    - sampleShadow(<sampler2D> shadowMap, <vec4|vec3> _coord)
+    - sampleShadow(<sampler2D> shadowMap, <vec2> _coord , float compare)
+    - sampleShadow(<sampler2D> shadowMap, <vec2> _shadowMapSize, <vec2> _coord , float compare)
+license: |
+    Copyright (c) 2017 Patricio Gonzalez Vivo.
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+    The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef FNC_SAMPLESHADOW
+#define FNC_SAMPLESHADOW
+
+float sampleShadow(in sampler2D shadowMap, in vec4 _coord) {
+    vec3 shadowCoord = _coord.xyz / _coord.w;
+    return SAMPLER_FNC(shadowMap, shadowCoord.xy).r;
 }
 
+float sampleShadow(in sampler2D shadowMap, in vec3 _coord) {
+    return sampleShadow(shadowMap, vec4(_coord, 1.0));
+}
+
+float sampleShadow(in sampler2D shadowMap, in vec2 uv, in float compare) {
+    return step(compare, SAMPLER_FNC(shadowMap, uv).r );
+}
+
+float sampleShadow(in sampler2D shadowMap, in vec2 size, in vec2 uv, in float compare) {
+    return sampleShadow(shadowMap, uv, compare);
+}
 
 #endif
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: sample shadow map using PCF
+use: <float> sampleShadowLerp(<sampler2D> depths, <vec2> size, <vec2> uv, <float> compare)
+*/
+
+#ifndef FNC_SAMPLESHADOWLERP
+#define FNC_SAMPLESHADOWLERP
+
+float sampleShadowLerp(sampler2D depths, vec2 size, vec2 uv, float compare) {
+    vec2 texelSize = vec2(1.0)/size;
+    vec2 f = fract(uv*size+0.5);
+    vec2 centroidUV = floor(uv*size+0.5)/size;
+    float lb = sampleShadow(depths, centroidUV+texelSize*vec2(0.0, 0.0), compare);
+    float lt = sampleShadow(depths, centroidUV+texelSize*vec2(0.0, 1.0), compare);
+    float rb = sampleShadow(depths, centroidUV+texelSize*vec2(1.0, 0.0), compare);
+    float rt = sampleShadow(depths, centroidUV+texelSize*vec2(1.0, 1.0), compare);
+    float a = mix(lb, lt, f.y);
+    float b = mix(rb, rt, f.y);
+    float c = mix(a, b, f.x);
+    return c;
+}
+
+#endif
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: sample shadow map using PCF
+use:
+    - <float> sampleShadowPCF(<sampler2D> depths, <vec2> size, <vec2> uv, <float> compare)
+    - <float> sampleShadowPCF(<vec3> lightcoord)
+options:
+    - LIGHT_SHADOWMAP_BIAS
+    - SAMPLESHADOWPCF_SAMPLER_FNC
+*/
+
+#ifndef SAMPLESHADOWPCF_SAMPLER_FNC
+#define SAMPLESHADOWPCF_SAMPLER_FNC sampleShadowLerp
+#endif
+
+#ifndef FNC_SAMPLESHADOWPCF
+#define FNC_SAMPLESHADOWPCF
+
+float sampleShadowPCF(sampler2D depths, vec2 size, vec2 uv, float compare) {
+    vec2 pixel = 1.0/size;
+    float result = 0.0;
+    for (float x= -2.0; x <= 2.0; x++)
+        for (float y= -2.0; y <= 2.0; y++) 
+            result += SAMPLESHADOWPCF_SAMPLER_FNC(depths, size, uv + vec2(x,y) * pixel, compare);
+    return result/25.0;
+}
+
+#endif
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: sample shadow map using PCF
+use:
+    - <float> sampleShadowPCF(<sampler2D> depths, <vec2> size, <vec2> uv, <float> compare)
+    - <float> sampleShadowPCF(<vec3> lightcoord)
+options:
+    - SHADOWMAP_BIAS
+*/
+
+#ifndef SHADOWMAP_BIAS
+#define SHADOWMAP_BIAS 0.005
+#endif
+
+#ifndef SHADOW_SAMPLER_FNC
+#define SHADOW_SAMPLER_FNC sampleShadowPCF
+#endif
+
+#ifndef FNC_SHADOW
+#define FNC_SHADOW
+
+float shadow(sampler2D shadoMap, vec2 size, vec2 uv, float compare) {
+    #ifdef SHADOWMAP_BIAS
+    compare -= SHADOWMAP_BIAS;
+    #endif
+    return sampleShadowPCF(shadoMap, size, uv, compare);
+}
+
+#endif 
+// https://en.wikipedia.org/wiki/Refractive_index
+
+#ifndef IOR_AIR
+#define IOR_AIR 1.000293
+#endif
+
+#ifndef IOR_ICE
+#define IOR_ICE 1.31
+#endif
+
+#ifndef IOR_WATER
+#define IOR_WATER 1.333
+#endif
+
+#ifndef IOR_WATER_RGB
+#define IOR_WATER_RGB vec3(1.337, 1.333, 1.331)
+#endif
+
+#ifndef IOR_GLYCERING
+#define IOR_GLYCERING 1.473
+#endif
+
+#ifndef IOR_OIL
+#define IOR_OIL 1.515
+#endif
+
+#ifndef IOR_OIL_RGB
+#define IOR_OIL_RGB vec3(1.530, 1.520, 1.516)
+#endif
+
+#ifndef IOR_GLASS
+#define IOR_GLASS 1.5168
+#endif
+
+#ifndef IOR_GLASS_RGB
+#define IOR_GLASS_RGB vec3(1.524, 1.517, 1.515)
+#endif
+
+#ifndef IOR_GLASS_FLINT 
+#define IOR_GLASS_FLINT 1.69
+#endif
+
+#ifndef IOR_GLASS_FLINT_RGB 
+#define IOR_GLASS_FLINT_RGB vec3(1.639, 1.627, 1.622)
+#endif
+
+#ifndef IOR_SAPPHIRE
+#define IOR_SAPPHIRE 1.77
+#endif
+
+#ifndef IOR_DIAMONG
+#define IOR_DIAMONG 2.42
+#endif
+
+
+/*
+original_author: Patricio Gonzalez Vivo
+description: Material Constructor. Designed to integrate with GlslViewer's defines https://github.com/patriciogonzalezvivo/glslViewer/wiki/GlslViewer-DEFINES#material-defines 
+use: 
+    - void materialNew(out <material> _mat)
+    - <material> materialNew()
+options:
+    - SURFACE_POSITION
+    - SHADING_SHADOWS
+    - MATERIAL_HAS_CLEAR_COAT
+    - MATERIAL_CLEARCOAT_ROUGHNESS
+    - MATERIAL_HAS_CLEAR_COAT_NORMAL
+    - SHADING_MODEL_SUBSURFACE
+    - MATERIAL_SUBSURFACE_COLOR
+    - SHADING_MODEL_CLOTH
+*/
+
+#ifndef SURFACE_POSITION
+#define SURFACE_POSITION vec3(0.0, 0.0, 0.0)
+#endif
+
+#ifndef SHADOW_INIT
+#if defined(LIGHT_SHADOWMAP) && defined(LIGHT_SHADOWMAP_SIZE) && defined(LIGHT_COORD)
+#define SHADOW_INIT shadow(LIGHT_SHADOWMAP, vec2(LIGHT_SHADOWMAP_SIZE), (LIGHT_COORD).xy, (LIGHT_COORD).z)
+#else
+#define SHADOW_INIT 1.0
+#endif
+#endif
+
+
+#ifndef FNC_MATERIAL_NEW
+#define FNC_MATERIAL_NEW
+
+void materialNew(out Material _mat) {
+    // Surface data
+    _mat.position           = (SURFACE_POSITION).xyz;
+    _mat.normal             = materialNormal();
+
+    #if defined(SCENE_BACK_SURFACE) && defined(RESOLUTION)
+    vec4 back_surface       = SAMPLER_FNC(SCENE_BACK_SURFACE, gl_FragCoord.xy / RESOLUTION);
+    _mat.normal_back        = back_surface.xyz;
+    #if defined(SHADING_MODEL_SUBSURFACE)
+    _mat.thickness          = saturate(gl_FragCoord.z - back_surface.a);
+    #endif
+    #else
+    #if defined(SCENE_BACK_SURFACE)
+    _mat.normal_back        = -_mat.normal;
+    #endif
+    #if defined(SHADING_MODEL_SUBSURFACE)
+    _mat.thickness          = 0.5;
+    #endif
+    #endif
+
+    // PBR Properties
+    _mat.albedo             = materialAlbedo();
+    _mat.emissive           = materialEmissive();
+    _mat.roughness          = materialRoughness();
+    _mat.metallic           = materialMetallic();
+
+    _mat.ior                = vec3(IOR_GLASS_RGB);      // Index of Refraction
+    _mat.f0                 = vec3(0.04, 0.04, 0.04);   // reflectance at 0 degree
+
+    // Shade
+    _mat.ambientOcclusion   = materialOcclusion();
+
+    _mat.shadow             = SHADOW_INIT;
+
+    // Clear Coat Model
+// #if defined(MATERIAL_HAS_CLEAR_COAT)
+    _mat.clearCoat          = 0.0;
+    _mat.clearCoatRoughness = 0.01;
+#if defined(MATERIAL_HAS_CLEAR_COAT_NORMAL)
+    _mat.clearCoatNormal    = vec3(0.0, 0.0, 1.0);
+#endif
+// #endif
+
+    // SubSurface Model
+#if defined(SHADING_MODEL_SUBSURFACE)
+    _mat.subsurfacePower    = 12.234;
+#endif
+
+#if defined(MATERIAL_SUBSURFACE_COLOR)
+    #if defined(SHADING_MODEL_SUBSURFACE)
+    _mat.subsurfaceColor    = vec3(1.0, 1.0, 1.0);
+    #else
+    _mat.subsurfaceColor    = vec3(0.0, 0.0, 0.0);
+    #endif
+#endif
+
+    // Cloath Model
+#if defined(SHADING_MODEL_CLOTH)
+    _mat.sheenColor         = sqrt(_mat.albedo.rgb);
+#endif
+}
+
+Material materialNew() {
+    Material mat;
+    materialNew(mat);
+    return mat;
+}
+
+#endif
+
+float checkBoard(vec2 uv, vec2 _scale) {
+    uv = floor(fract(uv * _scale) * 2.0);
+    return min(1.0, uv.x + uv.y) - (uv.x * uv.y);
+}
 
 void main(void) {
-    Material mat = MaterialInit();
-
-#ifdef FLOOR 
-    vec2 st = v_texcoord - 0.5;
-    st *= 7.0;
-    vec4 t = vec4(  fract(st),
-                    floor(st));
-    vec2 c = mod(t.zw, 2.0);
-    float p = abs(c.x-c.y) * 0.5;
-             
-    #ifdef FLOOR_COLOR
-    mat.baseColor = FLOOR_COLOR;
-    #else
-    mat.baseColor += p;
+    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+    vec2 pixel = 1.0/u_resolution;
+    vec2 st = gl_FragCoord.xy * pixel;
+    vec2 uv = st;
+    #if defined(MODEL_VERTEX_TEXCOORD)
+    uv = v_texcoord;
     #endif
-    mat.roughness = 0.5 + p * 0.5;
-#endif
-    
-    gl_FragColor = pbr(mat);
-}
 
+    Material material = materialNew();
+    #if defined(FLOOR) && defined(MODEL_VERTEX_TEXCOORD)
+    material.albedo.rgb = vec3(0.5) + checkBoard(uv, vec2(8.0)) * 0.5;
+    #else
+    // material.roughness = 0.9;
+    // material.metallic = 0.99;
+    #endif
+
+    color = pbr(material);
+    color = linear2gamma(color);
+
+    gl_FragColor = color;
+}
 )";
 
  extern std::string default_scene_frag;
