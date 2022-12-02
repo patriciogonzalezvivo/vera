@@ -27,15 +27,29 @@ public:
     glm::vec3   getCenter() const { return min + (max - min) * 0.5f; }
     glm::vec3   getDiagonal() const { return max - min; }
     glm::vec4   get2DBoundingBox() const { return glm::vec4(min.x, min.y, max.x, max.y); }
+    float       getArea() const {
+        glm::vec3 e = glm::vec3(max.x - min.x, max.y - min.y, max.z - min.z);
+        return 2.0f * (e.x * e.y + e.y * e.z + e.z * e.x);
+    }
+
+    float       closestX (const float &_x) const { return  glm::max(min.x, glm::min(_x, max.x)); }
+    float       closestY (const float &_y) const { return  glm::max(min.y, glm::min(_y, max.y)); }
+    float       closestZ (const float &_z) const { return  glm::max(min.z, glm::min(_z, max.z)); }
+    glm::vec2   closestPoint(const float& _x, const float& _y) const { return glm::vec2(closestX(_x), closestY(_y)); }
+    glm::vec2   closestPoint(const glm::vec2& _point) const { return glm::vec2(closestX(_point.x), closestY(_point.y)); }
+    glm::vec3   closestPoint(const float& _x, const float& _y, const float& _z) const { return glm::vec3(closestX(_x), closestY(_y), closestZ(_z)); }
+    glm::vec3   closestPoint(const glm::vec3& _point) const {  return glm::vec3(closestX(_point.x), closestY(_point.y), closestZ(_point.z)); }
     
-    bool        containsX(float _x) const { return _x >= min.x && _x <= max.x; }
-    bool        containsY(float _y) const { return _y >= min.y && _y <= max.y; }
-    bool        containsZ(float _z) const { return _z >= min.z && _z <= max.z; }
+    float       distanceToClosest(const glm::vec2& _point) const { return glm::length( _point - closestPoint(_point) );}
+    float       distanceToClosest(const glm::vec3& _point) const { return glm::length( _point - closestPoint(_point) );}
 
-    bool        contains(float _x, float _y) const { return containsX(_x) && containsY(_y); }
+    bool        containsX(const float& _x) const { return _x >= min.x && _x <= max.x; }
+    bool        containsY(const float& _y) const { return _y >= min.y && _y <= max.y; }
+    bool        containsZ(const float& _z) const { return _z >= min.z && _z <= max.z; }
+
+    bool        contains(const float& _x, const float& _y) const { return containsX(_x) && containsY(_y); }
     bool        contains(const glm::vec2& _v) const { return containsX(_v.x) && containsY(_v.y); }
-
-    bool        contains(float _x, float _y, float _z) const { return containsX(_x) && containsY(_y) && containsZ(_z); }
+    bool        contains(const float& _x, const float& _y, const float& _z) const { return containsX(_x) && containsY(_y) && containsZ(_z); }
     bool        contains(const glm::vec3& _v) const { return containsX(_v.x) && containsY(_v.y) && containsZ(_v.z); }
 
     bool        intersects(const BoundingBox& _b) const {  return (min.x <= _b.max.x && max.x >= _b.min.x) && (min.y <= _b.max.y && max.y >= _b.min.y) && (min.z <= _b.max.z && max.z >= _b.min.z); }

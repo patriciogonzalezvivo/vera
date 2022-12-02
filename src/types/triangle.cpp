@@ -20,10 +20,34 @@ void Triangle::set(const glm::vec3 &_p0, const glm::vec3 &_p1, const glm::vec3 &
     m_vertices[0] = _p0;
     m_vertices[1] = _p1;
     m_vertices[2] = _p2;
-    m_normal = glm::cross(m_vertices[0] - m_vertices[2], m_vertices[1] - m_vertices[0]);
+    // m_normal = glm::cross(_p0 - _p2, _p1 - _p0);
+    m_normal = glm::cross(_p1 - _p0, _p2 - _p0);
     m_area = glm::length( m_normal );
-    m_normal = m_normal / m_area;
-    // m_normal = glm::normalize( m_normal );
+    // m_normal = m_normal / m_area;
+    m_normal = glm::normalize( m_normal );
+}
+
+// https://github.com/nmoehrle/libacc/blob/master/primitives.h#L107
+glm::vec3 Triangle::getBarycentric(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2) {
+    /* Derived from the book "Real-Time Collision Detection"
+     * by Christer Ericson published by Morgan Kaufmann in 2005 */
+    float d00 = glm::dot(v0, v0);
+    float d01 = glm::dot(v0, v1);
+    float d11 = glm::dot(v1, v1);
+    float d20 = glm::dot(v2, v0);
+    float d21 = glm::dot(v2, v1);
+    double denom = d00 * d11 - d01 * d01;
+
+    glm::vec3 bcoords = glm::vec3(  0.0, 
+                                    (d11 * d20 - d01 * d21) / denom, 
+                                    (d00 * d21 - d01 * d20) / denom);
+    bcoords.x = 1.0f - bcoords.y - bcoords.z;
+    return bcoords;
+}
+
+
+glm::vec3 Triangle::getBarycentric() const {
+    return getBarycentric(m_vertices[0], m_vertices[1], m_vertices[2]);
 }
 
 glm::vec3 Triangle::getBarycentricOf(const glm::vec3& _p) const {
@@ -83,7 +107,7 @@ void Triangle::setColor(size_t _index, const glm::vec4& _color) {
 }
 
 void Triangle::setNormal(size_t _index, const glm::vec3& _normal) {
-        if (m_normals.empty()) {
+    if (m_normals.empty()) {
         m_normals.resize(3);
         std::fill(m_normals.begin(),m_normals.begin()+3, _normal);
     }
@@ -164,14 +188,20 @@ glm::vec4 Triangle::getColor(const glm::vec3& _barycenter) const {
         return glm::vec4(1.0f);
 }
 
+const glm::vec3& Triangle::getNormal(size_t _index) const { 
+    if (haveNormals()) 
+        return m_normals[_index]; 
+    else 
+        return m_normal;
+}
+
 glm::vec3 Triangle::getNormal(const glm::vec3& _barycenter) const {
-    glm::vec3 n;
     if (haveNormals())
-        n = getNormal(0) * _barycenter.x +
-            getNormal(1) * _barycenter.y +
-            getNormal(2) * _barycenter.z;
+        return  getNormal(0) * _barycenter.x +
+                getNormal(1) * _barycenter.y +
+                getNormal(2) * _barycenter.z;
     else
-        n = getNormal();
+        return  getNormal();
 
     // if (material != nullptr && havem_TexCoords() && haveTangents()) {
     //     if ( material->haveProperty("normalmap") ) {
@@ -183,17 +213,13 @@ glm::vec3 Triangle::getNormal(const glm::vec3& _barycenter) const {
     //         return tbn * ( material->getColor("normalmap", uv) * 2.0f - 1.0f);
     //     }
     // }
-
-    return n;
 }
 
 glm::vec2 Triangle::getTexCoord(const glm::vec3& _barycenter) const {
     glm::vec2 uv =  getTexCoord(0) * _barycenter.x +
                     getTexCoord(1) * _barycenter.y +
                     getTexCoord(2) * _barycenter.z;
-    
     uv.x = 1.0 - uv.x;
-
     return uv;
 }
 
@@ -203,11 +229,67 @@ glm::vec4 Triangle::getTangent(const glm::vec3& _barycenter ) const {
             getTangent(2) * _barycenter.z;
 }
 
-// glm::vec3 Triangle::closest(const glm::vec3& _p) const {
-//     // Project p onto the plane by stepping the distance from p to the plane
-//     // in the direction opposite the normal: proj = p + n * dist
-//     return _p - m_normal * signedDistance(_p);
-// }
+glm::vec3 Triangle::closest(const glm::vec3& _p) const {
+    // https://github.com/nmoehrle/libacc/blob/master/primitives.h#L71
+    glm::vec3 ab = m_vertices[1] - m_vertices[0];
+    glm::vec3 ac = m_vertices[2] - m_vertices[0];
+    glm::vec3 normal = glm::normalize( glm::cross(ac,ab) );
+
+    glm::vec3 p = _p - glm::dot(normal, _p - m_vertices[0]) * normal;
+    glm::vec3 ap = p - m_vertices[0];
+
+    glm::vec3 bcoords = getBarycentric(ab, ac, ap);
+
+    if (bcoords[0] < 0.0f) {
+        glm::vec3 bc = m_vertices[2] - m_vertices[1];
+        float n = glm::length( bc ); // bc.norm();
+        float t = glm::max(0.0f, glm::min( glm::dot(bc, p - m_vertices[1]) / n, n));
+        return m_vertices[1] + t / n * bc;
+    }
+
+    if (bcoords[1] < 0.0f) {
+        glm::vec3 ca = m_vertices[0] - m_vertices[2];
+        float n = glm::length( ca ); //ca.norm();
+        float t = glm::max(0.0f, glm::min( glm::dot(ca, p - m_vertices[2]) / n, n));
+        return m_vertices[2] + t / n * ca;
+    }
+
+    if (bcoords[2] < 0.0f) {
+        //glm::vec3 ab = m_vertices[1] - m_vertices[0];
+        float n = glm::length( ab ); //ab.norm();
+        
+        float t = glm::max(0.0f, glm::min( glm::dot(ab, p - m_vertices[0]) / n, n));
+        return m_vertices[0] + t / n * ab;
+    }
+
+    return (m_vertices[0] * bcoords[0] + m_vertices[1] * bcoords[1] + m_vertices[2] * bcoords[2]);
+}
+
+// by Inigo Quiles
+// https://iquilezles.org/articles/triangledistance/
+float dot2( glm::vec3 v ) { return glm::dot(v,v); }
+float Triangle::unsignedDistance(const glm::vec3& _p) const {
+
+    // prepare data    
+    glm::vec3 v21 = m_vertices[1] - m_vertices[0]; glm::vec3 p1 = _p - m_vertices[0];
+    glm::vec3 v32 = m_vertices[2] - m_vertices[1]; glm::vec3 p2 = _p - m_vertices[1];
+    glm::vec3 v13 = m_vertices[0] - m_vertices[2]; glm::vec3 p3 = _p - m_vertices[2];
+    glm::vec3 nor = glm::cross( v21, v13 );
+
+    return glm::sqrt( // inside/outside test    
+                        (glm::sign(glm::dot(cross(v21,nor),p1)) + 
+                        glm::sign(glm::dot(cross(v32,nor),p2)) + 
+                        glm::sign(glm::dot(cross(v13,nor),p3)) < 2.0) 
+                        ?
+                        // 3 edges    
+                        glm::min( glm::min( 
+                        dot2(v21 * glm::clamp(glm::dot(v21,p1)/dot2(v21),0.0f,1.0f)-p1), 
+                        dot2(v32 * glm::clamp(glm::dot(v32,p2)/dot2(v32),0.0f,1.0f)-p2) ), 
+                        dot2(v13 * glm::clamp(glm::dot(v13,p3)/dot2(v13),0.0f,1.0f)-p3) )
+                        :
+                        // 1 face    
+                        glm::dot(nor,p1)*glm::dot(nor,p1)/dot2(nor) );
+}
 
 // size_t Triangle::closestCoorner(const glm::vec3& _p) const {
 //     // Get 3 vectors, going from the test point to all potential candidates
@@ -232,22 +314,6 @@ glm::vec4 Triangle::getTangent(const glm::vec3& _barycenter ) const {
 //     return  2;
 // }
 
-float Triangle::signedDistance(const glm::vec3& _p) const {
-    glm::vec3 nearest;
-    glm::vec3 normal;
-    float distance;
-
-    _closestPoint(_p, nearest, normal, distance);
-
-    glm::vec3 u = _p - nearest;
-    distance *= (glm::dot(u, normal) >= 0.0)? 1.0 : -1.0; 
-    return distance;
-
-    //    Then the *signed* distance from point p to the plane
-    //    (in the direction of the normal) is:  dist = p . n - v . n
-    // return glm::dot(_p, m_normal) - glm::dot(m_vertices[0], m_normal);
-}
-
 void Triangle::_closestPoint(const glm::vec3& _point, glm::vec3& _nearest_point, glm::vec3& _pseudonormal, float& _squareDistance) const {
     glm::vec3 diff = m_vertices[0] - _point;
     glm::vec3 edge0 = m_vertices[1] - m_vertices[0];
@@ -263,7 +329,7 @@ void Triangle::_closestPoint(const glm::vec3& _point, glm::vec3& _nearest_point,
     float det = std::abs(a00 * a11 - a01 * a01);
     float s = a01 * b1 - a11 * b0;
     float t = a01 * b0 - a00 * b1;
-    _squareDistance = -1.0;
+    _squareDistance = -9999.0;
 
     if (s + t <= det) {
         if (s < 0) {
@@ -469,5 +535,36 @@ void Triangle::_closestPoint(const glm::vec3& _point, glm::vec3& _nearest_point,
     _nearest_point = m_vertices[0] + s * edge0 + t * edge1;
 }
 
+float Triangle::signedDistance(const glm::vec3& _p) const {
+    glm::vec3 nearest = glm::vec3(0.0);
+    glm::vec3 pseudo_normal = getNormal();
+    float distance = 0.0;
+
+    nearest = closest(_p);
+
+    glm::vec3 u = _p - nearest;
+    distance = glm::length(u);
+    // distance = unsignedDistance(_p);
+
+    // glm::vec3 barycentric = getBarycentricOf(nearest);
+    // pseudo_normal = getNormal( barycentric );
+
+    // _closestPoint(_p, nearest, pseudo_normal, distance);
+    distance = (glm::dot( glm::normalize(u), glm::normalize(pseudo_normal) ) >= 0.0)? distance : -distance; 
+    // distance *= glm::sign( glm::dot(_p, m_normal) - glm::dot(m_vertices[0], m_normal) );
+
+    return distance;
+
+    //    Then the *signed* distance from point p to the plane
+    //    (in the direction of the normal) is:  dist = p . n - v . n
+    // return glm::dot(_p, m_normal) - glm::dot(m_vertices[0], m_normal);
+
+    // glm::vec3 nearest = closest(_p);
+    // float distance = glm::length(_p - nearest);
+    // glm::vec3 normal = getNormal();
+    // glm::vec3 u = glm::normalize(_p - nearest);
+    // distance *= (glm::dot(u, normal) >= 0.0)? 1.0 : -1.0; 
+    // return distance;
+}
 
 }

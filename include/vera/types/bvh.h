@@ -18,9 +18,14 @@ public:
     
     virtual std::shared_ptr<BVH> hit(const Ray& _ray, float& _minDistance, float& _maxDistance);
     virtual std::shared_ptr<BVH> hit(const glm::vec3& _point);
-    virtual void hit(const glm::vec3& _point, std::vector<Triangle>& _results);
-    virtual void hit(const glm::vec3& _point, float _r2, std::vector<Triangle>& _results);
-    virtual void hit(const BoundingBox& _bbox, std::vector<Triangle>& _results);
+    
+    virtual void hit(const glm::vec3& _point, std::vector<Triangle>& _results) const ;
+    virtual void hit(const glm::vec3& _point, float _r2, std::vector<Triangle>& _results) const;
+    virtual void hit(const BoundingBox& _bbox, std::vector<Triangle>& _results) const ;
+
+    virtual float minDistance(const glm::vec3& _point) const ;
+    virtual float minSignedDistance(const glm::vec3& _point) const ;
+    virtual void  closest(const glm::vec3& _point, std::vector<Triangle>& _results) const;
 
     virtual void clear();
 
@@ -33,6 +38,8 @@ public:
 
 protected:
     virtual void _split();
+
+    glm::vec3                   m_average_normal;
 
 };
 
