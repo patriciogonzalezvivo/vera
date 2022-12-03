@@ -1045,12 +1045,12 @@ Mesh toTerrain( const Image& _image,
 
 // Mesh to SDF ( 2D texture of a 3D cube )
 // 
-void toSdf_layerThread( const int _start, const int _end, const int _resolution, float const _size, int const _tiles, 
+void toSdf_layerThread( const int _start, const int _end, const int _resolution, float const _size, int const _layersTotal, 
                         const BVH *_acc, Image* _img) {
 
     glm::vec3   bdiagonal   = _acc->getDiagonal();
-    float       max_dist    = std::max(bdiagonal.x, std::max(bdiagonal.y, bdiagonal.z));
-                max_dist    = glm::length(bdiagonal) * 0.5;
+    float       max_dist    = glm::length(bdiagonal);
+                max_dist    *= 0.5;
 
     for (int z = _start; z < _end; z++)
     for (int y = 0; y < _resolution; y++)
@@ -1059,22 +1059,22 @@ void toSdf_layerThread( const int _start, const int _end, const int _resolution,
         glm::vec3 p = glm::vec3(x, y, z) * _size;
         p = _acc->min + p * bdiagonal;
 
-        Triangle t = _acc->elements[0];
         float c = _acc->minSignedDistance(p);
 
         // float c = max_dist;
         // std::vector<Triangle> elements;
+        // _acc->closestTriangles(p, elements);
         // for (size_t i = 0; i < elements.size(); i++) {
         //     float d = elements[i].signedDistance(p);
         //     if (abs(d) < abs(c))
         //         c = d;
         // }
 
-        size_t tileX = (z % _tiles) * _resolution; 
-        size_t tileY = floor(z / _tiles) * _resolution;
-        size_t index = _img->getIndex(tileX + x, tileY + y);
+        size_t layerX = (z % _layersTotal) * _resolution; 
+        size_t layerY = floor(z / _layersTotal) * _resolution;
+        size_t index = _img->getIndex(layerX + x, layerY + y);
         if (index < _img->size())
-            _img->setValue(index, (c/max_dist) * 0.5 + 0.5);
+            _img->setValue(index, glm::clamp(c/max_dist, -1.0f, 1.0f) * 0.5 + 0.5);
     }
 
     std::cout << "Finish layers " << _start << " to " << _end << std::endl;
@@ -1088,14 +1088,13 @@ Image   toSdf(const Mesh& _mesh, int _resolution) {
     acc.load(tris);
 
     glm::vec3   bdiagonal   = acc.getDiagonal();
-    float       max_dist    = std::max(bdiagonal.x, std::max(bdiagonal.y, bdiagonal.z));
-                max_dist    = glm::length(bdiagonal);
-    acc.expand( max_dist * 0.05f );
+    float       max_dist    = glm::length(bdiagonal);
+    acc.expand( (max_dist*max_dist) * 0.05f );
 
     int    voxel_resolution = std::pow(2, _resolution);
     float        voxel_size = 1.0/float(voxel_resolution);
-    int               tiles = std::sqrt(voxel_resolution);
-    int    image_resolution = voxel_resolution * tiles;
+    int         layersTotal = std::sqrt(voxel_resolution);
+    int    image_resolution = voxel_resolution * layersTotal;
 
     Image rta;
     rta.allocate(image_resolution, image_resolution, 1);
@@ -1112,8 +1111,8 @@ Image   toSdf(const Mesh& _mesh, int _resolution) {
             end_layer = start_layer + layersPerThread + layersLeftOver;
 
         std::thread t(
-            [start_layer, end_layer, voxel_resolution, voxel_size, tiles, &acc, &rta]() {
-                toSdf_layerThread(start_layer, end_layer, voxel_resolution, voxel_size, tiles, &acc, &rta);
+            [start_layer, end_layer, voxel_resolution, voxel_size, layersTotal, &acc, &rta]() {
+                toSdf_layerThread(start_layer, end_layer, voxel_resolution, voxel_size, layersTotal, &acc, &rta);
             }
         );
 

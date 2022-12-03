@@ -35,6 +35,8 @@ public:
     float       closestX (const float &_x) const { return  glm::max(min.x, glm::min(_x, max.x)); }
     float       closestY (const float &_y) const { return  glm::max(min.y, glm::min(_y, max.y)); }
     float       closestZ (const float &_z) const { return  glm::max(min.z, glm::min(_z, max.z)); }
+    float       closestOn (const float &_v, const size_t _axis) const { return  glm::max(min[_axis], glm::min(_v, max[_axis])); }
+
     glm::vec2   closestPoint(const float& _x, const float& _y) const { return glm::vec2(closestX(_x), closestY(_y)); }
     glm::vec2   closestPoint(const glm::vec2& _point) const { return glm::vec2(closestX(_point.x), closestY(_point.y)); }
     glm::vec3   closestPoint(const float& _x, const float& _y, const float& _z) const { return glm::vec3(closestX(_x), closestY(_y), closestZ(_z)); }

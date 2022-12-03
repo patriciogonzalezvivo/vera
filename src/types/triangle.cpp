@@ -314,226 +314,226 @@ float Triangle::unsignedDistance(const glm::vec3& _p) const {
 //     return  2;
 // }
 
-void Triangle::_closestPoint(const glm::vec3& _point, glm::vec3& _nearest_point, glm::vec3& _pseudonormal, float& _squareDistance) const {
-    glm::vec3 diff = m_vertices[0] - _point;
-    glm::vec3 edge0 = m_vertices[1] - m_vertices[0];
-    glm::vec3 edge1 = m_vertices[2] - m_vertices[0];
-    _pseudonormal = getNormal();
+// void Triangle::_closestPoint(const glm::vec3& _point, glm::vec3& _nearest_point, glm::vec3& _pseudonormal, float& _squareDistance) const {
+//     glm::vec3 diff = m_vertices[0] - _point;
+//     glm::vec3 edge0 = m_vertices[1] - m_vertices[0];
+//     glm::vec3 edge1 = m_vertices[2] - m_vertices[0];
+//     _pseudonormal = getNormal();
 
-    float a00 = glm::dot(edge0, edge0);
-    float a01 = glm::dot(edge0, edge1);
-    float a11 = glm::dot(edge1, edge1);
-    float b0 = glm::dot(diff, edge0);
-    float b1 = glm::dot(diff, edge1);
-    float c = glm::dot(diff, diff);
-    float det = std::abs(a00 * a11 - a01 * a01);
-    float s = a01 * b1 - a11 * b0;
-    float t = a01 * b0 - a00 * b1;
-    _squareDistance = -9999.0;
+//     float a00 = glm::dot(edge0, edge0);
+//     float a01 = glm::dot(edge0, edge1);
+//     float a11 = glm::dot(edge1, edge1);
+//     float b0 = glm::dot(diff, edge0);
+//     float b1 = glm::dot(diff, edge1);
+//     float c = glm::dot(diff, diff);
+//     float det = std::abs(a00 * a11 - a01 * a01);
+//     float s = a01 * b1 - a11 * b0;
+//     float t = a01 * b0 - a00 * b1;
+//     _squareDistance = -9999.0;
 
-    if (s + t <= det) {
-        if (s < 0) {
-            // region 4
-            if (t < 0) {
-                if (b0 < 0) {
-                    t = 0;
-                    if (-b0 >= a00) {
-                        _pseudonormal = getNormal(1);
-                        s = 1;
-                        _squareDistance = a00 + (2) * b0 + c;
-                    }
-                    else {
-                        // nearest_entity = NearestEntity::E01;
-                        s = -b0 / a00;
-                        _squareDistance = b0 * s + c;
-                    }
-                }
-                else {
-                    s = 0;
-                    if (b1 >= 0) {
-                        _pseudonormal = getNormal(0);
-                        t = 0;
-                        _squareDistance = c;
-                    }
-                    else if (-b1 >= a11) {
-                        _pseudonormal = getNormal(2);
-                        t = 1;
-                        _squareDistance = a11 + (2) * b1 + c;
-                    }
-                    else {
-                        // nearest_entity = NearestEntity::E02;
-                        t = -b1 / a11;
-                        _squareDistance = b1 * t + c;
-                    }
-                }
-            }
-            // region 3
-            else {
-                s = 0;
-                if (b1 >= 0) {
-                    _pseudonormal = getNormal(0);
-                    t = 0;
-                    _squareDistance = c;
-                }
-                else if (-b1 >= a11) {
-                    _pseudonormal = getNormal(2);
-                    t = 1;
-                    _squareDistance = a11 + (2) * b1 + c;
-                }
-                else {
-                    // nearest_entity = NearestEntity::E02;
-                    t = -b1 / a11;
-                    _squareDistance = b1 * t + c;
-                }
-            }
-        }
-        // region 5
-        else if (t < 0) {
-            t = 0;
-            if (b0 >= 0) {
-                _pseudonormal = getNormal(0);
-                s = 0;
-                _squareDistance = c;
-            }
-            else if (-b0 >= a00) {
-                _pseudonormal = getNormal(1);
-                s = 1;
-                _squareDistance = a00 + (2) * b0 + c;
-            }
-            else {
-                // nearest_entity = NearestEntity::E01;
-                s = -b0 / a00;
-                _squareDistance = b0 * s + c;
-            }
-        }
-        // region 0
-        else {
-            // nearest_entity = NearestEntity::F;
-            // minimum at interior point
-            float invDet = (1) / det;
-            s *= invDet;
-            t *= invDet;
-            _squareDistance = s * (a00 * s + a01 * t + (2) * b0) +
-                t * (a01 * s + a11 * t + (2) * b1) + c;
-        }
-    }
-    else {
-        float tmp0, tmp1, numer, denom;
-        // region 2
-        if (s < 0) {
-            tmp0 = a01 + b0;
-            tmp1 = a11 + b1;
-            if (tmp1 > tmp0) {
-                numer = tmp1 - tmp0;
-                denom = a00 - (2) * a01 + a11;
-                if (numer >= denom) {
-                    _pseudonormal = getNormal(1);
-                    s = 1;
-                    t = 0;
-                    _squareDistance = a00 + (2) * b0 + c;
-                }
-                else {
-                    s = numer / denom;
-                    t = 1 - s;
-                    _squareDistance = s * (a00 * s + a01 * t + (2) * b0) +
-                        t * (a01 * s + a11 * t + (2) * b1) + c;
-                }
-            }
-            else {
-                s = 0;
-                if (tmp1 <= 0) {
-                    _pseudonormal = getNormal(2);
-                    t = 1;
-                    _squareDistance = a11 + (2) * b1 + c;
-                }
-                else if (b1 >= 0) {
-                    _pseudonormal = getNormal(0);
-                    t = 0;
-                    _squareDistance = c;
-                }
-                else {
-                    // nearest_entity = NearestEntity::E02;
-                    t = -b1 / a11;
-                    _squareDistance = b1 * t + c;
-                }
-            }
-        }
-        // region 6
-        else if (t < 0) {
-            tmp0 = a01 + b1;
-            tmp1 = a00 + b0;
-            if (tmp1 > tmp0) {
-                numer = tmp1 - tmp0;
-                denom = a00 - (2) * a01 + a11;
-                if (numer >= denom) {
-                    _pseudonormal = getNormal(2);
-                    t = 1;
-                    s = 0;
-                    _squareDistance = a11 + (2) * b1 + c;
-                }
-                else {
-                    // nearest_entity = NearestEntity::E12;
-                    t = numer / denom;
-                    s = 1 - t;
-                    _squareDistance = s * (a00 * s + a01 * t + (2) * b0) +
-                        t * (a01 * s + a11 * t + (2) * b1) + c;
-                }
-            }
-            else {
-                t = 0;
-                if (tmp1 <= 0) {
-                    _pseudonormal = getNormal(1);
-                    s = 1;
-                    _squareDistance = a00 + (2) * b0 + c;
-                }
-                else if (b0 >= 0) {
-                    _pseudonormal = getNormal(0);
-                    s = 0;
-                    _squareDistance = c;
-                }
-                else {
-                    // nearest_entity = NearestEntity::E01;
-                    s = -b0 / a00;
-                    _squareDistance = b0 * s + c;
-                }
-            }
-        }
-        // region 1
-        else {
-            numer = a11 + b1 - a01 - b0;
-            if (numer <= 0) {
-                // nearest_entity = NearestEntity::m_vertices[2];
-                _pseudonormal = getNormal(2);
-                s = 0;
-                t = 1;
-                _squareDistance = a11 + (2) * b1 + c;
-            }
-            else {
-                denom = a00 - (2) * a01 + a11;
-                if (numer >= denom) {
-                    // nearest_entity = NearestEntity::m_vertices[1];
-                    _pseudonormal = getNormal(1);
-                    s = 1;
-                    t = 0;
-                    _squareDistance = a00 + (2) * b0 + c;
-                }
-                else {
-                    // nearest_entity = NearestEntity::E12;
-                    s = numer / denom;
-                    t = 1 - s;
-                    _squareDistance = s * (a00 * s + a01 * t + (2) * b0) +
-                        t * (a01 * s + a11 * t + (2) * b1) + c;
-                }
-            }
-        }
-    }
+//     if (s + t <= det) {
+//         if (s < 0) {
+//             // region 4
+//             if (t < 0) {
+//                 if (b0 < 0) {
+//                     t = 0;
+//                     if (-b0 >= a00) {
+//                         _pseudonormal = getNormal(1);
+//                         s = 1;
+//                         _squareDistance = a00 + (2) * b0 + c;
+//                     }
+//                     else {
+//                         // nearest_entity = NearestEntity::E01;
+//                         s = -b0 / a00;
+//                         _squareDistance = b0 * s + c;
+//                     }
+//                 }
+//                 else {
+//                     s = 0;
+//                     if (b1 >= 0) {
+//                         _pseudonormal = getNormal(0);
+//                         t = 0;
+//                         _squareDistance = c;
+//                     }
+//                     else if (-b1 >= a11) {
+//                         _pseudonormal = getNormal(2);
+//                         t = 1;
+//                         _squareDistance = a11 + (2) * b1 + c;
+//                     }
+//                     else {
+//                         // nearest_entity = NearestEntity::E02;
+//                         t = -b1 / a11;
+//                         _squareDistance = b1 * t + c;
+//                     }
+//                 }
+//             }
+//             // region 3
+//             else {
+//                 s = 0;
+//                 if (b1 >= 0) {
+//                     _pseudonormal = getNormal(0);
+//                     t = 0;
+//                     _squareDistance = c;
+//                 }
+//                 else if (-b1 >= a11) {
+//                     _pseudonormal = getNormal(2);
+//                     t = 1;
+//                     _squareDistance = a11 + (2) * b1 + c;
+//                 }
+//                 else {
+//                     // nearest_entity = NearestEntity::E02;
+//                     t = -b1 / a11;
+//                     _squareDistance = b1 * t + c;
+//                 }
+//             }
+//         }
+//         // region 5
+//         else if (t < 0) {
+//             t = 0;
+//             if (b0 >= 0) {
+//                 _pseudonormal = getNormal(0);
+//                 s = 0;
+//                 _squareDistance = c;
+//             }
+//             else if (-b0 >= a00) {
+//                 _pseudonormal = getNormal(1);
+//                 s = 1;
+//                 _squareDistance = a00 + (2) * b0 + c;
+//             }
+//             else {
+//                 // nearest_entity = NearestEntity::E01;
+//                 s = -b0 / a00;
+//                 _squareDistance = b0 * s + c;
+//             }
+//         }
+//         // region 0
+//         else {
+//             // nearest_entity = NearestEntity::F;
+//             // minimum at interior point
+//             float invDet = (1) / det;
+//             s *= invDet;
+//             t *= invDet;
+//             _squareDistance = s * (a00 * s + a01 * t + (2) * b0) +
+//                 t * (a01 * s + a11 * t + (2) * b1) + c;
+//         }
+//     }
+//     else {
+//         float tmp0, tmp1, numer, denom;
+//         // region 2
+//         if (s < 0) {
+//             tmp0 = a01 + b0;
+//             tmp1 = a11 + b1;
+//             if (tmp1 > tmp0) {
+//                 numer = tmp1 - tmp0;
+//                 denom = a00 - (2) * a01 + a11;
+//                 if (numer >= denom) {
+//                     _pseudonormal = getNormal(1);
+//                     s = 1;
+//                     t = 0;
+//                     _squareDistance = a00 + (2) * b0 + c;
+//                 }
+//                 else {
+//                     s = numer / denom;
+//                     t = 1 - s;
+//                     _squareDistance = s * (a00 * s + a01 * t + (2) * b0) +
+//                         t * (a01 * s + a11 * t + (2) * b1) + c;
+//                 }
+//             }
+//             else {
+//                 s = 0;
+//                 if (tmp1 <= 0) {
+//                     _pseudonormal = getNormal(2);
+//                     t = 1;
+//                     _squareDistance = a11 + (2) * b1 + c;
+//                 }
+//                 else if (b1 >= 0) {
+//                     _pseudonormal = getNormal(0);
+//                     t = 0;
+//                     _squareDistance = c;
+//                 }
+//                 else {
+//                     // nearest_entity = NearestEntity::E02;
+//                     t = -b1 / a11;
+//                     _squareDistance = b1 * t + c;
+//                 }
+//             }
+//         }
+//         // region 6
+//         else if (t < 0) {
+//             tmp0 = a01 + b1;
+//             tmp1 = a00 + b0;
+//             if (tmp1 > tmp0) {
+//                 numer = tmp1 - tmp0;
+//                 denom = a00 - (2) * a01 + a11;
+//                 if (numer >= denom) {
+//                     _pseudonormal = getNormal(2);
+//                     t = 1;
+//                     s = 0;
+//                     _squareDistance = a11 + (2) * b1 + c;
+//                 }
+//                 else {
+//                     // nearest_entity = NearestEntity::E12;
+//                     t = numer / denom;
+//                     s = 1 - t;
+//                     _squareDistance = s * (a00 * s + a01 * t + (2) * b0) +
+//                         t * (a01 * s + a11 * t + (2) * b1) + c;
+//                 }
+//             }
+//             else {
+//                 t = 0;
+//                 if (tmp1 <= 0) {
+//                     _pseudonormal = getNormal(1);
+//                     s = 1;
+//                     _squareDistance = a00 + (2) * b0 + c;
+//                 }
+//                 else if (b0 >= 0) {
+//                     _pseudonormal = getNormal(0);
+//                     s = 0;
+//                     _squareDistance = c;
+//                 }
+//                 else {
+//                     // nearest_entity = NearestEntity::E01;
+//                     s = -b0 / a00;
+//                     _squareDistance = b0 * s + c;
+//                 }
+//             }
+//         }
+//         // region 1
+//         else {
+//             numer = a11 + b1 - a01 - b0;
+//             if (numer <= 0) {
+//                 // nearest_entity = NearestEntity::m_vertices[2];
+//                 _pseudonormal = getNormal(2);
+//                 s = 0;
+//                 t = 1;
+//                 _squareDistance = a11 + (2) * b1 + c;
+//             }
+//             else {
+//                 denom = a00 - (2) * a01 + a11;
+//                 if (numer >= denom) {
+//                     // nearest_entity = NearestEntity::m_vertices[1];
+//                     _pseudonormal = getNormal(1);
+//                     s = 1;
+//                     t = 0;
+//                     _squareDistance = a00 + (2) * b0 + c;
+//                 }
+//                 else {
+//                     // nearest_entity = NearestEntity::E12;
+//                     s = numer / denom;
+//                     t = 1 - s;
+//                     _squareDistance = s * (a00 * s + a01 * t + (2) * b0) +
+//                         t * (a01 * s + a11 * t + (2) * b1) + c;
+//                 }
+//             }
+//         }
+//     }
 
-    // Account for numerical round-off error.
-    if (_squareDistance < 0)
-        _squareDistance = 0;
+//     // Account for numerical round-off error.
+//     if (_squareDistance < 0)
+//         _squareDistance = 0;
 
-    _nearest_point = m_vertices[0] + s * edge0 + t * edge1;
-}
+//     _nearest_point = m_vertices[0] + s * edge0 + t * edge1;
+// }
 
 float Triangle::signedDistance(const glm::vec3& _p) const {
     glm::vec3 nearest = glm::vec3(0.0);
@@ -546,25 +546,13 @@ float Triangle::signedDistance(const glm::vec3& _p) const {
     distance = glm::length(u);
     // distance = unsignedDistance(_p);
 
-    // glm::vec3 barycentric = getBarycentricOf(nearest);
-    // pseudo_normal = getNormal( barycentric );
+    glm::vec3 barycentric = getBarycentricOf(nearest);
+    pseudo_normal = getNormal( barycentric );
 
-    // _closestPoint(_p, nearest, pseudo_normal, distance);
     distance = (glm::dot( glm::normalize(u), glm::normalize(pseudo_normal) ) >= 0.0)? distance : -distance; 
     // distance *= glm::sign( glm::dot(_p, m_normal) - glm::dot(m_vertices[0], m_normal) );
 
     return distance;
-
-    //    Then the *signed* distance from point p to the plane
-    //    (in the direction of the normal) is:  dist = p . n - v . n
-    // return glm::dot(_p, m_normal) - glm::dot(m_vertices[0], m_normal);
-
-    // glm::vec3 nearest = closest(_p);
-    // float distance = glm::length(_p - nearest);
-    // glm::vec3 normal = getNormal();
-    // glm::vec3 u = glm::normalize(_p - nearest);
-    // distance *= (glm::dot(u, normal) >= 0.0)? 1.0 : -1.0; 
-    // return distance;
 }
 
 }

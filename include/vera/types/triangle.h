@@ -77,8 +77,6 @@ public :
     static bool         compareZ (const Triangle& a, const Triangle& b) { return compare(a, b, 2); }
 
 private:
-    void                _closestPoint(const glm::vec3& _point, glm::vec3& _nearest_point, glm::vec3& _pseudonormal, float& _squareDistnace) const;
-
     glm::vec3               m_vertices[3];
     glm::vec3               m_normal;
     float                   m_area;
