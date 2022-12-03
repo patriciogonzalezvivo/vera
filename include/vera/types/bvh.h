@@ -8,13 +8,18 @@
 
 namespace vera {
 
+enum BVH_Split{
+    SPLIT_ARRAY = 0,
+    SPLIT_PLANE
+};
+
 class BVH : public BoundingBox {
 public:
     BVH();
-    BVH( const std::vector<Triangle>& _elements);
+    BVH( const std::vector<Triangle>& _elements, BVH_Split _strategy = SPLIT_ARRAY );
     virtual ~BVH();
 
-    virtual void            load( const std::vector<Triangle>& _elements);
+    virtual void            load( const std::vector<Triangle>& _elements, BVH_Split _strategy = SPLIT_ARRAY);
     
     virtual std::shared_ptr<BVH> hit(const Ray& _ray, float& _minDistance, float& _maxDistance);
     virtual std::shared_ptr<BVH> hit(const glm::vec3& _point);
@@ -30,14 +35,15 @@ public:
 
     std::vector<Triangle>   elements;
 
-    std::shared_ptr<BVH>    parent;
     std::shared_ptr<BVH>    left;
     std::shared_ptr<BVH>    right;
+
     size_t                  axis;
     bool                    leaf;
 
 protected:
-    virtual void            _split();
+    virtual void            _splitArray();
+    virtual void            _splitPlane();
 };
 
 }

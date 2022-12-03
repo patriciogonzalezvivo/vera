@@ -6,16 +6,16 @@
 
 namespace vera {
 
-BVH::BVH() : parent(nullptr), left(nullptr), right(nullptr), leaf(false){
+BVH::BVH() : left(nullptr), right(nullptr), axis(0), leaf(true) {
 }
 
-BVH::BVH( const std::vector<Triangle>& _elements) {
-    parent = nullptr;
+BVH::BVH( const std::vector<Triangle>& _elements, BVH_Split _strategy) {
     left = nullptr;
     right = nullptr;
-    leaf = false;
+    axis = 0;
+    leaf = true;
 
-    load(_elements);
+    load(_elements, _strategy);
 }
 
 BVH::~BVH() {
@@ -25,28 +25,74 @@ BVH::~BVH() {
 void BVH::clear() {
     left = nullptr;
     right = nullptr;
-    parent = nullptr;
 }
 
-void BVH::load( const std::vector<Triangle>& _elements) {
+void BVH::load( const std::vector<Triangle>& _elements, BVH_Split _strategy ) {
     elements = _elements;
 
     // Exapand bounds to contain all elements
-    for (size_t i = 0; i < elements.size(); i++ )
-        expand(elements[i]);
+    for (size_t i = 0; i < _elements.size(); i++ )
+        expand(_elements[i]);
 
     // // Exapand a bit for padding
     // glm::vec3   bdiagonal = getDiagonal();
     // float max_dist = glm::length(bdiagonal);
     // expand(max_dist * 0.01f);
 
-    leaf = elements.size() == 1;
+    leaf = _elements.size() < 2;
 
-    if (!leaf)
-        _split();
+    if (!leaf) {
+        if (_strategy == SPLIT_ARRAY)
+            _splitArray();
+        else if (_strategy == SPLIT_PLANE)
+            _splitPlane();
+    }
 }
 
-void BVH::_split() {
+// Returns element closest to target in arr[]
+size_t findClosest(const std::vector<Triangle>& _list, size_t _axis, size_t _size, float _target) {
+    // left-side case
+    if (_target <= _list[0].getCentroid()[_axis] )
+        return 0;
+    //right-side case
+    if (_target >= _list[_size - 1].getCentroid()[_axis])
+        return _size - 1;
+
+    // binary search
+    size_t i = 0, j = _size, mid = 0;
+    while (i < j) {
+        mid = (i + j) / 2;
+        if (_list[mid].getCentroid()[_axis] == _target)
+            return mid;
+
+        /* If target is less than _list element,
+            then search in left */
+        if (_target < _list[mid].getCentroid()[_axis]) {
+            // If target is greater than previous
+            // to mid, return closest of two
+            if (mid > 0 && _target > _list[mid - 1].getCentroid()[_axis])
+                // return getClosest(_list[mid - 1], _list[mid], target);
+                return mid;
+
+            j = mid;
+        }
+        /* Repeat for left half */
+        // If target is greater than mid
+        else {
+            if (mid < _size - 1 && _target < _list[mid + 1].getCentroid()[_axis])
+                // return getClosest(  _list[mid], _list[mid + 1], target);
+                return mid;
+
+            // update i
+            i = mid + 1;
+        }
+    }
+
+    // Only single element left after search
+    return mid;
+}
+
+void BVH::_splitArray() {
     float width = getWidth();
     float height = getHeight();
     float depth = getDepth();
@@ -54,7 +100,7 @@ void BVH::_split() {
 
     axis =  (width > std::max(height, depth) ) ?  0
             : (height > std::max(width, depth) ) ?  1
-            :                                       2;
+            : 2;
                     
     auto comparator =   (width > std::max(height, depth) ) ? Triangle::compareX
                         :(height > std::max(width, depth) ) ? Triangle::compareY
@@ -64,11 +110,34 @@ void BVH::_split() {
     std::sort(elements.begin(), elements.end(), comparator);    
     std::size_t half_array_size = elements.size() / 2;
 
-    left = std::make_shared<BVH>( std::vector<Triangle>(elements.begin(), elements.begin() + half_array_size) );
-    left->parent = std::make_shared<BVH>( *this );
+    left = std::make_shared<BVH>( std::vector<Triangle>(elements.begin(), elements.begin() + half_array_size), SPLIT_ARRAY );
+    right = std::make_shared<BVH>( std::vector<Triangle>(elements.begin() + half_array_size, elements.end()), SPLIT_ARRAY );
+}
 
-    right = std::make_shared<BVH>( std::vector<Triangle>(elements.begin() + half_array_size, elements.end()) );
-    right->parent = std::make_shared<BVH>( *this );
+void BVH::_splitPlane() {
+    float width = getWidth();
+    float height = getHeight();
+    float depth = getDepth();
+
+    axis =  (width > std::max(height, depth) ) ?    0
+            : (height > std::max(width, depth) ) ?  1
+            :                                       2;
+
+    auto comparator =   (width > std::max(height, depth) ) ? Triangle::compareX
+                        :(height > std::max(width, depth) ) ? Triangle::compareY
+                        : Triangle::compareZ;
+
+    // Sort elements by the longest axis
+    std::sort(elements.begin(), elements.end(), comparator);
+    float splitPos = getCenter()[axis];
+
+    std::size_t half_array_size = findClosest(elements, axis, elements.size(), splitPos);
+
+    if (half_array_size == 0)
+        half_array_size++;
+
+    left = std::make_shared<BVH>( std::vector<Triangle>(elements.begin(), elements.begin() + half_array_size), SPLIT_ARRAY );
+    right = std::make_shared<BVH>( std::vector<Triangle>(elements.begin() + half_array_size, elements.end()), SPLIT_ARRAY );
 }
 
 std::shared_ptr<BVH> BVH::hit(const Ray& _ray, float& _minDistance, float& _maxDistance) {

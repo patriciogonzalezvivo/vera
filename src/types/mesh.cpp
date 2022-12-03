@@ -447,7 +447,6 @@ std::vector<Triangle> Mesh::getTriangles() const {
         if (haveTexCoords()) tri.setTexCoords(m_texCoords[it->x], m_texCoords[it->y], m_texCoords[it->z]);
         if (haveTangents()) tri.setTangents(m_tangents[it->x], m_tangents[it->y], m_tangents[it->z]);
         // if (haveMaterials()) tri.material = getMaterialForFaceIndex(it->x);
-        
         triangles.push_back( tri );
         t++;
     }

@@ -20,10 +20,11 @@ void Triangle::set(const glm::vec3 &_p0, const glm::vec3 &_p1, const glm::vec3 &
     m_vertices[0] = _p0;
     m_vertices[1] = _p1;
     m_vertices[2] = _p2;
-    // m_normal = glm::cross(_p0 - _p2, _p1 - _p0);
+    
+    m_centroid = (_p0 + _p1 + _p2) * 0.3333333333333f;
+
     m_normal = glm::cross(_p1 - _p0, _p2 - _p0);
     m_area = glm::length( m_normal );
-    // m_normal = m_normal / m_area;
     m_normal = glm::normalize( m_normal );
 }
 
@@ -61,29 +62,9 @@ glm::vec3 Triangle::getBarycentricOf(const glm::vec3& _p) const {
                         glm::length(glm::cross(f0, f1))) / m_area;   // p3's triangle area / a
 }
 
-// bool Triangle::containsPoint(const glm::vec3 &_p) const {
-//     const glm::vec3 m_vertices[0] = m_vertices[2] - m_vertices[0];
-//     const glm::vec3 m_vertices[1] = m_vertices[1] - m_vertices[0];
-//     const glm::vec3 m_vertices[2] = _p - m_vertices[0];
-    
-//     // Compute dot products
-//     float dot00 = glm::dot(m_vertices[0], m_vertices[0]);
-//     float dot01 = glm::dot(m_vertices[0], m_vertices[1]);
-//     float dot02 = glm::dot(m_vertices[0], m_vertices[2]);
-//     float dot11 = glm::dot(m_vertices[1], m_vertices[1]);
-//     float dot12 = glm::dot(m_vertices[1], m_vertices[2]);
-    
-//     // Compute barycentric coordinates
-//     float invDenom = 1.0f / (dot00 * dot11 - dot01 * dot01);
-//     float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-//     float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-    
-//     // Check if point is in triangle
-//     return (u >= 0.0) && (v >= 0.0) && (u + v <= 1.0);
-// }
-
 void Triangle::setVertex(size_t _index, const glm::vec3& _vertex) {
     m_vertices[_index] = _vertex;
+    m_centroid = (m_vertices[0] + m_vertices[1] + m_vertices[2]) * 0.3333333333333f;
 }
 
 void Triangle::setColor(const glm::vec4 &_color) {

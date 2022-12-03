@@ -1084,12 +1084,11 @@ Image   toSdf(const Mesh& _mesh, int _resolution) {
     Mesh mesh = _mesh;
     center(mesh);
     std::vector<Triangle> tris = mesh.getTriangles();
-    BVH acc;
-    acc.load(tris);
+    BVH acc(tris, vera::SPLIT_ARRAY);
 
     glm::vec3   bdiagonal   = acc.getDiagonal();
     float       max_dist    = glm::length(bdiagonal);
-    acc.expand( (max_dist*max_dist) * 0.05f );
+    acc.expand( (max_dist*max_dist) * 0.01f );
 
     int    voxel_resolution = std::pow(2, _resolution);
     float        voxel_size = 1.0/float(voxel_resolution);

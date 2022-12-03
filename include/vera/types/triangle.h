@@ -29,7 +29,7 @@ public :
     const glm::vec3&    getVertex(size_t _index) const { return m_vertices[_index]; }
     glm::vec3           getVertex(const glm::vec3& _barycenterCoord ) const;
 
-    glm::vec3           getCentroid() const { return (m_vertices[0] + m_vertices[1] + m_vertices[2]) * 0.3333333333333f; }
+    glm::vec3           getCentroid() const { return m_centroid; }
     glm::vec3           getMin() const { return glm::vec3(  std::min(m_vertices[0].x, std::min(m_vertices[1].x, m_vertices[2].x)),
                                                             std::min(m_vertices[0].y, std::min(m_vertices[1].y, m_vertices[2].y)),
                                                             std::min(m_vertices[0].z, std::min(m_vertices[1].z, m_vertices[2].z)) ); }
@@ -78,6 +78,7 @@ public :
 
 private:
     glm::vec3               m_vertices[3];
+    glm::vec3               m_centroid;
     glm::vec3               m_normal;
     float                   m_area;
 
