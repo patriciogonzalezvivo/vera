@@ -1860,17 +1860,10 @@ void main(void) {
     vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
     vec2 pixel = 1.0/u_resolution;
     vec2 st = gl_FragCoord.xy * pixel;
-    vec2 uv = st;
-    #if defined(MODEL_VERTEX_TEXCOORD)
-    uv = v_texcoord;
-    #endif
-
+    
     Material material = materialNew();
     #if defined(FLOOR) && defined(MODEL_VERTEX_TEXCOORD)
-    material.albedo.rgb = vec3(0.5) + checkBoard(uv, vec2(8.0)) * 0.5;
-    #else
-    // material.roughness = 0.00;
-    // material.metallic = 0.99;
+    material.albedo.rgb = vec3(0.5) + checkBoard(v_texcoord, vec2(8.0)) * 0.5;
     #endif
 
     color = pbr(material);
