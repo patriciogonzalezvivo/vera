@@ -1061,15 +1061,6 @@ void toSdf_layerThread( const int _start, const int _end, const int _resolution,
 
         float c = _acc->minSignedDistance(p);
 
-        // float c = max_dist;
-        // std::vector<Triangle> elements;
-        // _acc->closestTriangles(p, elements);
-        // for (size_t i = 0; i < elements.size(); i++) {
-        //     float d = elements[i].signedDistance(p);
-        //     if (abs(d) < abs(c))
-        //         c = d;
-        // }
-
         size_t layerX = (z % _layersTotal) * _resolution; 
         size_t layerY = floor(z / _layersTotal) * _resolution;
         size_t index = _img->getIndex(layerX + x, layerY + y);
@@ -1080,15 +1071,17 @@ void toSdf_layerThread( const int _start, const int _end, const int _resolution,
     std::cout << "Finish layers " << _start << " to " << _end << std::endl;
 }
 
-Image   toSdf(const Mesh& _mesh, int _resolution) {
+Image   toSdf(const Mesh& _mesh, float _paddingPct, int _resolution) {
     Mesh mesh = _mesh;
     center(mesh);
     std::vector<Triangle> tris = mesh.getTriangles();
     BVH acc(tris, vera::SPLIT_ARRAY);
 
+    acc.square();
+
     glm::vec3   bdiagonal   = acc.getDiagonal();
     float       max_dist    = glm::length(bdiagonal);
-    acc.expand( (max_dist*max_dist) * 0.01f );
+    acc.expand( (max_dist*max_dist) * _paddingPct );
 
     int    voxel_resolution = std::pow(2, _resolution);
     float        voxel_size = 1.0/float(voxel_resolution);
@@ -1122,61 +1115,6 @@ Image   toSdf(const Mesh& _mesh, int _resolution) {
         t.join();
 
     return rta;
-}
-
-//  Mesh to SDF ( multiple 2D images layers of a 3D images)
-//
-std::vector<Image>  toSdf(const Mesh& _mesh, float _scale, bool _absolute) {
-    Mesh tmp = _mesh;
-    center(tmp);
-    std::vector<Triangle> elements = tmp.getTriangles();
-    BoundingBox bbox = getBoundingBox( elements );
-    
-    int width = bbox.getWidth() * _scale;
-    int height = bbox.getHeight() * _scale;
-    int depth = bbox.getDepth() * _scale;
-    std::cout << width << "," << height << "," << depth << std::endl;
-
-    std::vector<Image> out;
-    for (int z = 0; z < depth + 1; z++) {
-        Image layer = Image(width, height, 1);
-
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int index = layer.getIndex(x, y);
-                layer.setValue(index, FLT_MAX);
-
-                glm::vec3 center = bbox.min + glm::vec3(x + 0.5f, y + 0.5f, z + 0.5f)/_scale;
-
-                {
-                    int num_intersect = 0;
-                    glm::vec3 closest_point;
-                    for (size_t i = 0; i < elements.size(); i++) {
-                        distance(center, elements[i], closest_point);
-                        float distance = glm::distance(center, closest_point);// / _scale;
-                        if (distance < layer.getValue(index))
-                            layer.setValue(index, distance);
-
-                        if (!_absolute) {
-                            float t, u, v;
-                            Ray ray = Ray(center, glm::normalize(glm::vec3(0.0f)-center));
-                            bool intersect = intersection(ray, elements[i], t, u, v);
-
-                            if (intersect && t >= 0)
-                                num_intersect++;
-                        }
-                    }
-
-                    if (!_absolute && num_intersect%2 == 1)
-                        layer.setValue(index, layer.getValue(index) * -1.0f);
-                } 
-            }
-        }
-
-        out.push_back(layer);
-    }
-
-    return out;
 }
 
 Image toHeightmap(const Image& _in) {

@@ -84,6 +84,8 @@ void Model::setName(const std::string& _str) {
 }
 
 bool Model::setGeom(const Mesh& _mesh) {
+    mesh = _mesh;
+
     // Load Geometry VBO
     m_model_vbo = new Vbo(_mesh);
 

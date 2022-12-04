@@ -48,6 +48,7 @@ public:
     void            printDefines();
     void            printVboInfo();
 
+    Mesh            mesh;
 
 protected:
     Shader          mainShader;         // main pass shader

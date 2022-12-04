@@ -94,6 +94,14 @@ public:
     void        expand(const Triangle& _t) { expand(_t[0]); expand(_t[1]); expand(_t[2]); }
     void        expand(const BoundingBox& _b) { expand(_b.min); expand(_b.max); }
 
+    void        square() {
+        glm::vec3   center  = getCenter();
+        glm::vec3   diag    = getDiagonal() * 0.5f;
+        float       mmax    = glm::max( abs(diag.x), glm::max( abs(diag.y), abs(diag.z) ) );
+        max                 = center + mmax;
+        min                 = center - mmax;
+    }
+
     void        clean() { 
         min = glm::vec3(std::numeric_limits<float>::max()); 
         max = glm::vec3(std::numeric_limits<float>::min()); 
