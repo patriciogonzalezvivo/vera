@@ -1059,7 +1059,7 @@ void toSdf_layerThread( const int _start, const int _end, const int _resolution,
         glm::vec3 p = glm::vec3(x, y, z) * _size;
         p = _acc->min + p * bdiagonal;
 
-        float c = _acc->minSignedDistance(p);
+        float c = _acc->getMinSignedDistance(p);
 
         size_t layerX = (z % _layersTotal) * _resolution; 
         size_t layerY = floor(z / _layersTotal) * _resolution;
@@ -1075,7 +1075,7 @@ Image   toSdf(const Mesh& _mesh, float _paddingPct, int _resolution) {
     Mesh mesh = _mesh;
     center(mesh);
     std::vector<Triangle> tris = mesh.getTriangles();
-    BVH acc(tris, vera::SPLIT_ARRAY);
+    BVH acc(tris, vera::SPLIT_MIDPOINT);
 
     acc.square();
 

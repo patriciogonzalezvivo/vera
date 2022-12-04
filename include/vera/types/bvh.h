@@ -9,17 +9,19 @@
 namespace vera {
 
 enum BVH_Split{
-    SPLIT_ARRAY = 0,
-    SPLIT_PLANE
+    SPLIT_BALANCED = 0,
+    SPLIT_MIDPOINT,
+    SPLIT_SORTED_MIDPOINT,
+    SPLIT_SAH
 };
 
 class BVH : public BoundingBox {
 public:
     BVH();
-    BVH( const std::vector<Triangle>& _elements, BVH_Split _strategy = SPLIT_ARRAY );
+    BVH( const std::vector<Triangle>& _elements, BVH_Split _strategy = SPLIT_BALANCED );
     virtual ~BVH();
 
-    virtual void            load( const std::vector<Triangle>& _elements, BVH_Split _strategy = SPLIT_ARRAY);
+    virtual void            load( const std::vector<Triangle>& _elements, BVH_Split _strategy = SPLIT_BALANCED);
     
     virtual std::shared_ptr<BVH> hit(const Ray& _ray, float& _minDistance, float& _maxDistance);
     virtual std::shared_ptr<BVH> hit(const glm::vec3& _point);
@@ -27,9 +29,9 @@ public:
     virtual void            hit(const glm::vec3& _point, float _r2, std::vector<Triangle>& _results) const;
     virtual void            hit(const BoundingBox& _bbox, std::vector<Triangle>& _results) const ;
 
-    virtual float           minDistance(const glm::vec3& _point) const ;
-    virtual float           minSignedDistance(const glm::vec3& _point) const ;
-    virtual void            closestTriangles(const glm::vec3& _point, std::vector<Triangle>& _results) const;
+    virtual float           getCost() { return float(elements.size()) * getArea(); }
+    virtual float           getMinDistance(const glm::vec3& _point) const ;
+    virtual float           getMinSignedDistance(const glm::vec3& _point) const ;
 
     virtual void            clear();
 
@@ -42,8 +44,10 @@ public:
     bool                    leaf;
 
 protected:
-    virtual void            _splitArray();
-    virtual void            _splitPlane();
+    virtual void            _split_balanced();
+    virtual void            _split_midpoint();
+    virtual void            _split_sorted_midpoint();
+    virtual void            _split_sah();
 };
 
 }
