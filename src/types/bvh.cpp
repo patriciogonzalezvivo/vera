@@ -178,7 +178,7 @@ float evaluateSAH( const std::vector<vera::Triangle>& _triangles, int _axis, flo
     vera::BoundingBox rightBox;
     size_t leftCount = 0;
     size_t rightCount = 0;
-    for( uint i = 0; i < _triangles.size(); i++ ) {
+    for (size_t i = 0; i < _triangles.size(); i++ ) {
         if (_triangles[i].getCentroid()[_axis] < _pos) {
             leftBox.expand( _triangles[i] );
             leftCount++;
@@ -201,8 +201,8 @@ void BVH::_split_sah() {
     float bestPos = 0;
     float bestCost = 1e30f;
 
-    for( int a = 0; a < 3; a++ ) 
-    for( size_t i = 0; i < elements.size(); i++ ) {
+    for (size_t a = 0; a < 3; a++ ) 
+    for (size_t i = 0; i < elements.size(); i++) {
         float candidatePos = elements[i].getCentroid()[a];
         float cost = evaluateSAH( elements, a, candidatePos );
         if (cost < bestCost) {
