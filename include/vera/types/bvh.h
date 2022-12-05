@@ -24,10 +24,6 @@ public:
     virtual void            load( const std::vector<Triangle>& _elements, BVH_Split _strategy = SPLIT_BALANCED);
     
     virtual std::shared_ptr<BVH> hit(const Ray& _ray, float& _minDistance, float& _maxDistance);
-    virtual std::shared_ptr<BVH> hit(const glm::vec3& _point);
-    virtual void            hit(const glm::vec3& _point, std::vector<Triangle>& _results) const ;
-    virtual void            hit(const glm::vec3& _point, float _r2, std::vector<Triangle>& _results) const;
-    virtual void            hit(const BoundingBox& _bbox, std::vector<Triangle>& _results) const ;
 
     virtual float           getCost() { return float(elements.size()) * getArea(); }
     virtual float           getMinDistance(const glm::vec3& _point) const ;

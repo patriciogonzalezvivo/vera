@@ -246,9 +246,8 @@ std::shared_ptr<BVH> BVH::hit(const Ray& _ray, float& _minDistance, float& _maxD
         float right_maxT = _maxDistance;
         std::shared_ptr<BVH> right_hit = right->hit(_ray, right_minT, right_maxT);
 
-        if (left_hit != nullptr && right_hit != nullptr) {
+        if (left_hit != nullptr && right_hit != nullptr)
             return std::make_shared<BVH>( *this );
-        }
         else if (left_hit != nullptr) 
             return left_hit;
         else if (right_hit != nullptr)
@@ -260,83 +259,10 @@ std::shared_ptr<BVH> BVH::hit(const Ray& _ray, float& _minDistance, float& _maxD
         return std::make_shared<BVH>( *this );
 }
 
-std::shared_ptr<BVH> BVH::hit(const glm::vec3& _point) {
-    if ( !contains(_point) )
-        return nullptr;
-
-    if (!leaf) {
-        std::shared_ptr<BVH> left_c = left->hit(_point);
-        std::shared_ptr<BVH> right_c = right->hit(_point);
-
-        if (left_c != nullptr && right_c != nullptr) {
-            // both hits return it self
-            return std::make_shared<BVH>( *this );
-        }
-        else if (left_c != nullptr) 
-            return left_c;
-        else if (right_c != nullptr)
-            return right_c;
-
-        return nullptr;
-    }
-    else
-        return std::make_shared<BVH>( *this );
-}
-
-void BVH::hit(const glm::vec3& _p, std::vector<Triangle>& _results) const {
-    if (leaf) {
-        _results.insert(_results.end(), elements.begin(), elements.end());
-    }
-    else {
-        // If the query bbox intersect one of the childs add them
-
-        if (right != nullptr && right->contains(_p))
-            right->hit(_p, _results);
-
-        if (left != nullptr && left->contains(_p))
-            left->hit(_p, _results);
-    }
-}
-
-
-void BVH::hit(const glm::vec3& _p, float _r2, std::vector<Triangle>& _results ) const {
-    if (leaf) {
-        _results.insert(_results.end(), elements.begin(), elements.end());
-    }
-    else {
-        // If the query bbox intersect one of the childs add them
-
-        if (right != nullptr && right->intersects(_p, _r2))
-            right->hit(_p, _r2, _results);
-
-        if (left != nullptr && left->intersects(_p, _r2))
-            left->hit(_p, _r2, _results);
-    }
-}
-
-
-void BVH::hit(const BoundingBox& _bbox, std::vector<Triangle>& _results ) const {
-    if (leaf) {
-        _results.insert(_results.end(), elements.begin(), elements.end());
-    }
-    else {
-        // If the query bbox intersect one of the childs add them
-
-        if (right != nullptr && right->intersects(_bbox))
-            right->hit(_bbox, _results);
-
-        if (left != nullptr && left->intersects(_bbox))
-            left->hit(_bbox, _results);
-    }
-}
-
 float BVH::getMinDistance(const glm::vec3& _point) const {
     float minDist = 3.0e+038;
     if (leaf) {
-        // return distanceToClosest(_point);
-        // return glm::length( _point - getCenter() );
         for (size_t i = 0; i < elements.size(); i++) {
-            // float d = glm::length( _point - elements[i].closest(_point) );
             float d = elements[i].unsignedDistance(_point);
             if (d < minDist)
                 minDist = d;
