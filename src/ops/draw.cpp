@@ -637,6 +637,10 @@ Font* getFont(const std::string& _name) {
     return nullptr;
 }
 
+float getFontHeight() {
+    return getFont()->getHeight();
+}
+
 //  FONT
 //
 Font* textFont(const std::string& _name) { 

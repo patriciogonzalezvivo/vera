@@ -111,6 +111,7 @@ int         getRestUs();
 // Mouse Keyboards
 // ---------------------------------------
 void        setMousePosition(float _x, float _y);
+void        setMouseVisibility(bool _visible);
 
 float       getMouseX();
 float       getMouseY();

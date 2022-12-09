@@ -54,8 +54,9 @@ public:
     virtual void setAngle(float _angle) { m_angle = _angle; }
 
     // virtual GLint getAtlasTexture();
-    virtual glm::vec4 getBoundingBox(const std::string &_text, float _x = 0, float _y = 0);
-    virtual glm::vec4 getBoundingBox(const std::string &_text, const glm::vec2 &_pos) { return getBoundingBox(_text, _pos.x, _pos.y); }
+    virtual float       getHeight() { return getBoundingBox("A").z; }
+    virtual glm::vec4   getBoundingBox(const std::string &_text, float _x = 0, float _y = 0);
+    virtual glm::vec4   getBoundingBox(const std::string &_text, const glm::vec2 &_pos) { return getBoundingBox(_text, _pos.x, _pos.y); }
 
     virtual void render(const std::string &_text, float _x, float _y);
     virtual void render(const std::string &_text, const glm::vec2 &_pos) { render(_text, _pos.x, _pos.y); }

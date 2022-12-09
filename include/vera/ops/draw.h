@@ -189,6 +189,8 @@ Vbo* getBillboard();
 // -----------------------------
 Font* getFont();
 Font* getFont(const std::string& _name);
+float getFontHeight();
+
 Font* loadFont(const std::string& _file, const std::string& _name = "default");
 void  addFont(Font& _font, const std::string _name);
 void  addFont(Font* _font, const std::string _name);

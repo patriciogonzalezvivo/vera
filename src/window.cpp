@@ -854,7 +854,6 @@ int initGL(WindowProperties _prop) {
         mouse.entered = (bool)entered;
     });
 
-
     glfwSetMouseButtonCallback(window, [](GLFWwindow* _window, int _button, int _action, int _mods) {
         mouse.button = _button;
         if (_action == GLFW_PRESS) {
@@ -1369,6 +1368,16 @@ void    setMousePosition( float _x, float _y ) {
     float h = getWindowHeight();
     float y = h - glm::clamp(_y, 0.0f, h);
     glfwSetCursorPos(window, _x / fPixelDensity , y / fPixelDensity);
+    #endif
+}
+
+void    setMouseVisibility(bool _visible) {
+    #if defined(DRIVER_GLFW)
+    if (_visible)
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    else
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    
     #endif
 }
 
