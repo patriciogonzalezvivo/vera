@@ -57,6 +57,14 @@ unsigned char* loadPixelsDepth(const std::string& _path, int *_width, int *_heig
     return nullptr;
 }
 
+unsigned char* loadPixelsBase64(const std::string& _base64, int *_width, int *_height, Channels _channels, bool _vFlip) {
+    unsigned char* data = new unsigned char[_base64.size()];
+    size_t len = decodeBase64(_base64, data);
+    int comp;
+    unsigned char* pixels = stbi_load_from_memory(data, len, _width, _height, &comp, (_channels == RGB)? STBI_rgb : STBI_rgb_alpha);
+    return pixels;
+}
+
 bool savePixels(const std::string& _path, unsigned char* _pixels, int _width, int _height) {
     int saved = 0;
     int channels = 4;

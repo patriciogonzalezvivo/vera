@@ -80,9 +80,11 @@ void        setViewport(float _width, float _height);
 void        setWindowSize(int _width, int _height);
 void        setWindowTitle(const char* _title);
 void        setWindowVSync(bool _value);
+void        setWindowIcon(unsigned char* _data, size_t _width, size_t _height);
 
 bool        isFullscreen();
 void        setFullscreen(bool _fullscreen);
+
 int         getScreenWidth();
 int         getScreenHeight();
 float       getPixelDensity(bool _compute = false);

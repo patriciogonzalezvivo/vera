@@ -22,6 +22,7 @@ unsigned char*  loadPixels(const std::string& _path, int *_width, int *_height, 
 uint16_t *      loadPixels16(const std::string& _path, int *_width, int *_height, Channels _channels = RGB, bool _vFlip = true);
 float*          loadPixelsHDR(const std::string& _path, int *_width, int *_height, bool _vFlip = true);
 unsigned char*  loadPixelsDepth(const std::string& _path, int *_width, int *_height, bool _vFlip = true);
+unsigned char*  loadPixelsBase64(const std::string& _base64, int *_width, int *_height, Channels _channels = RGB_ALPHA, bool _vFlip = true);
 unsigned char*  loadPixels(unsigned char const *_data, int len, int *_width, int *_height, Channels _channels, bool _vFlip);
 void            freePixels(void *pixels);
 

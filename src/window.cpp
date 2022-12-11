@@ -1270,6 +1270,16 @@ float getPixelDensity(bool _compute) {
         return fPixelDensity;
 }
 
+void setWindowIcon(unsigned char* _data, size_t _width, size_t _height) {
+#if defined(DRIVER_GLFW)
+    GLFWimage image;
+    image.pixels = _data;
+    image.width = _width;
+    image.height = _height;
+    glfwSetWindowIcon(window, 1, &image);
+#endif
+}
+
 const glm::ivec4& getViewport() { return viewport; }
 const glm::mat4& getOrthoMatrix() { return orthoMatrix; }
 const glm::mat4& getFlippedOrthoMatrix() { return orthoFlippedMatrix; }
