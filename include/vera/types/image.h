@@ -42,6 +42,7 @@ public:
     virtual void    setValue(size_t _index, float _data);
     virtual void    setValue(size_t _index, const float* _array1D, int _n);
 
+    virtual void    setChannels(size_t _channels) { m_channels = _channels; }
     virtual void    setColor(size_t _index, const glm::vec3& _color) { setValue( _index, &_color[0], 3); }
     virtual void    setColor(size_t _index, const glm::vec4& _color) { setValue( _index, &_color[0], std::min(4, m_channels)); }
 

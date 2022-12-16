@@ -81,7 +81,6 @@ bool Texture::load(const Image* _img, TextureFilter _filter, TextureWrap _wrap) 
 }
 
 bool Texture::load(int _width, int _height, int _channels, int _bits, const void* _data, TextureFilter _filter, TextureWrap _wrap) {
-
     GLenum format = GL_RGBA;
     if (_channels == 4)         format = GL_RGBA;
     else if (_channels == 3)    format = GL_RGB;

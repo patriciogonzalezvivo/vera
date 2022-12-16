@@ -176,6 +176,14 @@ bool Scene::addTexture(const std::string& _name, const Image& _image, bool _flip
         else
             delete tex;
     }
+    else {
+        // TODO:
+        //  - flip
+        //  - error handling
+
+        textures[_name]->load(_image);
+        Texture* tex = new Texture();
+    }
     return false;
 }
 

@@ -1117,6 +1117,59 @@ Image   toSdf(const Mesh& _mesh, float _paddingPct, int _resolution) {
     return rta;
 }
 
+void toSdf_rowThread(   const int _startY, const int _endY, const int _Z, 
+                        const int _resolution, float const _size, 
+                        const BVH *_acc, Image* _img ) {
+
+    glm::vec3   bdiagonal   = _acc->getDiagonal();
+    float       max_dist    = glm::length(bdiagonal);
+                max_dist    *= 0.5;
+
+    for (int y = _startY; y < _endY; y++)
+    for (int x = 0; x < _resolution; x++) {
+        // for each voxel convert it into a point in the space containing a mesh
+        glm::vec3 p = glm::vec3(x, y, _Z) * _size;
+        p = _acc->min + p * bdiagonal;
+
+        float c = _acc->getMinSignedDistance(p);
+        size_t index = _img->getIndex(x, y);
+        if (index < _img->size())
+            _img->setValue(index, glm::clamp(c/max_dist, -1.0f, 1.0f) * 0.5 + 0.5);
+    }
+}
+
+Image toSdfLayer( const BVH* _acc, size_t _voxel_resolution, size_t _z_layer) {
+    float        voxel_size = 1.0/float(_voxel_resolution);
+
+    const int nThreads = std::thread::hardware_concurrency();
+    int layersPerThread = _voxel_resolution / nThreads;
+    int layersLeftOver = _voxel_resolution % nThreads;
+    std::vector<std::thread> threads;
+
+    Image rta = Image(_voxel_resolution, _voxel_resolution, 1);
+    for (int i = 0; i < nThreads; ++i) {
+        int start_row = i * layersPerThread;
+        int end_row = start_row + layersPerThread;
+        if (i == nThreads - 1)
+            end_row = start_row + layersPerThread + layersLeftOver;
+
+        std::thread t(
+            [start_row, end_row, _z_layer, _voxel_resolution, voxel_size, _acc, &rta]() {
+                toSdf_rowThread(  start_row, end_row, _z_layer, 
+                                    _voxel_resolution, voxel_size, 
+                                    _acc, &rta);
+            }
+        );
+        threads.push_back(std::move(t));
+    }
+
+    for (std::thread& t : threads)
+        t.join();
+
+    return rta;
+
+}
+
 Image toHeightmap(const Image& _in) {
     int width = _in.getWidth();
     int height = _in.getHeight();
@@ -1133,31 +1186,30 @@ Image toHeightmap(const Image& _in) {
     return out;
 }
 
-Image packInSprite( const std::vector<Image>& _images ) {
+Image packSprite( const std::vector<Image>& _images ) {
     Image out;
+
     if (_images.size() == 0)
         return out;
 
     // Let's asume they are all equal
-    int cellWidth = _images[0].getWidth();
-    int cellHeight = _images[0].getHeight();
-    int cellChannels = _images[0].getChannels();
+    int layerWidth = _images[0].getWidth();
+    int layerHeight = _images[0].getHeight();
+    int layerChannels = _images[0].getChannels();
 
-    int cellTotal = std::ceil( std::sqrt( float(_images.size()) ) );
-    int width = cellWidth * cellTotal;
-    int height = cellHeight * cellTotal;
-    int channels = cellChannels;
+    int layers_per_side = std::ceil( std::sqrt( float(_images.size()) ));
+    int width = layerWidth * layers_per_side;
+    int height = layerHeight * layers_per_side;
+    int channels = layerChannels;
 
     out.allocate(width, height, channels);
-
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            int i = (x / cellWidth) + (y / cellHeight) * cellTotal;
-            if (i < _images.size()) {
-                out.setColor(out.getIndex(x, y), 
-                            _images[i].getColor( _images[i].getIndex(x%cellWidth, y%cellHeight) ));
-            }
-        }
+    for (int z = 0; z < _images.size(); z++)
+    for (int y = 0; y < layerHeight; y++)
+    for (int x = 0; x < layerWidth; x++) {
+        size_t layerX = (z % layers_per_side) * layerWidth; 
+        size_t layerY = floor(z / layers_per_side) * layerHeight;
+        out.setColor(   out.getIndex(layerX + x, layerY + y), 
+                        _images[z].getColor( _images[z].getIndex(x, y) ));
     }
 
     return out;
@@ -1169,6 +1221,155 @@ unsigned char* to8bit(const Image& _image) {
     for (int i = 0; i < total; i++)
         pixels[i] = static_cast<char>(256 * clamp(_image[i], 0.0f, 0.999f));
     return pixels;
+}
+
+// https://github.com/wxWidgets/wxWidgets/blob/eaaad6471df81ad7f801935ff63bea98bcbc715c/src/common/image.cpp#L930
+
+struct BicubicPrecalc {
+    double weight[4];
+    int offset[4];
+};
+
+// The following two local functions are for the B-spline weighting of the
+// bicubic sampling algorithm
+double spline_cube(double value) {
+    return value <= 0.0 ? 0.0 : value * value * value;
+}
+
+double spline_weight(double value) {
+    return (spline_cube(value + 2) -
+            4 * spline_cube(value + 1) +
+            6 * spline_cube(value) -
+            4 * spline_cube(value - 1)) / 6;
+}
+
+void DoCalc(BicubicPrecalc& precalc, double srcpixd, int oldDim) {
+    const double dd = srcpixd - static_cast<int>(srcpixd);
+
+    for ( int k = -1; k <= 2; k++ )
+    {
+        precalc.offset[k + 1] = srcpixd + k < 0.0
+            ? 0
+            : srcpixd + k >= oldDim
+                ? oldDim - 1
+                : static_cast<int>(srcpixd + k);
+
+        precalc.weight[k + 1] = spline_weight(k - dd);
+    }
+}
+
+void ResampleBicubicPrecalc(std::vector<BicubicPrecalc> &aWeight, int oldDim) {
+    const int newDim = aWeight.size();
+    // wxASSERT( oldDim > 0 && newDim > 0 );
+    if ( newDim > 1 ) {
+        // We want to map pixels in the range [0..newDim-1]
+        // to the range [0..oldDim-1]
+        const double scale_factor = static_cast<double>(oldDim-1) / (newDim-1);
+        for ( int dstd = 0; dstd < newDim; dstd++ ) {
+            // We need to calculate the source pixel to interpolate from - Y-axis
+            const double srcpixd = static_cast<double>(dstd) * scale_factor;
+            DoCalc(aWeight[dstd], srcpixd, oldDim);
+        }
+    }
+    else {
+        // Let's take the pixel from the center of the source image.
+        const double srcpixd = static_cast<double>(oldDim - 1) / 2.0;
+        DoCalc(aWeight[0], srcpixd, oldDim);
+    }
+}
+
+Image scale(const Image& _image, int _width, int _height) {
+    Image out = Image(_width, _height, _image.getChannels());
+
+     // Precalculate weights
+    std::vector<BicubicPrecalc> hPrecalcs(_width);
+    std::vector<BicubicPrecalc> vPrecalcs(_height);
+
+    ResampleBicubicPrecalc(hPrecalcs, _image.getWidth());
+    ResampleBicubicPrecalc(vPrecalcs, _image.getHeight());
+
+    for ( int dsty = 0; dsty < _height; dsty++ ) {
+        // We need to calculate the source pixel to interpolate from - Y-axis
+        const BicubicPrecalc& vPrecalc = vPrecalcs[dsty];
+
+        for ( int dstx = 0; dstx < _width; dstx++ ) {
+            // X-axis of pixel to interpolate from
+            const BicubicPrecalc& hPrecalc = hPrecalcs[dstx];
+
+            // Sums for each color channel
+            glm::vec4 sum;
+
+            // Here we actually determine the RGBA values for the destination pixel
+            for ( int k = -1; k <= 2; k++ ) {
+                // Y offset
+                const int y_offset = vPrecalc.offset[k + 1];
+
+                // Loop across the X axis
+                for ( int i = -1; i <= 2; i++ ) {
+                    // X offset
+                    const int x_offset = hPrecalc.offset[i + 1];
+
+                    // Calculate the exact position where the source data
+                    // should be pulled from based on the x_offset and y_offset
+                    int src_pixel_index = y_offset * _image.getWidth() + x_offset;
+
+                    // Calculate the weight for the specified pixel according
+                    // to the bicubic b-spline kernel we're using for
+                    // interpolation
+                    const float pixel_weight = vPrecalc.weight[k + 1] * hPrecalc.weight[i + 1];
+                    sum += _image.getColor( _image.getIndex(x_offset, y_offset) ) * pixel_weight;
+                }
+            }
+
+            out.setColor( out.getIndex(dstx, dsty), sum);
+        }
+    }
+
+    return out;
+}
+
+Image mix(const Image& _A, const Image& _B, float _pct) {
+    Image out = Image(_A.getWidth(), _A.getHeight(), _A.getChannels());
+
+    if (_A.getWidth() != _B.getWidth() || _A.getHeight() != _B.getHeight()) {
+        std::cout << "Images can't be mixed because they have different sizes" << std::endl;
+        return out;
+    }
+
+    for (size_t i = 0; i < _A.size(); i++)
+        out.setColor(i, glm::mix(_A.getColor(i), _B.getColor(i), _pct ));
+
+    return out;
+}
+
+std::vector<Image>  scaleSprite(const std::vector<Image>& _in, int _times) {
+    size_t in_voxel_resolution = _in.size();
+    size_t out_voxel_resolution = in_voxel_resolution * _times;
+    std::vector<Image> out;
+    
+    vera::Image last_layer;
+
+    for (int z = 0; z < in_voxel_resolution; z++) {
+        vera::Image img = vera::scale(_in[z], out_voxel_resolution, out_voxel_resolution);
+
+        if (z == 0) {
+            out.push_back( img );
+        }
+        else {
+            for (int i = 1; i < _times; i++)
+                out.push_back( vera::mix(last_layer, img, float(i) / float(_times)) );
+            out.push_back( img );
+        }
+
+        if ( z == in_voxel_resolution - 1) {
+            for (int i = 1; i < _times; i++)
+                out.push_back( img );
+        }
+        else 
+            last_layer = img;
+    }
+
+    return out;
 }
 
 }

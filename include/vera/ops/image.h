@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "vera/types/bvh.h"
 #include "vera/types/mesh.h"
 #include "vera/types/image.h"
 
@@ -47,6 +48,8 @@ Image               toSdf(      const Mesh& _mesh,
                                 float _paddingPct = 0.01f, 
                                 int _resolution = 6);
 
+Image               toSdfLayer( const BVH* _bvh, size_t _voxel_resolution, size_t _z_layer);
+
 Image               mergeChannels(const Image& _red, 
                                 const Image& _green, 
                                 const Image& _blue);
@@ -59,8 +62,13 @@ Image               mergeChannels(const Image& _red,
 Image               addAlpha(   const Image& _rgb,
                                 const Image& _alpha);
 
-Image               packInSprite(const std::vector<Image>& _images);
+Image               packSprite(const std::vector<Image>& _images);
+
+std::vector<Image>  scaleSprite(const std::vector<Image>& _images, int _times);
 
 std::vector<Image>  splitChannels(const Image& _image);
+
+Image               scale(const Image& _image, int _width, int _height);
+Image               mix(const Image& _A, const Image& _B, float _pct);
 
 }
