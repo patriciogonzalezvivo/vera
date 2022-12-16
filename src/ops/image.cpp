@@ -1134,19 +1134,18 @@ void toSdf_rowThread(   const int _startY, const int _endY, const int _Z,
         float c = _acc->getMinSignedDistance(p);
         size_t index = _img->getIndex(x, y);
         if (index < _img->size())
-            _img->setValue(index, glm::clamp(c/max_dist, -1.0f, 1.0f) * 0.5 + 0.5);
+            _img->setColor(index, glm::vec4( glm::clamp(c/max_dist, -1.0f, 1.0f) * 0.5 + 0.5 ) );
     }
 }
 
 Image toSdfLayer( const BVH* _acc, size_t _voxel_resolution, size_t _z_layer) {
-    float        voxel_size = 1.0/float(_voxel_resolution);
-
-    const int nThreads = std::thread::hardware_concurrency();
+    float voxel_size    = 1.0/float(_voxel_resolution);
+    const int nThreads  = std::thread::hardware_concurrency();
     int layersPerThread = _voxel_resolution / nThreads;
-    int layersLeftOver = _voxel_resolution % nThreads;
+    int layersLeftOver  = _voxel_resolution % nThreads;
     std::vector<std::thread> threads;
 
-    Image rta = Image(_voxel_resolution, _voxel_resolution, 1);
+    Image rta = Image(_voxel_resolution, _voxel_resolution, 3);
     for (int i = 0; i < nThreads; ++i) {
         int start_row = i * layersPerThread;
         int end_row = start_row + layersPerThread;
@@ -1155,7 +1154,7 @@ Image toSdfLayer( const BVH* _acc, size_t _voxel_resolution, size_t _z_layer) {
 
         std::thread t(
             [start_row, end_row, _z_layer, _voxel_resolution, voxel_size, _acc, &rta]() {
-                toSdf_rowThread(  start_row, end_row, _z_layer, 
+                toSdf_rowThread(    start_row, end_row, _z_layer, 
                                     _voxel_resolution, voxel_size, 
                                     _acc, &rta);
             }
@@ -1176,11 +1175,10 @@ Image toHeightmap(const Image& _in) {
     int channels = _in.getChannels();
     Image out = Image(width, height, 1);
 
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            glm::vec4 c = _in.getColor( _in.getIndex(x, y) );
-            out.setValue( out.getIndex(x, y), (c.r * 65536.0f + c.g * 256.0f + c.b) / 65536.0f );
-        }
+    for (int y = 0; y < height; y++)
+    for (int x = 0; x < width; x++) {
+        glm::vec4 c = _in.getColor( _in.getIndex(x, y) );
+        out.setValue( out.getIndex(x, y), (c.r * 65536.0f + c.g * 256.0f + c.b) / 65536.0f );
     }
 
     return out;

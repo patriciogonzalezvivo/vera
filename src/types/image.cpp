@@ -147,7 +147,6 @@ bool Image::allocate(size_t _width, size_t _height, size_t _channels) {
     m_width = _width;
     m_height = _height;
     m_channels = _channels;
-    // data = new float[_width * _height * _channels];
     int total = _width * _height * _channels;
 
     if (total != m_data.size())
