@@ -64,7 +64,7 @@ public :
     glm::vec4           getTangent(const glm::vec3& _barycenterCoord ) const;
     
     // MaterialConstPtr    material = nullptr;
-    // size_t              closestCoorner(const glm::vec3& _p) const;
+    size_t              closestCoorner(const glm::vec3& _p) const;
     glm::vec3           closest(const glm::vec3& _p) const;
     float               signedDistance(const glm::vec3& _p) const;
     float               unsignedDistance(const glm::vec3& _p) const;

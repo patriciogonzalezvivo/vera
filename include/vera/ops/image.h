@@ -34,12 +34,17 @@ Image               toHeightmap(const Image& _terrariumImage);
 
 Image               toHueRainbow(const Image& _graysale);
 
-Mesh                toTerrain(  const Image& _image,
-                                const float _zScale,
-                                const float _maxError = 0.001f, 
-                                const float _baseHeight = 0.0f,
-                                const int _maxTriangles = 0, 
-                                const int _maxPoints = 0 );
+Image               mergeChannels(  const Image& _red, 
+                                    const Image& _green, 
+                                    const Image& _blue);
+
+Image               mergeChannels(  const Image& _red, 
+                                    const Image& _green, 
+                                    const Image& _blue, 
+                                    const Image& _alpha);
+
+Image               addAlpha(   const Image& _rgb,
+                                const Image& _alpha);
 
 Image               toSdf(      const Image& _image, 
                                 float _on = 1.0f);
@@ -48,19 +53,9 @@ Image               toSdf(      const Mesh& _mesh,
                                 float _paddingPct = 0.01f, 
                                 int _resolution = 6);
 
-Image               toSdfLayer( const BVH* _bvh, size_t _voxel_resolution, size_t _z_layer);
+Image               toSdfLayer(const BVH* _bvh, size_t _voxel_resolution, size_t _z_layer);
 
-Image               mergeChannels(const Image& _red, 
-                                const Image& _green, 
-                                const Image& _blue);
-
-Image               mergeChannels(const Image& _red, 
-                                const Image& _green, 
-                                const Image& _blue, 
-                                const Image& _alpha);
-
-Image               addAlpha(   const Image& _rgb,
-                                const Image& _alpha);
+void                refineSdfLayers(const BVH* _bvh, std::vector<Image>& _images);
 
 Image               packSprite(const std::vector<Image>& _images);
 
@@ -68,7 +63,7 @@ std::vector<Image>  scaleSprite(const std::vector<Image>& _images, int _times);
 
 std::vector<Image>  splitChannels(const Image& _image);
 
-Image               scale(const Image& _image, int _width, int _height);
+Image               scale(  const Image& _image, int _width, int _height);
 Image               mix(const Image& _A, const Image& _B, float _pct);
 
 }

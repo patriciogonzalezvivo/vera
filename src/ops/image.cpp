@@ -5,18 +5,12 @@
 #include <vector>
 #include <iostream>
 
-#include <map>
-#include <unordered_map>
 #include <algorithm>
 
 #include <thread>
-// #include <mutex>
-// #include <atomic>
-// #include <condition_variable>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/normal.hpp>
-#include <glm/gtx/hash.hpp>
 
 #include "vera/types/bvh.h"
 #include "vera/ops/math.h"
@@ -429,744 +423,12 @@ Image toHueRainbow(const Image& _in) {
     return out;
 }
 
-
-//  Triangulator by Michael Fogleman ( @FogleBird )
-//  https://github.com/fogleman/hmm/blob/master/src/triangulator.cpp
-//  All code and credits are for his genius. I took the code and make 
-//  it significantly uglier using lambdas for my own conviniance
-//
-
-std::pair<glm::ivec2, float> FindCandidate( const Image& _image, const glm::ivec2 p0, const glm::ivec2 p1, const glm::ivec2 p2) { 
-    
-    const auto edge = []( const glm::ivec2 a, const glm::ivec2 b, const glm::ivec2 c) {
-        return (b.x - c.x) * (a.y - c.y) - (b.y - c.y) * (a.x - c.x);
-    };
-
-    // triangle bounding box
-    const glm::ivec2 min = glm::min(glm::min(p0, p1), p2);
-    const glm::ivec2 max = glm::max(glm::max(p0, p1), p2);
-
-    // forward differencing variables
-    int w00 = edge(p1, p2, min);
-    int w01 = edge(p2, p0, min);
-    int w02 = edge(p0, p1, min);
-    const int a01 = p1.y - p0.y;
-    const int b01 = p0.x - p1.x;
-    const int a12 = p2.y - p1.y;
-    const int b12 = p1.x - p2.x;
-    const int a20 = p0.y - p2.y;
-    const int b20 = p2.x - p0.x;
-
-    // pre-multiplied z values at vertices
-    const float a = edge(p0, p1, p2);
-    const float z0 = _image.getValue( _image.getIndex(p0.x, p0.y) ) / a;
-    const float z1 = _image.getValue( _image.getIndex(p1.x, p1.y) ) / a;
-    const float z2 = _image.getValue( _image.getIndex(p2.x, p2.y) ) / a;
-
-    // iterate over pixels in bounding box
-    float maxError = 0;
-    glm::ivec2 maxPoint(0);
-    for (int y = min.y; y <= max.y; y++) {
-        // compute starting offset
-        int dx = 0;
-        if (w00 < 0 && a12 != 0)
-            dx = std::max(dx, -w00 / a12);
-        if (w01 < 0 && a20 != 0)
-            dx = std::max(dx, -w01 / a20);
-        if (w02 < 0 && a01 != 0)
-            dx = std::max(dx, -w02 / a01);
-
-        int w0 = w00 + a12 * dx;
-        int w1 = w01 + a20 * dx;
-        int w2 = w02 + a01 * dx;
-
-        bool wasInside = false;
-
-        for (int x = min.x + dx; x <= max.x; x++) {
-            // check if inside triangle
-            if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
-                wasInside = true;
-
-                // compute z using barycentric coordinates
-                const float z = z0 * w0 + z1 * w1 + z2 * w2;
-                const float dz = std::abs(z - _image.getValue( _image.getIndex(x, y) ) );
-                if (dz > maxError) {
-                    maxError = dz;
-                    maxPoint = glm::ivec2(x, y);
-                }
-            } else if (wasInside) {
-                break;
-            }
-
-            w0 += a12;
-            w1 += a20;
-            w2 += a01;
-        }
-
-        w00 += b12;
-        w01 += b20;
-        w02 += b01;
-    }
-
-    if (maxPoint == p0 || maxPoint == p1 || maxPoint == p2) {
-        maxError = 0;
-    }
-
-    return std::make_pair(maxPoint, maxError);
-}
-
-struct TriangulatorData {
-    std::vector<glm::ivec2>  points;
-    std::vector<int>        triangles;
-    std::vector<int>        halfedges;
-
-    std::vector<glm::ivec2>  candidates;
-    std::vector<float>      errors;
-    std::vector<int>        queueIndexes;
-    std::vector<int>        queue;
-    std::vector<int>        pending;
-
-    void QueueSwap(const int i, const int j) {
-        const int pi = queue[i];
-        const int pj = queue[j];
-        queue[i] = pj;
-        queue[j] = pi;
-        queueIndexes[pi] = j;
-        queueIndexes[pj] = i;
-    };
-
-    bool QueueLess(const int i, const int j) {
-        return -errors[queue[i]] < -errors[queue[j]];
-    };
-
-    bool QueueDown(const int i0, const int n) {
-        int i = i0;
-        while (1) {
-            const int j1 = 2 * i + 1;
-            if (j1 >= n || j1 < 0) {
-                break;
-            }
-            const int j2 = j1 + 1;
-            int j = j1;
-            if (j2 < n && QueueLess(j2, j1)) {
-                j = j2;
-            }
-            if (!QueueLess(j, i)) {
-                break;
-            }
-            QueueSwap(i, j);
-            i = j;
-        }
-        return i > i0;
-    }
-
-    int QueuePopBack() {
-        const int t = queue.back();
-        queue.pop_back();
-        queueIndexes[t] = -1;
-        return t;
-    }
-
-    int QueuePop() {
-        const int n = queue.size() - 1;
-        QueueSwap(0, n);
-        QueueDown(0, n);
-        return QueuePopBack();
-    }
-
-    void QueueUp(const int j0) {
-        int j = j0;
-        while (1) {
-            int i = (j - 1) / 2;
-            if (i == j || !QueueLess(j, i)) {
-                break;
-            }
-            QueueSwap(i, j);
-            j = i;
-        }
-    }
-
-    void QueuePush(const int t) {
-        const int i = queue.size();
-        queueIndexes[t] = i;
-        queue.push_back(t);
-        QueueUp(i);
-    }
-
-    void QueueRemove(const int t) {
-        const int i = queueIndexes[t];
-        if (i < 0) {
-            const auto it = std::find(pending.begin(), pending.end(), t);
-            if (it != pending.end()) {
-                std::swap(*it, pending.back());
-                pending.pop_back();
-            } 
-            else {
-                // this shouldn't happen!
-            }
-            return;
-        }
-        const int n = queue.size() - 1;
-        if (n != i) {
-            QueueSwap(i, n);
-            if (!QueueDown(i, n)) {
-                QueueUp(i);
-            }
-        }
-        QueuePopBack();
-    }
-
-    int AddTriangle(const int a, const int b, const int c,
-                    const int ab, const int bc, const int ca,
-                    int e) {
-        if (e < 0) {
-            // new halfedge index
-            e = triangles.size();
-            // add triangle vertices
-            triangles.push_back(a);
-            triangles.push_back(b);
-            triangles.push_back(c);
-            // add triangle halfedges
-            halfedges.push_back(ab);
-            halfedges.push_back(bc);
-            halfedges.push_back(ca);
-            // add triangle metadata
-            candidates.emplace_back(0);
-            errors.push_back(0);
-            queueIndexes.push_back(-1);
-        } 
-        else {
-            // set triangle vertices
-            triangles[e + 0] = a;
-            triangles[e + 1] = b;
-            triangles[e + 2] = c;
-            // set triangle halfedges
-            halfedges[e + 0] = ab;
-            halfedges[e + 1] = bc;
-            halfedges[e + 2] = ca;
-        }
-
-        // link neighboring halfedges
-        if (ab >= 0)
-            halfedges[ab] = e + 0;
-        if (bc >= 0)
-            halfedges[bc] = e + 1;
-        if (ca >= 0)
-            halfedges[ca] = e + 2;
-
-        // add triangle to pending queue for later rasterization
-        const int t = e / 3;
-        pending.push_back(t);
-
-        // return first halfedge index
-        return e;
-    }
-
-    int AddPoint(const glm::ivec2& _point) {
-        const int i = points.size();
-        points.push_back(_point);
-        return i;
-    }
-
-    void Flush( const Image& _image) {
-        for (const int t : pending) {
-
-            // rasterize triangle to find maximum pixel error
-            const auto pair = FindCandidate(_image,
-                                            points[ triangles[t*3+0] ],
-                                            points[ triangles[t*3+1] ],
-                                            points[ triangles[t*3+2] ]);
-
-            // update metadata
-            candidates[t] = pair.first;
-            errors[t] = pair.second;
-
-            // add triangle to priority queue
-            QueuePush(t);
-        }
-
-        pending.clear();
-    };
-
-    void Legalize(const int a) {
-        
-        // if the pair of triangles doesn't satisfy the Delaunay condition
-        // (p1 is inside the circumcircle of [p0, pl, pr]), flip them,
-        // then do the same check/flip recursively for the new pair of triangles
-        //
-        //           pl                    pl
-        //          /||\                  /  \
-        //       al/ || \bl            al/    \a
-        //        /  ||  \              /      \
-        //       /  a||b  \    flip    /___ar___\
-        //     p0\   ||   /p1   =>   p0\---bl---/p1
-        //        \  ||  /              \      /
-        //       ar\ || /br             b\    /br
-        //          \||/                  \  /
-        //           pr                    pr
-
-        const auto inCircle = [](
-            const glm::ivec2 a, const glm::ivec2 b, const glm::ivec2 c,
-            const glm::ivec2 p)
-        {
-            const int64_t dx = a.x - p.x;
-            const int64_t dy = a.y - p.y;
-            const int64_t ex = b.x - p.x;
-            const int64_t ey = b.y - p.y;
-            const int64_t fx = c.x - p.x;
-            const int64_t fy = c.y - p.y;
-            const int64_t ap = dx * dx + dy * dy;
-            const int64_t bp = ex * ex + ey * ey;
-            const int64_t cp = fx * fx + fy * fy;
-            return dx*(ey*cp-bp*fy)-dy*(ex*cp-bp*fx)+ap*(ex*fy-ey*fx) < 0;
-        };
-
-        const int b = halfedges[a];
-
-        if (b < 0) {
-            return;
-        }
-
-        const int a0 = a - a % 3;
-        const int b0 = b - b % 3;
-        const int al = a0 + (a + 1) % 3;
-        const int ar = a0 + (a + 2) % 3;
-        const int bl = b0 + (b + 2) % 3;
-        const int br = b0 + (b + 1) % 3;
-        const int p0 = triangles[ar];
-        const int pr = triangles[a];
-        const int pl = triangles[al];
-        const int p1 = triangles[bl];
-
-        if (!inCircle(points[p0], points[pr], points[pl], points[p1])) {
-            return;
-        }
-
-        const int hal = halfedges[al];
-        const int har = halfedges[ar];
-        const int hbl = halfedges[bl];
-        const int hbr = halfedges[br];
-
-        QueueRemove(a / 3);
-        QueueRemove(b / 3);
-
-        const int t0 = AddTriangle(p0, p1, pl, -1, hbl, hal, a0);
-        const int t1 = AddTriangle(p1, p0, pr, t0, har, hbr, b0);
-
-        Legalize(t0 + 1);
-        Legalize(t1 + 2);
-    }
-};
-
-
-Mesh toTerrain( const Image& _image,
-                const float _zScale,
-                const float _maxError, const float _baseHeight, 
-                const int _maxTriangles, const int _maxPoints) {
-
-    if (_image.getChannels() != 1)
-        return Mesh();
-
-    TriangulatorData data;
-
-    // add points at all four corners
-    const int x0 = 0;
-    const int y0 = 0;
-    const int x1 = _image.getWidth() - 1;
-    const int y1 = _image.getHeight() - 1;
-    const int p0 = data.AddPoint(glm::ivec2(x0, y0));
-    const int p1 = data.AddPoint(glm::ivec2(x1, y0));
-    const int p2 = data.AddPoint(glm::ivec2(x0, y1));
-    const int p3 = data.AddPoint(glm::ivec2(x1, y1));
-
-    // add initial two triangles
-    const int t0 = data.AddTriangle(p3, p0, p2, -1, -1, -1, -1);
-    data.AddTriangle(p0, p3, p1, t0, -1, -1, -1);
-    data.Flush(_image);
-
-    // helper function to check if triangulation is complete
-    const auto done = [&]() {
-        const float e = data.errors[data.queue[0]];
-        if (e <= _maxError) {
-            return true;
-        }
-        if (_maxTriangles > 0 && data.queue.size() >= _maxTriangles) {
-            return true;
-        }
-        if (_maxPoints > 0 && data.points.size() >= _maxPoints) {
-            return true;
-        }
-        return e == 0;
-    };
-
-    while (!done()) {
-        // pop triangle with highest error from priority queue
-        const int t = data.QueuePop();
-
-        const int e0 = t * 3 + 0;
-        const int e1 = t * 3 + 1;
-        const int e2 = t * 3 + 2;
-
-        const int p0 = data.triangles[e0];
-        const int p1 = data.triangles[e1];
-        const int p2 = data.triangles[e2];
-
-        const glm::ivec2 a = data.points[p0];
-        const glm::ivec2 b = data.points[p1];
-        const glm::ivec2 c = data.points[p2];
-        const glm::ivec2 p = data.candidates[t];
-
-        const int pn = data.AddPoint(p);
-
-        const auto collinear = []( const glm::ivec2 p0, const glm::ivec2 p1, const glm::ivec2 p2) {
-            return (p1.y-p0.y)*(p2.x-p1.x) == (p2.y-p1.y)*(p1.x-p0.x);
-        };
-
-        const auto handleCollinear = [&](const int pn, const int a) {
-            const int a0 = a - a % 3;
-            const int al = a0 + (a + 1) % 3;
-            const int ar = a0 + (a + 2) % 3;
-            const int p0 = data.triangles[ar];
-            const int pr = data.triangles[a];
-            const int pl = data.triangles[al];
-            const int hal = data.halfedges[al];
-            const int har = data.halfedges[ar];
-
-            const int b = data.halfedges[a];
-
-            if (b < 0) {
-                const int t0 = data.AddTriangle(pn, p0, pr, -1, har, -1, a0);
-                const int t1 = data.AddTriangle(p0, pn, pl, t0, -1, hal, -1);
-                data.Legalize(t0 + 1);
-                data.Legalize(t1 + 2);
-                return;
-            }
-
-            const int b0 = b - b % 3;
-            const int bl = b0 + (b + 2) % 3;
-            const int br = b0 + (b + 1) % 3;
-            const int p1 = data.triangles[bl];
-            const int hbl = data.halfedges[bl];
-            const int hbr = data.halfedges[br];
-
-            data.QueueRemove(b / 3);
-
-            const int t0 = data.AddTriangle(p0, pr, pn, har, -1, -1, a0);
-            const int t1 = data.AddTriangle(pr, p1, pn, hbr, -1, t0 + 1, b0);
-            const int t2 = data.AddTriangle(p1, pl, pn, hbl, -1, t1 + 1, -1);
-            const int t3 = data.AddTriangle(pl, p0, pn, hal, t0 + 2, t2 + 1, -1);
-
-            data.Legalize(t0);
-            data.Legalize(t1);
-            data.Legalize(t2);
-            data.Legalize(t3);
-        };
-
-        if (collinear(a, b, p))
-            handleCollinear(pn, e0);
-        else if (collinear(b, c, p))
-            handleCollinear(pn, e1);
-        else if (collinear(c, a, p))
-            handleCollinear(pn, e2);
-        else {
-            const int h0 = data.halfedges[e0];
-            const int h1 = data.halfedges[e1];
-            const int h2 = data.halfedges[e2];
-
-            const int t0 = data.AddTriangle(p0, p1, pn, h0, -1, -1, e0);
-            const int t1 = data.AddTriangle(p1, p2, pn, h1, -1, t0 + 1, -1);
-            const int t2 = data.AddTriangle(p2, p0, pn, h2, t0 + 2, t1 + 1, -1);
-
-            data.Legalize(t0);
-            data.Legalize(t1);
-            data.Legalize(t2);
-        }
-
-        data.Flush(_image);
-    }
-
-    std::vector<glm::vec2> texcoords;
-    std::vector<glm::vec3> points;
-    points.reserve(data.points.size());
-    texcoords.reserve(data.points.size());
-    const int w = _image.getWidth();
-    const int h = _image.getHeight();
-    const int w1 = w - 1;
-    const int h1 = h - 1;
-
-    for (const glm::ivec2 &p : data.points) {
-        points.emplace_back(p.x, h1 - p.y, _image.getValue( _image.getIndex(p.x, p.y) ) * _zScale);
-        texcoords.emplace_back(p.x/float(w1), 1.0f-p.y/float(h1));
-    }
-
-    std::vector<glm::ivec3> triangles;
-    triangles.reserve(data.queue.size());
-    for (const int i : data.queue) {
-        triangles.emplace_back(
-            data.triangles[i * 3 + 0],
-            data.triangles[i * 3 + 1],
-            data.triangles[i * 3 + 2] );
-    }
-
-    // BASE
-    //
-    
-    if ( _baseHeight > 0.0f ) {
-
-        const float z = -_baseHeight;// * _zScale;
-        
-        std::map<int, float> x0s;
-        std::map<int, float> x1s;
-        std::map<int, float> y0s;
-        std::map<int, float> y1s;
-        std::unordered_map<glm::vec3, int> lookup;
-
-        // find points along each edge
-        for (int i = 0; i < points.size(); i++) {
-            const auto &p = points[i];
-            bool edge = false;
-
-            if (p.x == 0) {
-                x0s[p.y] = p.z;
-                edge = true;
-            }
-            else if (p.x == w1) {
-                x1s[p.y] = p.z;
-                edge = true;
-            }
-
-            if (p.y == 0) {
-                y0s[p.x] = p.z;
-                edge = true;
-            }
-            else if (p.y == h1) {
-                y1s[p.x] = p.z;
-                edge = true;
-            }
-
-            if (edge)
-                lookup[p] = i;
-        }
-
-        std::vector<std::pair<int, float>> sx0s(x0s.begin(), x0s.end());
-        std::vector<std::pair<int, float>> sx1s(x1s.begin(), x1s.end());
-        std::vector<std::pair<int, float>> sy0s(y0s.begin(), y0s.end());
-        std::vector<std::pair<int, float>> sy1s(y1s.begin(), y1s.end());
-
-        const auto pointIndex = [&lookup, &points, &texcoords, &w1, &h1](
-            const float x, const float y, const float z)
-        {
-            const glm::vec3 point(x, y, z);
-            if (lookup.find(point) == lookup.end()) {
-                lookup[point] = points.size();
-                points.push_back(point);
-                texcoords.push_back( glm::vec2(x/float(w1), y/float(h1)) );
-            }
-            return lookup[point];
-        };
-
-        // compute base center point
-        const int center = pointIndex(w * 0.5f, h * 0.5f, z);
-
-        // edge x = 0
-        for (int i = 1; i < sx0s.size(); i++) {
-            const int y0 = sx0s[i-1].first;
-            const int y1 = sx0s[i].first;
-            const float z0 = sx0s[i-1].second;
-            const float z1 = sx0s[i].second;
-            const int p00 = pointIndex(0, y0, z);
-            const int p01 = pointIndex(0, y0, z0);
-            const int p10 = pointIndex(0, y1, z);
-            const int p11 = pointIndex(0, y1, z1);
-            triangles.emplace_back(p01, p10, p00);
-            triangles.emplace_back(p01, p11, p10);
-            triangles.emplace_back(center, p00, p10);
-        }
-
-        // edge x = w1
-        for (int i = 1; i < sx1s.size(); i++) {
-            const int y0 = sx1s[i-1].first;
-            const int y1 = sx1s[i].first;
-            const float z0 = sx1s[i-1].second;
-            const float z1 = sx1s[i].second;
-            const int p00 = pointIndex(w1, y0, z);
-            const int p01 = pointIndex(w1, y0, z0);
-            const int p10 = pointIndex(w1, y1, z);
-            const int p11 = pointIndex(w1, y1, z1);
-            triangles.emplace_back(p00, p10, p01);
-            triangles.emplace_back(p10, p11, p01);
-            triangles.emplace_back(center, p10, p00);
-        }
-
-        // edge y = 0
-        for (int i = 1; i < sy0s.size(); i++) {
-            const int x0 = sy0s[i-1].first;
-            const int x1 = sy0s[i].first;
-            const float z0 = sy0s[i-1].second;
-            const float z1 = sy0s[i].second;
-            const int p00 = pointIndex(x0, 0, z);
-            const int p01 = pointIndex(x0, 0, z0);
-            const int p10 = pointIndex(x1, 0, z);
-            const int p11 = pointIndex(x1, 0, z1);
-            triangles.emplace_back(p00, p10, p01);
-            triangles.emplace_back(p10, p11, p01);
-            triangles.emplace_back(center, p10, p00);
-        }
-
-        // edge y = h1
-        for (int i = 1; i < sy1s.size(); i++) {
-            const int x0 = sy1s[i-1].first;
-            const int x1 = sy1s[i].first;
-            const float z0 = sy1s[i-1].second;
-            const float z1 = sy1s[i].second;
-            const int p00 = pointIndex(x0, h1, z);
-            const int p01 = pointIndex(x0, h1, z0);
-            const int p10 = pointIndex(x1, h1, z);
-            const int p11 = pointIndex(x1, h1, z1);
-            triangles.emplace_back(p01, p10, p00);
-            triangles.emplace_back(p01, p11, p10);
-            triangles.emplace_back(center, p00, p10);
-        }
-    }
-
-    Mesh mesh;
-
-    for (const glm::vec3 &p : points)
-        mesh.addVertex( p );
-
-    for (const glm::vec2 &t : texcoords)
-        mesh.addTexCoord( t );
-    
-    for (const glm::ivec3 &tri : triangles)
-        mesh.addTriangleIndices( tri[0], tri[1], tri[2] );
-
-    return mesh;
-}
-
-// Mesh to SDF ( 2D texture of a 3D cube )
-// 
-void toSdf_layerThread( const int _start, const int _end, const int _resolution, float const _size, int const _layersTotal, 
-                        const BVH *_acc, Image* _img) {
-
-    glm::vec3   bdiagonal   = _acc->getDiagonal();
-    float       max_dist    = glm::length(bdiagonal);
-                max_dist    *= 0.5;
-
-    for (int z = _start; z < _end; z++)
-    for (int y = 0; y < _resolution; y++)
-    for (int x = 0; x < _resolution; x++) {
-        // for each voxel convert it into a point in the space containing a mesh
-        glm::vec3 p = glm::vec3(x, y, z) * _size;
-        p = _acc->min + p * bdiagonal;
-
-        float c = _acc->getMinSignedDistance(p);
-
-        size_t layerX = (z % _layersTotal) * _resolution; 
-        size_t layerY = floor(z / _layersTotal) * _resolution;
-        size_t index = _img->getIndex(layerX + x, layerY + y);
-        if (index < _img->size())
-            _img->setValue(index, glm::clamp(c/max_dist, -1.0f, 1.0f) * 0.5 + 0.5);
-    }
-
-    std::cout << "Finish layers " << _start << " to " << _end << std::endl;
-}
-
-Image   toSdf(const Mesh& _mesh, float _paddingPct, int _resolution) {
-    Mesh mesh = _mesh;
-    center(mesh);
-    std::vector<Triangle> tris = mesh.getTriangles();
-    BVH acc(tris, vera::SPLIT_MIDPOINT);
-
-    acc.square();
-
-    glm::vec3   bdiagonal   = acc.getDiagonal();
-    float       max_dist    = glm::length(bdiagonal);
-    acc.expand( (max_dist*max_dist) * _paddingPct );
-
-    int    voxel_resolution = std::pow(2, _resolution);
-    float        voxel_size = 1.0/float(voxel_resolution);
-    int         layersTotal = std::sqrt(voxel_resolution);
-    int    image_resolution = voxel_resolution * layersTotal;
-
-    Image rta;
-    rta.allocate(image_resolution, image_resolution, 1);
-
-    const int nThreads = std::thread::hardware_concurrency();
-    int layersPerThread = voxel_resolution / nThreads;
-    int layersLeftOver = voxel_resolution % nThreads;
-    std::vector<std::thread> threads;
-
-    for (int i = 0; i < nThreads; ++i) {
-        int start_layer = i * layersPerThread;
-        int end_layer = start_layer + layersPerThread;
-        if (i == nThreads - 1)
-            end_layer = start_layer + layersPerThread + layersLeftOver;
-
-        std::thread t(
-            [start_layer, end_layer, voxel_resolution, voxel_size, layersTotal, &acc, &rta]() {
-                toSdf_layerThread(start_layer, end_layer, voxel_resolution, voxel_size, layersTotal, &acc, &rta);
-            }
-        );
-
-        threads.push_back(std::move(t));
-    }
-
-    for (std::thread& t : threads)
-        t.join();
-
-    return rta;
-}
-
-void toSdf_rowThread(   const int _startY, const int _endY, const int _Z, 
-                        const int _resolution, float const _size, 
-                        const BVH *_acc, Image* _img ) {
-
-    glm::vec3   bdiagonal   = _acc->getDiagonal();
-    float       max_dist    = glm::length(bdiagonal);
-                max_dist    *= 0.5;
-
-    for (int y = _startY; y < _endY; y++)
-    for (int x = 0; x < _resolution; x++) {
-        // for each voxel convert it into a point in the space containing a mesh
-        glm::vec3 p = glm::vec3(x, y, _Z) * _size;
-        p = _acc->min + p * bdiagonal;
-
-        float c = _acc->getMinSignedDistance(p);
-        size_t index = _img->getIndex(x, y);
-        if (index < _img->size())
-            _img->setColor(index, glm::vec4( glm::clamp(c/max_dist, -1.0f, 1.0f) * 0.5 + 0.5 ) );
-    }
-}
-
-Image toSdfLayer( const BVH* _acc, size_t _voxel_resolution, size_t _z_layer) {
-    float voxel_size    = 1.0/float(_voxel_resolution);
-    const int nThreads  = std::thread::hardware_concurrency();
-    int layersPerThread = _voxel_resolution / nThreads;
-    int layersLeftOver  = _voxel_resolution % nThreads;
-    std::vector<std::thread> threads;
-
-    Image rta = Image(_voxel_resolution, _voxel_resolution, 3);
-    for (int i = 0; i < nThreads; ++i) {
-        int start_row = i * layersPerThread;
-        int end_row = start_row + layersPerThread;
-        if (i == nThreads - 1)
-            end_row = start_row + layersPerThread + layersLeftOver;
-
-        std::thread t(
-            [start_row, end_row, _z_layer, _voxel_resolution, voxel_size, _acc, &rta]() {
-                toSdf_rowThread(    start_row, end_row, _z_layer, 
-                                    _voxel_resolution, voxel_size, 
-                                    _acc, &rta);
-            }
-        );
-        threads.push_back(std::move(t));
-    }
-
-    for (std::thread& t : threads)
-        t.join();
-
-    return rta;
-
+unsigned char* to8bit(const Image& _image) {
+    int total = _image.getWidth() * _image.getHeight() * _image.getChannels();
+    unsigned char* pixels = new unsigned char[total];
+    for (int i = 0; i < total; i++)
+        pixels[i] = static_cast<char>(256 * clamp(_image[i], 0.0f, 0.999f));
+    return pixels;
 }
 
 Image toHeightmap(const Image& _in) {
@@ -1182,43 +444,6 @@ Image toHeightmap(const Image& _in) {
     }
 
     return out;
-}
-
-Image packSprite( const std::vector<Image>& _images ) {
-    Image out;
-
-    if (_images.size() == 0)
-        return out;
-
-    // Let's asume they are all equal
-    int layerWidth = _images[0].getWidth();
-    int layerHeight = _images[0].getHeight();
-    int layerChannels = _images[0].getChannels();
-
-    int layers_per_side = std::ceil( std::sqrt( float(_images.size()) ));
-    int width = layerWidth * layers_per_side;
-    int height = layerHeight * layers_per_side;
-    int channels = layerChannels;
-
-    out.allocate(width, height, channels);
-    for (int z = 0; z < _images.size(); z++)
-    for (int y = 0; y < layerHeight; y++)
-    for (int x = 0; x < layerWidth; x++) {
-        size_t layerX = (z % layers_per_side) * layerWidth; 
-        size_t layerY = floor(z / layers_per_side) * layerHeight;
-        out.setColor(   out.getIndex(layerX + x, layerY + y), 
-                        _images[z].getColor( _images[z].getIndex(x, y) ));
-    }
-
-    return out;
-}
-
-unsigned char* to8bit(const Image& _image) {
-    int total = _image.getWidth() * _image.getHeight() * _image.getChannels();
-    unsigned char* pixels = new unsigned char[total];
-    for (int i = 0; i < total; i++)
-        pixels[i] = static_cast<char>(256 * clamp(_image[i], 0.0f, 0.999f));
-    return pixels;
 }
 
 // https://github.com/wxWidgets/wxWidgets/blob/eaaad6471df81ad7f801935ff63bea98bcbc715c/src/common/image.cpp#L930
@@ -1330,12 +555,218 @@ Image mix(const Image& _A, const Image& _B, float _pct) {
     Image out = Image(_A.getWidth(), _A.getHeight(), _A.getChannels());
 
     if (_A.getWidth() != _B.getWidth() || _A.getHeight() != _B.getHeight()) {
-        std::cout << "Images can't be mixed because they have different sizes" << std::endl;
+        std::cout << "Images can't be mixed because they have different sizes (" << _A.getWidth() << "x" << _A.getHeight() << " vs " << _B.getWidth() << "x" << _B.getHeight() << ")" << std::endl;
         return out;
     }
 
-    for (size_t i = 0; i < _A.size(); i++)
-        out.setColor(i, glm::mix(_A.getColor(i), _B.getColor(i), _pct ));
+    std::vector<std::thread> threads;
+    const int nThreads = std::thread::hardware_concurrency();
+    size_t pixelsPerThread = _A.size() / nThreads;
+    size_t pixelsLeftOver = _A.size() % nThreads;
+    for (int t = 0; t < nThreads; ++t) {
+        size_t start = t * pixelsPerThread;
+        size_t end = start + pixelsPerThread;
+        if (t == nThreads - 1)
+            end = start + pixelsPerThread + pixelsLeftOver;
+
+        std::thread thrd( [&out, &_A, &_B, start, end, _pct]() {
+            for (size_t i = start; i < end; i++)
+                out.setColor(i, glm::mix(_A.getColor(i), _B.getColor(i), _pct ));
+        });
+        threads.push_back(std::move(thrd));
+    }
+
+    for (std::thread& t : threads)
+        t.join();
+
+    return out;
+}
+
+Image   toSdf(const Mesh& _mesh, float _paddingPct, int _resolution) {
+    Mesh mesh = _mesh;
+    center(mesh);
+    std::vector<Triangle> tris = mesh.getTriangles();
+    BVH acc(tris, vera::SPLIT_MIDPOINT);
+
+    acc.square();
+
+    glm::vec3   bdiagonal   = acc.getDiagonal();
+    float       max_dist    = glm::length(bdiagonal);
+    acc.expand( (max_dist*max_dist) * _paddingPct );
+
+    int    voxel_resolution = std::pow(2, _resolution);
+    float        voxel_size = 1.0/float(voxel_resolution);
+    int         layersTotal = std::sqrt(voxel_resolution);
+    int    image_resolution = voxel_resolution * layersTotal;
+
+    Image rta;
+    rta.allocate(image_resolution, image_resolution, 1);
+
+    const int nThreads  = std::thread::hardware_concurrency();
+    int layersPerThread = voxel_resolution / nThreads;
+    int layersLeftOver  = voxel_resolution % nThreads;
+    max_dist *= 0.5f;
+
+    std::vector<std::thread> threads;
+    for (int i = 0; i < nThreads; ++i) {
+        int start_layer = i * layersPerThread;
+        int end_layer = start_layer + layersPerThread;
+        if (i == nThreads - 1)
+            end_layer = start_layer + layersPerThread + layersLeftOver;
+
+        std::thread t(
+            [&acc, &rta, start_layer, end_layer, voxel_resolution, voxel_size, layersTotal, bdiagonal, max_dist ]() {
+                for (int z = start_layer; z < end_layer; z++)
+                for (int y = 0; y < voxel_resolution; y++)
+                for (int x = 0; x < voxel_resolution; x++) {
+                    // for each voxel convert it into a point in the space containing a mesh
+                    glm::vec3 p = glm::vec3(x, y, z) * voxel_size;
+                    p = acc.min + p * bdiagonal;
+
+                    float c = acc.getMinSignedDistance(p);
+
+                    size_t layerX = (z % layersTotal) * voxel_resolution; 
+                    size_t layerY = floor(z / layersTotal) * voxel_resolution;
+                    size_t index = rta.getIndex(layerX + x, layerY + y);
+                    if (index < rta.size())
+                        rta.setValue(index, glm::clamp(c/max_dist, -1.0f, 1.0f) * 0.5 + 0.5);
+                }
+            }
+        );
+        threads.push_back(std::move(t));
+    }
+
+    for (std::thread& t : threads)
+        t.join();
+
+    return rta;
+}
+
+Image toSdfLayer( const BVH* _acc, size_t _voxel_resolution, size_t _z_layer) {
+    float voxel_size    = 1.0/float(_voxel_resolution);
+    const int nThreads  = std::thread::hardware_concurrency();
+    int layersPerThread = _voxel_resolution / nThreads;
+    int layersLeftOver  = _voxel_resolution % nThreads;
+    glm::vec3 bdiagonal = _acc->getDiagonal();
+    float max_dist      = glm::length(bdiagonal) * 0.5f;
+    Image layer = Image(_voxel_resolution, _voxel_resolution, 3);
+
+    std::vector<std::thread> threads;
+    for (int i = 0; i < nThreads; ++i) {
+        int start_row = i * layersPerThread;
+        int end_row = start_row + layersPerThread;
+        if (i == nThreads - 1)
+            end_row = start_row + layersPerThread + layersLeftOver;
+
+        std::thread t(
+            [_acc, &layer, start_row, end_row, _z_layer, _voxel_resolution, voxel_size, bdiagonal, max_dist]() {
+                for (int y = start_row; y < end_row; y++)
+                for (int x = 0; x < _voxel_resolution; x++) {
+                    
+                    glm::vec3 p = (glm::vec3(x, y, _z_layer) + 0.5f) * voxel_size;
+                    p = _acc->min + p * bdiagonal;
+
+                    float c = _acc->getMinSignedDistance(p);
+                    size_t index = layer.getIndex(x, y);
+                    if (index < layer.size())
+                        layer.setColor(index, glm::vec4( glm::clamp(c/max_dist, -1.0f, 1.0f) * 0.5 + 0.5 ) );
+                }
+            }
+        );
+        threads.push_back(std::move(t));
+    }
+
+    for (std::thread& t : threads)
+        t.join();
+
+    return layer;
+}
+
+void refineSdfLayers(const BVH* _acc, std::vector<Image>& _images) {
+
+    size_t voxel_resolution = _images.size();
+    float voxel_size        = 1.0/float(voxel_resolution);
+
+    size_t triangles_total  = _acc->elements.size(); 
+    glm::vec3 bdiagonal     = _acc->getDiagonal();
+    float max_dist          = glm::length(bdiagonal) * 0.5f;
+
+    const int nThreads      = std::thread::hardware_concurrency();
+    size_t trisPerThread    = triangles_total / nThreads;
+    size_t trisLeftOver     = triangles_total % nThreads;
+
+    std::vector<std::thread> threads;
+    for (size_t i = 0; i < nThreads; ++i) {
+        size_t start = i * trisPerThread;
+        size_t end = start + trisPerThread;
+        if (i == nThreads - 1)
+            end = start + trisPerThread + trisLeftOver;
+
+        std::thread thrd(
+            [_acc, &_images, start, end]() {
+                for (size_t t = start; t < end; t++) {
+                    // glm::vec3 p = (glm::vec3(x, y, _z_layer) + 0.5f) * voxel_size;
+                    // p = _acc->min + p * bdiagonal;
+
+                    // float c = _acc->getMinSignedDistance(p);
+                    // size_t index = _layer->getIndex(x, y);
+                    // if (index < _layer->size())
+                    //     _layer->setColor(index, glm::vec4( glm::clamp(c/max_dist, -1.0f, 1.0f) * 0.5 + 0.5 ) );
+                }
+            }
+        );
+        threads.push_back(std::move(thrd));
+    }
+
+    for (std::thread& t : threads)
+        t.join();
+}
+
+Image packSprite( const std::vector<Image>& _images ) {
+    Image out;
+
+    if (_images.size() == 0)
+        return out;
+
+    // Let's asume they are all equal
+    size_t layerWidth = _images[0].getWidth();
+    size_t layerHeight = _images[0].getHeight();
+    size_t layerChannels = _images[0].getChannels();
+
+    size_t layers_per_side = std::ceil( std::sqrt( float(_images.size()) ));
+    size_t width = layerWidth * layers_per_side;
+    size_t height = layerHeight * layers_per_side;
+    size_t channels = layerChannels;
+
+    out.allocate(width, height, channels);
+
+    std::vector<std::thread> threads;
+    const int nThreads = std::thread::hardware_concurrency();
+    size_t layersPerThread = _images.size() / nThreads;
+    size_t layersLeftOver = _images.size() % nThreads;
+    for (size_t i = 0; i < nThreads; ++i) {
+        size_t start_layer = i * layersPerThread;
+        size_t end_layer = start_layer + layersPerThread;
+        if (i == nThreads - 1)
+            end_layer = start_layer + layersPerThread + layersLeftOver;
+
+        std::thread t(
+            [&_images, &out, start_layer, end_layer, layerWidth, layerHeight, layers_per_side ]() {
+                for (size_t z = start_layer; z < end_layer; z++)
+                for (size_t y = 0; y < layerHeight; y++)
+                for (size_t x = 0; x < layerWidth; x++) {
+                    size_t layerX = (z % layers_per_side) * layerWidth; 
+                    size_t layerY = floor(z / layers_per_side) * layerHeight;
+                    out.setColor(   out.getIndex(layerX + x, layerY + y), 
+                                    _images[z].getColor( _images[z].getIndex(x, y) ));
+                }
+            }
+        );
+        threads.push_back(std::move(t));
+    }
+
+    for (std::thread& t : threads)
+        t.join();
 
     return out;
 }
@@ -1343,28 +774,48 @@ Image mix(const Image& _A, const Image& _B, float _pct) {
 std::vector<Image>  scaleSprite(const std::vector<Image>& _in, int _times) {
     size_t in_voxel_resolution = _in.size();
     size_t out_voxel_resolution = in_voxel_resolution * _times;
+
+    std::vector<Image> in_scaled;
+    in_scaled.resize(_in.size());
+
+    std::vector<std::thread> threads;
+    const int nThreads = std::thread::hardware_concurrency();
+    size_t layersPerThread = _in.size() / nThreads;
+    size_t layersLeftOver = _in.size() % nThreads;
+    for (size_t i = 0; i < nThreads; ++i) {
+        size_t start_layer = i * layersPerThread;
+        size_t end_layer = start_layer + layersPerThread;
+        if (i == nThreads - 1)
+            end_layer = start_layer + layersPerThread + layersLeftOver;
+
+        std::thread t( [&in_scaled, &_in, start_layer, end_layer, out_voxel_resolution]() {
+            for (size_t z = start_layer; z < end_layer; z++)
+                in_scaled[z] = vera::scale(_in[z], out_voxel_resolution, out_voxel_resolution);
+        });
+
+        threads.push_back(std::move(t));
+    }
+
+    for (std::thread& t : threads)
+        t.join();
+
     std::vector<Image> out;
-    
     vera::Image last_layer;
-
     for (int z = 0; z < in_voxel_resolution; z++) {
-        vera::Image img = vera::scale(_in[z], out_voxel_resolution, out_voxel_resolution);
-
-        if (z == 0) {
-            out.push_back( img );
-        }
+        if (z == 0)
+            out.push_back( in_scaled[z] );
         else {
             for (int i = 1; i < _times; i++)
-                out.push_back( vera::mix(last_layer, img, float(i) / float(_times)) );
-            out.push_back( img );
+                out.push_back( vera::mix(last_layer, in_scaled[z], float(i) / float(_times)) );
+            out.push_back( in_scaled[z] );
         }
 
         if ( z == in_voxel_resolution - 1) {
             for (int i = 1; i < _times; i++)
-                out.push_back( img );
+                out.push_back( in_scaled[z] );
         }
         else 
-            last_layer = img;
+            last_layer = in_scaled[z];
     }
 
     return out;

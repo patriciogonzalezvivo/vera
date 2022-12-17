@@ -63,6 +63,8 @@ public:
     virtual Image&  operator*= (float _value);
     virtual Image&  operator/= (float _value);
 
+    std::string         name;
+
 protected:
     std::string         m_path;
     std::vector<float>  m_data;
@@ -72,5 +74,8 @@ protected:
 
     friend class        Texture;
 };
+
+typedef std::shared_ptr<Image> ImagePtr;
+typedef std::shared_ptr<Image const> ImageConstPtr;
 
 }

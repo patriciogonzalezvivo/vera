@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "../types/mesh.h"
+#include "../types/image.h"
 #include "../types/boundingBox.h"
 
 namespace vera {
@@ -38,4 +39,10 @@ Mesh icosphereMesh( float _radius, size_t _iterations );
 Mesh cylinderMesh( float _radius, float _height, int _radiusSegments, int _heightSegments, int _numCapSegments, bool _bCapped, DrawMode _drawMode = TRIANGLES);
 Mesh coneMesh( float _radius, float _height, int _radiusSegments, int _heightSegments, int _capSegments, DrawMode _drawMode = TRIANGLES);
 
+Mesh toTerrain( const Image& _image,
+                const float _zScale,
+                const float _maxError = 0.001f, 
+                const float _baseHeight = 0.0f,
+                const int _maxTriangles = 0, 
+                const int _maxPoints = 0 );
 }

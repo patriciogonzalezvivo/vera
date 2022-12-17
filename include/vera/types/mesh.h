@@ -4,6 +4,7 @@
 #include <string>
 
 #include "triangle.h"
+#include "material.h"
 
 #include "glm/glm.hpp"
 
@@ -47,7 +48,6 @@ public:
     const glm::vec3&    getVertex(size_t _index) const { return m_vertices[_index]; }
     const std::vector<glm::vec3>& getVertices() const { return m_vertices; }
 
-
     // COLORS
     void                setColor(const glm::vec4 &_color);
     void                addColor(const glm::vec4 &_color);
@@ -59,7 +59,6 @@ public:
     const glm::vec4&    getColor(size_t _index) const { return m_colors[_index]; }
     const std::vector<glm::vec4>& getColors() const { return m_colors; }
     
-
     // NORMALS
     void                addNormal(const glm::vec3 &_normal);
     void                addNormals(const std::vector<glm::vec3> &_normals );
@@ -74,7 +73,6 @@ public:
     void                invertNormals();
     void                flatNormals();
 
-
     // TANGENTS
     void                addTangent(const glm::vec4 &_tangent);
 
@@ -84,7 +82,6 @@ public:
     const std::vector<glm::vec4>& getTangents() const { return m_tangents; }
     void                clearTangets() { m_tangents.clear(); }
     bool                computeTangents();
-
 
     // TEXTURE COORDINATES
     void                addTexCoord(const glm::vec2 &_uv);
