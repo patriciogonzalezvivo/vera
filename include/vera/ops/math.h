@@ -113,6 +113,23 @@ inline float remap(const float& _value, const float& _inputMin, const float& _in
     }
 }
 
+inline glm::vec2 remap(const glm::vec2& _value, const glm::vec2& _inputMin, const glm::vec2& _inputMax, const glm::vec2& _outputMin, const glm::vec2& _outputMax, bool _clamp) {
+    return glm::vec2(   remap(_value.x, _inputMin.x, _inputMax.x, _outputMin.x, _outputMax.x, _clamp),
+                        remap(_value.y, _inputMin.y, _inputMax.y, _outputMin.y, _outputMax.y, _clamp) );
+}
+
+inline glm::vec3 remap(const glm::vec3& _value, const glm::vec3& _inputMin, const glm::vec3& _inputMax, const glm::vec3& _outputMin, const glm::vec3& _outputMax, bool _clamp) {
+    return glm::vec3(   remap(_value.x, _inputMin.x, _inputMax.x, _outputMin.x, _outputMax.x, _clamp),
+                        remap(_value.y, _inputMin.y, _inputMax.y, _outputMin.y, _outputMax.y, _clamp),
+                        remap(_value.z, _inputMin.z, _inputMax.z, _outputMin.z, _outputMax.z, _clamp) );
+}
+
+inline glm::vec4 remap(const glm::vec4& _value, const glm::vec4& _inputMin, const glm::vec4& _inputMax, const glm::vec4& _outputMin, const glm::vec4& _outputMax, bool _clamp) {
+    return glm::vec4(   remap(_value.x, _inputMin.x, _inputMax.x, _outputMin.x, _outputMax.x, _clamp),
+                        remap(_value.y, _inputMin.y, _inputMax.y, _outputMin.y, _outputMax.y, _clamp),
+                        remap(_value.z, _inputMin.z, _inputMax.z, _outputMin.z, _outputMax.z, _clamp),
+                        remap(_value.w, _inputMin.w, _inputMax.w, _outputMin.w, _outputMax.w, _clamp) );
+}
 
 inline glm::mat2 inverse(const glm::mat2& m) {
     return glm::mat2(   m[1][1],-m[0][1], -m[1][0], m[0][0]) / (m[0][0]*m[1][1] - m[0][1]*m[1][0]);

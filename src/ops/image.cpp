@@ -4,10 +4,9 @@
 #include <cstring>
 #include <vector>
 #include <iostream>
-
 #include <algorithm>
-
 #include <thread>
+#include <random>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/normal.hpp>
@@ -511,16 +510,16 @@ Image scale(const Image& _image, int _width, int _height) {
     ResampleBicubicPrecalc(hPrecalcs, _image.getWidth());
     ResampleBicubicPrecalc(vPrecalcs, _image.getHeight());
 
-    for ( int dsty = 0; dsty < _height; dsty++ ) {
+    for (int dsty = 0; dsty < _height; dsty++ ) {
         // We need to calculate the source pixel to interpolate from - Y-axis
         const BicubicPrecalc& vPrecalc = vPrecalcs[dsty];
 
-        for ( int dstx = 0; dstx < _width; dstx++ ) {
+        for (int dstx = 0; dstx < _width; dstx++ ) {
             // X-axis of pixel to interpolate from
             const BicubicPrecalc& hPrecalc = hPrecalcs[dstx];
 
             // Sums for each color channel
-            glm::vec4 sum;
+            glm::vec4 sum = glm::vec4(0.0f);
 
             // Here we actually determine the RGBA values for the destination pixel
             for ( int k = -1; k <= 2; k++ ) {
@@ -543,41 +542,43 @@ Image scale(const Image& _image, int _width, int _height) {
                     sum += _image.getColor( _image.getIndex(x_offset, y_offset) ) * pixel_weight;
                 }
             }
-
-            out.setColor( out.getIndex(dstx, dsty), sum);
+            out.setColor(out.getIndex(dstx, dsty), sum);
         }
     }
-
     return out;
 }
 
 Image mix(const Image& _A, const Image& _B, float _pct) {
     Image out = Image(_A.getWidth(), _A.getHeight(), _A.getChannels());
 
-    if (_A.getWidth() != _B.getWidth() || _A.getHeight() != _B.getHeight()) {
+    if (_A.getWidth() != _B.getWidth() || _A.getHeight() != _B.getHeight() || _A.getChannels() != _B.getChannels()) {
         std::cout << "Images can't be mixed because they have different sizes (" << _A.getWidth() << "x" << _A.getHeight() << " vs " << _B.getWidth() << "x" << _B.getHeight() << ")" << std::endl;
         return out;
     }
 
     std::vector<std::thread> threads;
     const int nThreads = std::thread::hardware_concurrency();
-    size_t pixelsPerThread = _A.size() / nThreads;
-    size_t pixelsLeftOver = _A.size() % nThreads;
+    size_t pixelsPerThread = _A.getHeight() / nThreads;
+    size_t pixelsLeftOver = _A.getHeight() % nThreads;
     for (int t = 0; t < nThreads; ++t) {
         size_t start = t * pixelsPerThread;
         size_t end = start + pixelsPerThread;
         if (t == nThreads - 1)
             end = start + pixelsPerThread + pixelsLeftOver;
 
-        std::thread thrd( [&out, &_A, &_B, start, end, _pct]() {
-            for (size_t i = start; i < end; i++)
-                out.setColor(i, glm::mix(_A.getColor(i), _B.getColor(i), _pct ));
-        });
+        std::thread thrd( 
+            [&out, &_A, &_B, start, end, _pct]() {
+                for (size_t y = start; y < end; y++)
+                for (size_t x = 0; x < _A.getWidth(); x++) {
+                    size_t i = _A.getIndex(x, y);
+                    out.setColor(i, glm::mix(_A.getColor(i), _B.getColor(i), _pct));
+                }
+            }
+        );
         threads.push_back(std::move(thrd));
     }
-
-    for (std::thread& t : threads)
-        t.join();
+    for (std::thread& thrd : threads)
+        thrd.join();
 
     return out;
 }
@@ -649,7 +650,7 @@ Image toSdfLayer( const BVH* _acc, size_t _voxel_resolution, size_t _z_layer) {
     int layersLeftOver  = _voxel_resolution % nThreads;
     glm::vec3 bdiagonal = _acc->getDiagonal();
     float max_dist      = glm::length(bdiagonal) * 0.5f;
-    Image layer = Image(_voxel_resolution, _voxel_resolution, 3);
+    Image layer = Image(_voxel_resolution, _voxel_resolution, 4);
 
     std::vector<std::thread> threads;
     for (int i = 0; i < nThreads; ++i) {
@@ -682,7 +683,13 @@ Image toSdfLayer( const BVH* _acc, size_t _voxel_resolution, size_t _z_layer) {
     return layer;
 }
 
-void refineSdfLayers(const BVH* _acc, std::vector<Image>& _images) {
+// void refineSdfLayer(const BVH* _bvh, Image& _images) {
+//     Image org = _images;
+
+     
+// }
+
+void refineSdfLayers(const BVH* _acc, std::vector<Image>& _images, float _dist) {
 
     size_t voxel_resolution = _images.size();
     float voxel_size        = 1.0/float(voxel_resolution);
@@ -690,6 +697,21 @@ void refineSdfLayers(const BVH* _acc, std::vector<Image>& _images) {
     size_t triangles_total  = _acc->elements.size(); 
     glm::vec3 bdiagonal     = _acc->getDiagonal();
     float max_dist          = glm::length(bdiagonal) * 0.5f;
+
+    std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
+    std::default_random_engine generator;
+
+    // Random vectors
+    std::vector<glm::vec3> samples(64);
+    for (size_t i = 0; i < 64; ++i) {
+        samples[i] = glm::vec3( randomFloats(generator) * 2.0 - 1.0, 
+                                randomFloats(generator) * 2.0 - 1.0, 
+                                randomFloats(generator) * 2.0 - 1.0);
+        samples[i] = glm::normalize(samples[i]);
+        float scale = (float)i / 64.0;
+        scale   = vera::lerp(0.1f, 1.0f, scale * scale);
+        samples[i] *= scale;
+    }
 
     const int nThreads      = std::thread::hardware_concurrency();
     size_t trisPerThread    = triangles_total / nThreads;
@@ -703,15 +725,22 @@ void refineSdfLayers(const BVH* _acc, std::vector<Image>& _images) {
             end = start + trisPerThread + trisLeftOver;
 
         std::thread thrd(
-            [_acc, &_images, start, end]() {
+            [_acc, &_images, &samples, start, end, voxel_resolution, max_dist, _dist]() {
                 for (size_t t = start; t < end; t++) {
                     // glm::vec3 p = (glm::vec3(x, y, _z_layer) + 0.5f) * voxel_size;
                     // p = _acc->min + p * bdiagonal;
 
-                    // float c = _acc->getMinSignedDistance(p);
-                    // size_t index = _layer->getIndex(x, y);
-                    // if (index < _layer->size())
-                    //     _layer->setColor(index, glm::vec4( glm::clamp(c/max_dist, -1.0f, 1.0f) * 0.5 + 0.5 ) );
+                    glm::vec3 p = _acc->elements[t].getCentroid();
+                    p = p + (_acc->elements[t].getNormal() * max_dist * _dist) + samples[t%64] * max_dist * _dist * 0.5f;
+
+                    if (_acc->contains(p)) {
+
+                        float c = glm::clamp(_acc->getMinSignedDistance(p) / max_dist, -1.0f, 1.0f);
+                        glm::ivec3 v = remap(p, _acc->min, _acc->max, glm::vec3(0.0f), glm::vec3(voxel_resolution), true);
+                        size_t z = v.z % voxel_resolution;
+                        size_t index = _images[z].getIndex(v.x % voxel_resolution, v.y % voxel_resolution);
+                        _images[z].setColor(index, glm::vec4( c * 0.5 + 0.5 ) );
+                    }
                 }
             }
         );
@@ -774,7 +803,6 @@ Image packSprite( const std::vector<Image>& _images ) {
 std::vector<Image>  scaleSprite(const std::vector<Image>& _in, int _times) {
     size_t in_voxel_resolution = _in.size();
     size_t out_voxel_resolution = in_voxel_resolution * _times;
-
     std::vector<Image> in_scaled;
     in_scaled.resize(_in.size());
 
@@ -789,8 +817,9 @@ std::vector<Image>  scaleSprite(const std::vector<Image>& _in, int _times) {
             end_layer = start_layer + layersPerThread + layersLeftOver;
 
         std::thread t( [&in_scaled, &_in, start_layer, end_layer, out_voxel_resolution]() {
-            for (size_t z = start_layer; z < end_layer; z++)
+            for (size_t z = start_layer; z < end_layer; z++) {
                 in_scaled[z] = vera::scale(_in[z], out_voxel_resolution, out_voxel_resolution);
+            }
         });
 
         threads.push_back(std::move(t));

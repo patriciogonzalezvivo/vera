@@ -259,6 +259,31 @@ std::shared_ptr<BVH> BVH::hit(const Ray& _ray, float& _minDistance, float& _maxD
         return std::make_shared<BVH>( *this );
 }
 
+glm::vec3 BVH::getClosest(const glm::vec3& _point) const {
+    glm::vec3 closest = elements[0].closest(_point);
+    float minDist = glm::distance(closest, _point);
+
+    if (leaf) {
+        for (size_t i = 1; i < elements.size(); i++) {
+            glm::vec3 c = elements[i].closest(_point);
+            float d = glm::distance(closest, _point);
+            if (d < minDist) {
+                closest = c;
+                minDist = d;
+            }
+        }
+    }
+    else if (right != nullptr && left != nullptr) {
+        glm::vec3 left_c = left->getClosest(_point);
+        float left_dist = glm::distance(left_c, _point);
+        glm::vec3 right_c = right->getClosest(_point);
+        float right_dist = glm::distance(right_c, _point);
+        return (left_dist <= right_dist)? left_c : right_c;
+    }
+
+    return closest;
+}
+
 float BVH::getMinDistance(const glm::vec3& _point) const {
     float minDist = 3.0e+038;
     if (leaf) {

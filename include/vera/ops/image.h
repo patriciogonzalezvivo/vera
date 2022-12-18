@@ -55,7 +55,8 @@ Image               toSdf(      const Mesh& _mesh,
 
 Image               toSdfLayer(const BVH* _bvh, size_t _voxel_resolution, size_t _z_layer);
 
-void                refineSdfLayers(const BVH* _bvh, std::vector<Image>& _images);
+// void                refineSdfLayer(const BVH* _bvh, Image& _images);
+void                refineSdfLayers(const BVH* _bvh, std::vector<Image>& _images, float _dist);
 
 Image               packSprite(const std::vector<Image>& _images);
 

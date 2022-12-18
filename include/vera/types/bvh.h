@@ -26,8 +26,9 @@ public:
     virtual std::shared_ptr<BVH> hit(const Ray& _ray, float& _minDistance, float& _maxDistance);
 
     virtual float           getCost() { return float(elements.size()) * getArea(); }
-    virtual float           getMinDistance(const glm::vec3& _point) const ;
-    virtual float           getMinSignedDistance(const glm::vec3& _point) const ;
+    virtual glm::vec3       getClosest(const glm::vec3& _point) const;
+    virtual float           getMinDistance(const glm::vec3& _point) const;
+    virtual float           getMinSignedDistance(const glm::vec3& _point) const;
 
     virtual void            clear();
 
