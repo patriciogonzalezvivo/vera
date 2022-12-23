@@ -22,7 +22,7 @@ Model::Model(const std::string& _name, const Mesh &_mesh):
     setGeom(_mesh);
 }
 
-Model::Model(const std::string& _name, const Mesh &_mesh, const Material &_mat):
+Model::Model(const std::string& _name, const Mesh &_mesh, Material* _mat):
     m_model_vbo(nullptr), m_bbox_vbo(nullptr), 
     m_area(0.0f) {
     setName(_name);
@@ -46,7 +46,6 @@ void Model::clear() {
     }
 }
 
-
 void Model::addDefine(const std::string& _define, const std::string& _value) { 
     mainShader.addDefine(_define, _value); 
     for (vera::ShaderMap::iterator it = gBuffersShaders.begin(); it != gBuffersShaders.end(); ++it) {
@@ -64,12 +63,13 @@ void Model::delDefine(const std::string& _define) {
 
 };
 
-bool Model::setMaterial(const Material &_material) {
-    mainShader.mergeDefines(&_material);
+bool Model::setMaterial(Material* _material) {
+    mainShader.mergeDefines(_material);
     for (vera::ShaderMap::iterator it = gBuffersShaders.begin(); it != gBuffersShaders.end(); ++it) {
         if (it->second)
-            it->second->mergeDefines(&_material);
+            it->second->mergeDefines(_material);
     }
+    mesh.setMaterial( _material );
     return true;
 }
 

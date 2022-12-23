@@ -149,17 +149,14 @@ glm::vec3 Triangle::getVertex(const glm::vec3& _barycenter) const {
 }
 
 glm::vec4 Triangle::getColor(const glm::vec3& _barycenter) const {
-
-    // if (material != nullptr) {
-    //     if ( material->haveProperty("diffuse") ) {
-    //         if (havem_TexCoords()) {
-    //             glm::vec2 uv = getTexCoord(_barycenter);
-    //             return material->getColor("diffuse", uv);
-    //         }
-    //         else
-    //             return material->getColor("diffuse");
-    //     }
-    // }
+    if (material != nullptr) {
+        if ( material->haveProperty("diffuse") ) {
+            if (haveTexCoords())
+                return material->getColor("diffuse", glm::fract( getTexCoord(_barycenter) ) );
+            else
+                return material->getColor("diffuse");
+        }
+    }
 
     if (haveColors())
         return  getColor(0) * _barycenter.x +
@@ -200,7 +197,6 @@ glm::vec2 Triangle::getTexCoord(const glm::vec3& _barycenter) const {
     glm::vec2 uv =  getTexCoord(0) * _barycenter.x +
                     getTexCoord(1) * _barycenter.y +
                     getTexCoord(2) * _barycenter.z;
-    uv.x = 1.0 - uv.x;
     return uv;
 }
 
@@ -210,7 +206,7 @@ glm::vec4 Triangle::getTangent(const glm::vec3& _barycenter ) const {
             getTangent(2) * _barycenter.z;
 }
 
-glm::vec3 Triangle::closest(const glm::vec3& _p) const {
+glm::vec3 Triangle::getClosestPoint(const glm::vec3& _p) const {
     // https://github.com/nmoehrle/libacc/blob/master/primitives.h#L71
     glm::vec3 ab = m_vertices[1] - m_vertices[0];
     glm::vec3 ac = m_vertices[2] - m_vertices[0];
@@ -249,7 +245,7 @@ glm::vec3 Triangle::closest(const glm::vec3& _p) const {
 // by Inigo Quiles
 // https://iquilezles.org/articles/triangledistance/
 float dot2( glm::vec3 v ) { return glm::dot(v,v); }
-float Triangle::unsignedDistance(const glm::vec3& _p) const {
+float Triangle::getClosestDistance(const glm::vec3& _p) const {
 
     // prepare data    
     glm::vec3 v21 = m_vertices[1] - m_vertices[0]; glm::vec3 p1 = _p - m_vertices[0];
@@ -272,7 +268,7 @@ float Triangle::unsignedDistance(const glm::vec3& _p) const {
                         glm::dot(nor,p1)*glm::dot(nor,p1)/dot2(nor) );
 }
 
-// size_t Triangle::closestCoorner(const glm::vec3& _p) const {
+// size_t Triangle::getClosestCoorner(const glm::vec3& _p) const {
 //     // Get 3 vectors, going from the test point to all potential candidates
 //     glm::vec3 diff1 = _p - m_vertices[0]; // Vector from test point to potentially closest 1
 //     glm::vec3 diff2 = _p - m_vertices[1]; // Vector from test point to potentially closest 2
@@ -516,12 +512,12 @@ float Triangle::unsignedDistance(const glm::vec3& _p) const {
 //     _nearest_point = m_vertices[0] + s * edge0 + t * edge1;
 // }
 
-float Triangle::signedDistance(const glm::vec3& _p) const {
+float Triangle::getClosestSignedDistance(const glm::vec3& _p) const {
     glm::vec3 nearest = glm::vec3(0.0);
     glm::vec3 pseudo_normal = getNormal();
     float distance = 0.0;
 
-    nearest = closest(_p);
+    nearest = getClosestPoint(_p);
 
     glm::vec3 u = _p - nearest;
     distance = glm::length(u);
@@ -534,6 +530,27 @@ float Triangle::signedDistance(const glm::vec3& _p) const {
     // distance *= glm::sign( glm::dot(_p, m_normal) - glm::dot(m_vertices[0], m_normal) );
 
     return distance;
+}
+
+glm::vec4 Triangle::getClosestRGBSignedDistance(const glm::vec3& _p) const {
+    glm::vec3 nearest = glm::vec3(0.0);
+    glm::vec3 pseudo_normal = getNormal();
+
+    nearest = getClosestPoint(_p);
+
+    glm::vec3 barycentric = getBarycentricOf(nearest);
+    glm::vec4 c = getColor( barycentric );
+
+    glm::vec3 u = _p - nearest;
+    c.a = glm::length(u);
+    // c.a = unsignedDistance(_p);
+
+    pseudo_normal = getNormal( barycentric );
+
+    c.a = (glm::dot( glm::normalize(u), glm::normalize(pseudo_normal) ) >= 0.0)? c.a : -c.a; 
+    // c.a *= glm::sign( glm::dot(_p, m_normal) - glm::dot(m_vertices[0], m_normal) );
+
+    return c;
 }
 
 }

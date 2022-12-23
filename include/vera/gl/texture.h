@@ -18,6 +18,8 @@ enum TextureType {
 class Texture {
 public:
     Texture();
+    Texture(const Image& _img, TextureFilter _filter = LINEAR, TextureWrap _wrap = REPEAT);
+    Texture(const Image* _img, TextureFilter _filter = LINEAR, TextureWrap _wrap = REPEAT);
     virtual ~Texture();
 
     virtual bool    load(const Image& _img, TextureFilter _filter = LINEAR, TextureWrap _wrap = REPEAT);

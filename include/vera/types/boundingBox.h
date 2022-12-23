@@ -27,7 +27,7 @@ public:
     glm::vec3   getCenter() const { return min + (max - min) * 0.5f; }
     glm::vec3   getDiagonal() const { return max - min; }
     glm::vec4   get2DBoundingBox() const { return glm::vec4(min.x, min.y, max.x, max.y); }
-    float       getArea() const { glm::vec3 e = getDiagonal(); return (e.x * e.y + e.y * e.z + e.z * e.x) * 2.0f; }
+    float       getArea() const { glm::vec3 e = getDiagonal(); return (e.x * e.y + e.y * e.z + e.z * e.x); };// * 2.0f; }
 
     float       getClosestX (const float &_x) const { return  glm::max(min.x, glm::min(_x, max.x)); }
     float       getClosestY (const float &_y) const { return  glm::max(min.y, glm::min(_y, max.y)); }

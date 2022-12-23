@@ -3,8 +3,7 @@
 #include <vector>
 
 #include "glm/glm.hpp"
-
-// #include "vera/types/material.h"
+#include "vera/types/material.h"
 
 namespace vera {
 
@@ -63,11 +62,12 @@ public :
     const glm::vec4&    getTangent(size_t _index) const { return m_tangents[_index]; }
     glm::vec4           getTangent(const glm::vec3& _barycenterCoord ) const;
     
-    // MaterialConstPtr    material = nullptr;
-    size_t              closestCoorner(const glm::vec3& _p) const;
-    glm::vec3           closest(const glm::vec3& _p) const;
-    float               signedDistance(const glm::vec3& _p) const;
-    float               unsignedDistance(const glm::vec3& _p) const;
+    Material*           material = nullptr;
+    // size_t              getClosestCoorner(const glm::vec3& _p) const;
+    glm::vec3           getClosestPoint(const glm::vec3& _p) const;
+    float               getClosestDistance(const glm::vec3& _p) const;
+    float               getClosestSignedDistance(const glm::vec3& _p) const;
+    glm::vec4           getClosestRGBSignedDistance(const glm::vec3& _p) const;
 
     static bool         compare(const Triangle& _a, const Triangle& _b, size_t _axis) {
         return _a.getCentroid()[_axis] < _b.getCentroid()[_axis];

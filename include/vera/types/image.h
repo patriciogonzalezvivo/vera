@@ -75,7 +75,7 @@ protected:
     friend class        Texture;
 };
 
-typedef std::shared_ptr<Image> ImagePtr;
-typedef std::shared_ptr<Image const> ImageConstPtr;
+// typedef std::shared_ptr<Image> ImagePtr;
+// typedef std::shared_ptr<Image const> ImageConstPtr;
 
 }

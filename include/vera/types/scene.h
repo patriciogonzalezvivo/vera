@@ -32,7 +32,7 @@ typedef std::map<std::string, TextureCube*>     TextureCubesMap;
 typedef std::map<std::string, Light*>           LightsMap;
 typedef std::map<std::string, Camera*>          CamerasMap;
 typedef std::map<std::string, Model*>           ModelsMap;
-typedef std::map<std::string, Material>         MaterialsMap;
+typedef std::map<std::string, Material*>        MaterialsMap;
 typedef std::map<std::string, Shader*>          ShadersMap;
 
 typedef std::map<std::string, Font*>            FontsMap;

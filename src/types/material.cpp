@@ -18,11 +18,9 @@ void Material::feedProperties(Shader& _shader) const {
     _shader.mergeDefines( m_defines );
 }
 
-
-void Material::set(const std::string& _property, const Image& _image) {
-    texturesPaths[_property] = _image.name + ".png";
-    ImagePtr image = std::make_shared<Image>( _image );
-    textures[_property] = image;
+void Material::set(const std::string& _property, Image* _image) {
+    texturesPaths[_property] = _image->name + ".png";
+    textures[_property] = _image;
     properties[_property] = TEXTURE;
 }
 
@@ -30,11 +28,14 @@ void Material::set(const std::string& _property, const std::string& _filename) {
     texturesPaths[_property] = _filename;
 
     if ( urlExists(_filename) ) {
-        ImagePtr image = std::make_shared<Image>( Image() );
+        // ImagePtr image = std::make_shared<Image>( Image() );
+        Image* image = new Image();
         if ( image->load(_filename)) {
             textures[_property] = image;
             properties[_property] = TEXTURE;
         }
+        else
+            delete image;
     }
 }
 
@@ -79,7 +80,7 @@ std::string Material::getImagePath(const std::string& _property) const {
 // }
 
 Image Material::getImage(const std::string& _property) const {
-    const std::map<const std::string, ImagePtr>::const_iterator it = textures.find(_property);
+    const std::map<const std::string, Image*>::const_iterator it = textures.find(_property);
     if (it != textures.end() )
         return *it->second;
 
@@ -91,7 +92,8 @@ glm::vec4 Material::getColor(const std::string& _property, const glm::vec2& _uv)
     if (haveProperty(_property)) {
         MaterialPropertyType type = properties.find(_property)->second;
         if (type == TEXTURE) {
-            const ImagePtr tex = textures.find(_property)->second;
+            // const ImagePtr tex = textures.find(_property)->second;
+            const Image* tex = textures.find(_property)->second;
             return tex->getColor( tex->getIndexUV(_uv.x, _uv.y) );
         }
         else if (type == COLOR)
@@ -119,7 +121,7 @@ float Material::getValue(const std::string& _property, const glm::vec2& _uv) con
     if (haveProperty(_property)) {
         MaterialPropertyType type = properties.find(_property)->second;
         if (type == TEXTURE) {
-            const ImagePtr tex = textures.find(_property)->second;
+            const Image* tex = textures.find(_property)->second;
             return tex->getColor( tex->getIndexUV( _uv.x, _uv.y ) )[0];
         }
         else if (type == COLOR)

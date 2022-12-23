@@ -15,7 +15,7 @@
 
 namespace vera {
 
-void addModel(Scene* _scene, const std::string& _name, Mesh& _mesh, Material& _mat, bool _verbose) {
+void addModel(Scene* _scene, const std::string& _name, Mesh& _mesh, Material* _mat, bool _verbose) {
     if (_verbose) {
         std::cout << "    vertices = " << _mesh.getVertices().size() << std::endl;
         std::cout << "    colors   = " << _mesh.getColors().size() << std::endl;
@@ -118,222 +118,224 @@ glm::vec2 getTexCoords(const tinyobj::attrib_t& _attrib, int _index) {
                         1.0f - _attrib.texcoords[2 * _index + 1]);
 }
 
-Material InitMaterial (const tinyobj::material_t& _material, Scene* _scene, const std::string& _folder ) {
-    Material mat;
-    mat.name = toLower( toUnderscore( purifyString( _material.name ) ) );
+Material* InitMaterial(const tinyobj::material_t& _material, Scene* _scene, const std::string& _folder ) {
 
-    mat.addDefine("MATERIAL_NAME_" + toUpper(mat.name) );
+    std::string mat_name = toLower( toUnderscore( purifyString( _material.name ) ) );
 
-    mat.addDefine("MATERIAL_BASECOLOR", glm::vec4(_material.diffuse[0], _material.diffuse[1], _material.diffuse[2], 1.0));
+    if (_scene->materials.find(mat_name) != _scene->materials.end())
+        return _scene->materials[mat_name];
+
+    Material* mat = new Material(mat_name);
+    mat->addDefine("MATERIAL_NAME_" + toUpper(mat->name) );
+    mat->addDefine("MATERIAL_BASECOLOR", glm::vec4(_material.diffuse[0], _material.diffuse[1], _material.diffuse[2], 1.0));
     if (!_material.diffuse_texname.empty()) {
         std::string name = getUniformName(_material.diffuse_texname);
         _scene->addTexture(name, _folder + _material.diffuse_texname);
-        mat.addDefine("MATERIAL_BASECOLORMAP", name);
+        mat->addDefine("MATERIAL_BASECOLORMAP", name);
 
         if (_material.diffuse_texopt.origin_offset[0] != 0.0 ||
             _material.diffuse_texopt.origin_offset[1] != 0.0 ) {
-            mat.addDefine("MATERIAL_BASECOLORMAP_OFFSET", (float*)_material.diffuse_texopt.origin_offset, 3);
+            mat->addDefine("MATERIAL_BASECOLORMAP_OFFSET", (float*)_material.diffuse_texopt.origin_offset, 3);
         }
 
         if (_material.diffuse_texopt.scale[0] != 1.0 ||
             _material.diffuse_texopt.scale[1] != 1.0 ) {
-            mat.addDefine("MATERIAL_BASECOLORMAP_SCALE", (float*)_material.diffuse_texopt.scale, 3);
+            mat->addDefine("MATERIAL_BASECOLORMAP_SCALE", (float*)_material.diffuse_texopt.scale, 3);
         }
     }
 
-    mat.addDefine("MATERIAL_SPECULAR", (float*)_material.specular, 3);
+    mat->addDefine("MATERIAL_SPECULAR", (float*)_material.specular, 3);
     if (!_material.specular_texname.empty()) {
         std::string name = getUniformName(_material.specular_texname);
         _scene->addTexture(name, _folder + _material.specular_texname);
-        mat.addDefine("MATERIAL_SPECULARMAP", name);
+        mat->addDefine("MATERIAL_SPECULARMAP", name);
 
         if (_material.specular_texopt.origin_offset[0] != 0.0 ||
             _material.specular_texopt.origin_offset[1] != 0.0 ) {
-            mat.addDefine("MATERIAL_SPECULARMAP_OFFSET", (float*)_material.specular_texopt.origin_offset, 3);
+            mat->addDefine("MATERIAL_SPECULARMAP_OFFSET", (float*)_material.specular_texopt.origin_offset, 3);
         }
 
         if (_material.specular_texopt.scale[0] != 1.0 ||
             _material.specular_texopt.scale[1] != 1.0 ) {
-            mat.addDefine("MATERIAL_SPECULARMAP_SCALE", (float*)_material.specular_texopt.scale, 3);
+            mat->addDefine("MATERIAL_SPECULARMAP_SCALE", (float*)_material.specular_texopt.scale, 3);
         }
     }
 
-    mat.addDefine("MATERIAL_EMISSIVE", (float*)_material.emission, 3);
+    mat->addDefine("MATERIAL_EMISSIVE", (float*)_material.emission, 3);
     if (!_material.emissive_texname.empty()) {
         std::string name = getUniformName(_material.emissive_texname);
         _scene->addTexture(name, _folder + _material.emissive_texname);
-        mat.addDefine("MATERIAL_EMISSIVEMAP", name);
+        mat->addDefine("MATERIAL_EMISSIVEMAP", name);
 
         if (_material.emissive_texopt.origin_offset[0] != 0.0 ||
             _material.emissive_texopt.origin_offset[1] != 0.0 ) {
-            mat.addDefine("MATERIAL_EMISSIVEMAP_OFFSET", (float*)_material.emissive_texopt.origin_offset, 3);
+            mat->addDefine("MATERIAL_EMISSIVEMAP_OFFSET", (float*)_material.emissive_texopt.origin_offset, 3);
         }
 
         if (_material.emissive_texopt.scale[0] != 1.0 ||
             _material.emissive_texopt.scale[1] != 1.0 ) {
-            mat.addDefine("MATERIAL_EMISSIVEMAP_SCALE", (float*)_material.emissive_texopt.scale, 3);
+            mat->addDefine("MATERIAL_EMISSIVEMAP_SCALE", (float*)_material.emissive_texopt.scale, 3);
         }
     }
 
-    mat.addDefine("MATERIAL_ROUGHNESS", _material.roughness);
+    mat->addDefine("MATERIAL_ROUGHNESS", _material.roughness);
     if (!_material.roughness_texname.empty()) {
         std::string name = getUniformName(_material.roughness_texname);
         _scene->addTexture(name, _folder + _material.roughness_texname);
-        mat.addDefine("MATERIAL_ROUGHNESSMAP", name);
+        mat->addDefine("MATERIAL_ROUGHNESSMAP", name);
 
         if (_material.roughness_texopt.origin_offset[0] != 0.0 ||
             _material.roughness_texopt.origin_offset[1] != 0.0 ) {
-            mat.addDefine("MATERIAL_ROUGHNESSMAP_OFFSET", (float*)_material.roughness_texopt.origin_offset, 3);
+            mat->addDefine("MATERIAL_ROUGHNESSMAP_OFFSET", (float*)_material.roughness_texopt.origin_offset, 3);
         }
 
         if (_material.roughness_texopt.scale[0] != 1.0 ||
             _material.roughness_texopt.scale[1] != 1.0 ) {
-            mat.addDefine("MATERIAL_ROUGHNESSMAP_SCALE", (float*)_material.roughness_texopt.scale, 3);
+            mat->addDefine("MATERIAL_ROUGHNESSMAP_SCALE", (float*)_material.roughness_texopt.scale, 3);
         }
     }
 
-    mat.addDefine("MATERIAL_METALLIC", _material.metallic);
+    mat->addDefine("MATERIAL_METALLIC", _material.metallic);
     if (!_material.metallic_texname.empty()) {
         std::string name = getUniformName(_material.metallic_texname);
         _scene->addTexture(name, _folder + _material.metallic_texname);
-        mat.addDefine("MATERIAL_METALLICMAP", name);
+        mat->addDefine("MATERIAL_METALLICMAP", name);
 
         if (_material.metallic_texopt.origin_offset[0] != 0.0 ||
             _material.metallic_texopt.origin_offset[1] != 0.0 ) {
-            mat.addDefine("MATERIAL_METALLICMAP_OFFSET", (float*)_material.metallic_texopt.origin_offset, 3);
+            mat->addDefine("MATERIAL_METALLICMAP_OFFSET", (float*)_material.metallic_texopt.origin_offset, 3);
         }
 
         if (_material.metallic_texopt.scale[0] != 1.0 ||
             _material.metallic_texopt.scale[1] != 1.0 ) {
-            mat.addDefine("MATERIAL_METALLICMAP_SCALE", (float*)_material.metallic_texopt.scale, 3);
+            mat->addDefine("MATERIAL_METALLICMAP_SCALE", (float*)_material.metallic_texopt.scale, 3);
         }
     }
 
     if (!_material.normal_texname.empty()) {
         std::string name = getUniformName(_material.normal_texname);
         _scene->addTexture(name, _folder + _material.normal_texname);
-        mat.addDefine("MATERIAL_NORMALMAP", name);
+        mat->addDefine("MATERIAL_NORMALMAP", name);
 
         if (_material.normal_texopt.origin_offset[0] != 0.0 ||
             _material.normal_texopt.origin_offset[1] != 0.0 ) {
-            mat.addDefine("MATERIAL_NORMALMAP_OFFSET", (float*)_material.normal_texopt.origin_offset, 3);
+            mat->addDefine("MATERIAL_NORMALMAP_OFFSET", (float*)_material.normal_texopt.origin_offset, 3);
         }
 
         if (_material.normal_texopt.scale[0] != 1.0 ||
             _material.normal_texopt.scale[1] != 1.0 ) {
-            mat.addDefine("MATERIAL_NORMALMAP_SCALE", (float*)_material.normal_texopt.scale, 3);
+            mat->addDefine("MATERIAL_NORMALMAP_SCALE", (float*)_material.normal_texopt.scale, 3);
         }
     }
 
     if (!_material.bump_texname.empty()) {
         std::string name = getUniformName(_material.bump_texname);
         _scene->addTexture(name, _folder + _material.bump_texname);
-        mat.addDefine("MATERIAL_BUMPMAP", name);
+        mat->addDefine("MATERIAL_BUMPMAP", name);
         _scene->addBumpTexture(name + "_normalmap", _folder + _material.bump_texname);
-        mat.addDefine("MATERIAL_BUMPMAP_NORMALMAP", name + "_normalmap");
+        mat->addDefine("MATERIAL_BUMPMAP_NORMALMAP", name + "_normalmap");
 
         if (_material.bump_texopt.origin_offset[0] != 0.0 ||
             _material.bump_texopt.origin_offset[1] != 0.0 ) {
-            mat.addDefine("MATERIAL_BUMPMAP_OFFSET", (float*)_material.bump_texopt.origin_offset, 3);
+            mat->addDefine("MATERIAL_BUMPMAP_OFFSET", (float*)_material.bump_texopt.origin_offset, 3);
             
         }
 
         if (_material.bump_texopt.scale[0] != 1.0 ||
             _material.bump_texopt.scale[1] != 1.0 ) {
-            mat.addDefine("MATERIAL_BUMPMAP_SCALE", (float*)_material.bump_texopt.scale, 3);
+            mat->addDefine("MATERIAL_BUMPMAP_SCALE", (float*)_material.bump_texopt.scale, 3);
         }
     }
 
     if (!_material.displacement_texname.empty()) {
         std::string name = getUniformName(_material.displacement_texname);
         _scene->addTexture(name, _folder + _material.displacement_texname);
-        mat.addDefine("MATERIAL_DISPLACEMENTMAP", name);
+        mat->addDefine("MATERIAL_DISPLACEMENTMAP", name);
 
         if (_material.displacement_texopt.origin_offset[0] != 0.0 ||
             _material.displacement_texopt.origin_offset[1] != 0.0 ) {
-            mat.addDefine("MATERIAL_DISPLACEMENTMAP_OFFSET", (float*)_material.displacement_texopt.origin_offset, 3);
+            mat->addDefine("MATERIAL_DISPLACEMENTMAP_OFFSET", (float*)_material.displacement_texopt.origin_offset, 3);
         }
 
         if (_material.displacement_texopt.scale[0] != 1.0 ||
             _material.displacement_texopt.scale[1] != 1.0 ) {
-            mat.addDefine("MATERIAL_DISPLACEMENTMAP_SCALE", (float*)_material.displacement_texopt.scale, 3);
+            mat->addDefine("MATERIAL_DISPLACEMENTMAP_SCALE", (float*)_material.displacement_texopt.scale, 3);
         }
     }
 
     if (!_material.alpha_texname.empty()) {
         std::string name = getUniformName(_material.alpha_texname);
         _scene->addTexture(name, _folder + _material.alpha_texname);
-        mat.addDefine("MATERIAL_ALPHAMAP", name);
+        mat->addDefine("MATERIAL_ALPHAMAP", name);
 
         if (_material.alpha_texopt.origin_offset[0] != 0.0 ||
             _material.alpha_texopt.origin_offset[1] != 0.0 ) {
-            mat.addDefine("MATERIAL_ALPHAMAP_OFFSET", (float*)_material.alpha_texopt.origin_offset, 3);
+            mat->addDefine("MATERIAL_ALPHAMAP_OFFSET", (float*)_material.alpha_texopt.origin_offset, 3);
         }
 
         if (_material.alpha_texopt.scale[0] != 1.0 ||
             _material.alpha_texopt.scale[1] != 1.0 ) {
-            mat.addDefine("MATERIAL_ALPHAMAP_SCALE", (float*)_material.alpha_texopt.scale, 3);
+            mat->addDefine("MATERIAL_ALPHAMAP_SCALE", (float*)_material.alpha_texopt.scale, 3);
         }
     }
     
     // EXTRA 
-     mat.addDefine("MATERIAL_SHEEN", _material.sheen);
+     mat->addDefine("MATERIAL_SHEEN", _material.sheen);
     if (!_material.sheen_texname.empty()) {
         std::string name = getUniformName(_material.sheen_texname);
         _scene->addTexture(name, _folder + _material.sheen_texname);
-        mat.addDefine("MATERIAL_SHEENMAP", name);
+        mat->addDefine("MATERIAL_SHEENMAP", name);
 
         if (_material.sheen_texopt.origin_offset[0] != 0.0 ||
             _material.sheen_texopt.origin_offset[1] != 0.0 ) {
-            mat.addDefine("MATERIAL_SHEENMAP_OFFSET", (float*)_material.sheen_texopt.origin_offset, 3);
+            mat->addDefine("MATERIAL_SHEENMAP_OFFSET", (float*)_material.sheen_texopt.origin_offset, 3);
         }
 
         if (_material.sheen_texopt.scale[0] != 1.0 ||
             _material.sheen_texopt.scale[1] != 1.0 ) {
-            mat.addDefine("MATERIAL_SHEENMAP_SCALE", (float*)_material.sheen_texopt.scale, 3);
+            mat->addDefine("MATERIAL_SHEENMAP_SCALE", (float*)_material.sheen_texopt.scale, 3);
         }
     }
 
-    mat.addDefine("MATERIAL_SHININESS", _material.shininess);
-
-    mat.addDefine("MATERIAL_ILLUM", _material.illum);
+    mat->addDefine("MATERIAL_SHININESS", _material.shininess);
+    mat->addDefine("MATERIAL_ILLUM", _material.illum);
 
     if (_material.anisotropy > 0)
-        mat.addDefine("MATERIAL_ANISOTROPY", _material.anisotropy);
+        mat->addDefine("MATERIAL_ANISOTROPY", _material.anisotropy);
 
     if (_material.anisotropy_rotation > 0)
-        mat.addDefine("MATERIAL_ANISOTROPY_ROTATION", _material.anisotropy_rotation);
+        mat->addDefine("MATERIAL_ANISOTROPY_ROTATION", _material.anisotropy_rotation);
 
     if (_material.clearcoat_roughness > 0)
-        mat.addDefine("MATERIAL_CLEARCOAT_ROUGHNESS", _material.clearcoat_roughness);
+        mat->addDefine("MATERIAL_CLEARCOAT_ROUGHNESS", _material.clearcoat_roughness);
 
     if (_material.clearcoat_thickness > 0)
-        mat.addDefine("MATERIAL_CLEARCOAT_THICKNESS", _material.clearcoat_thickness);
+        mat->addDefine("MATERIAL_CLEARCOAT_THICKNESS", _material.clearcoat_thickness);
 
-    mat.addDefine("MATERIAL_IOR", _material.ior);
+    mat->addDefine("MATERIAL_IOR", _material.ior);
 
-    // mat.addDefine("MATERIAL_AMBIENT", (float*)_material.ambient, 3);
+    // mat->addDefine("MATERIAL_AMBIENT", (float*)_material.ambient, 3);
     // if (!_material.ambient_texname.empty()) {
     //     std::string name = getUniformName(_material.ambient_texname);
     //     _scene->addTexture(name, _folder + _material.ambient_texname);
-    //     mat.addDefine("MATERIAL_AMBIENTMAP", name);
+    //     mat->addDefine("MATERIAL_AMBIENTMAP", name);
     // }
 
-    mat.addDefine("MATERIAL_DISSOLVE", _material.dissolve);
-    mat.addDefine("MATERIAL_TRANSMITTANCE", (float*)_material.transmittance, 3);
+    mat->addDefine("MATERIAL_DISSOLVE", _material.dissolve);
+    mat->addDefine("MATERIAL_TRANSMITTANCE", (float*)_material.transmittance, 3);
     if (!_material.reflection_texname.empty()) {
         std::string name = getUniformName(_material.reflection_texname);
         _scene->addTexture(name, _folder + _material.reflection_texname);
-        mat.addDefine("MATERIAL_REFLECTIONMAP", name);
+        mat->addDefine("MATERIAL_REFLECTIONMAP", name);
 
         if (_material.reflection_texopt.origin_offset[0] != 0.0 ||
             _material.reflection_texopt.origin_offset[1] != 0.0 ) {
-            mat.addDefine("MATERIAL_REFLECTIONMAP_OFFSET", (float*)_material.reflection_texopt.origin_offset, 3);
+            mat->addDefine("MATERIAL_REFLECTIONMAP_OFFSET", (float*)_material.reflection_texopt.origin_offset, 3);
         }
 
         if (_material.reflection_texopt.scale[0] != 1.0 ||
             _material.reflection_texopt.scale[1] != 1.0 ) {
-            mat.addDefine("MATERIAL_REFLECTIONMAP_SCALE", (float*)_material.reflection_texopt.scale, 3);
+            mat->addDefine("MATERIAL_REFLECTIONMAP_SCALE", (float*)_material.reflection_texopt.scale, 3);
         }
     }
 
@@ -383,8 +385,7 @@ bool loadOBJ(const std::string& _filename, Scene* _scene, bool _verbose) {
             if (_verbose)
                 std::cout << "Add Material " << materials[m].name << std::endl;
 
-            Material mat = InitMaterial( materials[m], _scene, base_dir );
-            _scene->materials[ materials[m].name ] = mat;
+            _scene->materials[ materials[m].name ] = InitMaterial( materials[m], _scene, base_dir );
         }
     }
 
@@ -407,7 +408,11 @@ bool loadOBJ(const std::string& _filename, Scene* _scene, bool _verbose) {
         Mesh mesh;
         mesh.setDrawMode(TRIANGLES);
 
-        Material mat;
+        if (_scene->materials.find("default") == _scene->materials.end())
+            _scene->materials["default"] = new Material("default");
+        
+        Material* mat = _scene->materials["default"];
+
         std::map<int, tinyobj::index_t> unique_indices;
         std::map<int, tinyobj::index_t>::iterator iter;
         
@@ -497,33 +502,33 @@ bool loadOBJ(const std::string& _filename, Scene* _scene, bool _verbose) {
     return true;
 }
 
-// Material InitMaterial (const tinyobj::material_t& _material) {
-//     Material mat = Material( toLower( toUnderscore( purifyString( _material.name ) ) ) );
+// Material* InitMaterial (const tinyobj::material_t& _material) {
+//     Material* mat = new Material( toLower( toUnderscore( purifyString( _material.name ) ) ) );
 
 //     if (_material.diffuse_texname.size() > 0)
-//         mat.set("diffuse", _material.diffuse_texname);
+//         mat->set("diffuse", _material.diffuse_texname);
 //     else
-//         mat.set("diffuse", &_material.diffuse[0], 3);
+//         mat->set("diffuse", &_material.diffuse[0], 3);
 
 //     if (_material.specular_texname.size() > 0)
-//         mat.set("specular", _material.specular_texname);
+//         mat->set("specular", _material.specular_texname);
 //     else
-//         mat.set("specular", &_material.specular[0], 3);
+//         mat->set("specular", &_material.specular[0], 3);
 
 //     if (_material.emissive_texname.size() > 0)
-//         mat.set("emissive", _material.emissive_texname);
+//         mat->set("emissive", _material.emissive_texname);
 //     else
-//         mat.set("emissive", &_material.emission[0], 3);
+//         mat->set("emissive", &_material.emission[0], 3);
 
 //     if (_material.roughness_texname.size() > 0)
-//         mat.set("roughness", _material.roughness_texname);
+//         mat->set("roughness", _material.roughness_texname);
 //     else if (_material.roughness > 0.0f)
-//         mat.set("roughness", _material.roughness);
+//         mat->set("roughness", _material.roughness);
 
 //     if (_material.metallic_texname.size() > 0)
-//         mat.set("metallic", _material.metallic_texname);
+//         mat->set("metallic", _material.metallic_texname);
 //     else if (_material.roughness > 0.0f)
-//         mat.set("metallic", _material.metallic);
+//         mat->set("metallic", _material.metallic);
 
 //     mat.illuminationModel = _material.illum;
 //     return mat;

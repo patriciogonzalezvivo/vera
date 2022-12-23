@@ -458,7 +458,11 @@ bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose) {
     std::fstream is(_filename.c_str(), std::ios::in);
     if (is.is_open()) {
 
-        Material default_material;
+        if (_scene->materials.find("default") == _scene->materials.end())
+            _scene->materials["default"] = new Material("default");
+        
+        Material* default_material = _scene->materials["default"];
+
         Mesh mesh;
 
         std::string line;
@@ -705,7 +709,7 @@ bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose) {
 
         mesh.computeTangents();
 
-        _scene->materials[default_material.name] = default_material;
+        _scene->materials[default_material->name] = default_material;
 
         if (mesh.getDrawMode() == GL_POINTS)
             name = "points";

@@ -218,13 +218,12 @@ void BVH::_split_sah() {
     std::vector<Triangle> right_el;
 
     for (size_t i = 0; i < elements.size(); i++) {
-        if (elements[i].getCentroid()[axis] < splitPos)
+        if (elements[i].getCentroid()[axis] <= splitPos)
             left_el.push_back(elements[i]);
         else
             right_el.push_back(elements[i]);
     }
 
-    std::cout << left_el.size() << "/" << right_el.size() << std::endl;
     if (left_el.size() == 0 || right_el.size() == 0)
         leaf = true;
     else {
@@ -259,13 +258,13 @@ std::shared_ptr<BVH> BVH::hit(const Ray& _ray, float& _minDistance, float& _maxD
         return std::make_shared<BVH>( *this );
 }
 
-glm::vec3 BVH::getClosest(const glm::vec3& _point) const {
-    glm::vec3 closest = elements[0].closest(_point);
+glm::vec3 BVH::getClosestPointOnTriangle(const glm::vec3& _point) const {
+    glm::vec3 closest = elements[0].getClosestPoint(_point);
     float minDist = glm::distance(closest, _point);
 
     if (leaf) {
         for (size_t i = 1; i < elements.size(); i++) {
-            glm::vec3 c = elements[i].closest(_point);
+            glm::vec3 c = elements[i].getClosestPoint(_point);
             float d = glm::distance(closest, _point);
             if (d < minDist) {
                 closest = c;
@@ -274,9 +273,9 @@ glm::vec3 BVH::getClosest(const glm::vec3& _point) const {
         }
     }
     else if (right != nullptr && left != nullptr) {
-        glm::vec3 left_c = left->getClosest(_point);
+        glm::vec3 left_c = left->getClosestPointOnTriangle(_point);
         float left_dist = glm::distance(left_c, _point);
-        glm::vec3 right_c = right->getClosest(_point);
+        glm::vec3 right_c = right->getClosestPointOnTriangle(_point);
         float right_dist = glm::distance(right_c, _point);
         return (left_dist <= right_dist)? left_c : right_c;
     }
@@ -284,18 +283,18 @@ glm::vec3 BVH::getClosest(const glm::vec3& _point) const {
     return closest;
 }
 
-float BVH::getMinDistance(const glm::vec3& _point) const {
+float BVH::getClosestDistance(const glm::vec3& _point) const {
     float minDist = 3.0e+038;
     if (leaf) {
         for (size_t i = 0; i < elements.size(); i++) {
-            float d = elements[i].unsignedDistance(_point);
+            float d = elements[i].getClosestDistance(_point);
             if (d < minDist)
                 minDist = d;
         }
     }
     else if (right != nullptr && left != nullptr) {
-        float left_dist = left->getMinDistance(_point);
-        float right_dist = right->getMinDistance(_point);
+        float left_dist = left->getClosestDistance(_point);
+        float right_dist = right->getClosestDistance(_point);
         if (left_dist <= right_dist)
             return left_dist;
         else 
@@ -304,11 +303,11 @@ float BVH::getMinDistance(const glm::vec3& _point) const {
     return minDist;
 }
 
-float BVH::getMinSignedDistance(const glm::vec3& _point) const {
+float BVH::getClosestSignedDistance(const glm::vec3& _point) const {
     float minDist = 3.0e+038;
     if (leaf) {
         for (size_t i = 0; i < elements.size(); i++) {
-            float d = elements[i].signedDistance(_point);
+            float d = elements[i].getClosestSignedDistance(_point);
             if (abs(d) < abs(minDist)) {
                 minDist = d;
             }
@@ -320,20 +319,53 @@ float BVH::getMinSignedDistance(const glm::vec3& _point) const {
         float right_dist = abs( _point[axis] - right->getClosestOn(_point[axis], axis) );
 
         if ( abs(left_dist - right_dist) <= left_dist * 0.1 ) {
-            left_dist = left->getMinSignedDistance(_point);
-            right_dist = right->getMinSignedDistance(_point);
+            left_dist = left->getClosestSignedDistance(_point);
+            right_dist = right->getClosestSignedDistance(_point);
             if (abs(left_dist) < abs(right_dist))
                 return left_dist;
             else 
                 return right_dist;
         }
         else if (left_dist <= right_dist)
-            return left->getMinSignedDistance(_point);
+            return left->getClosestSignedDistance(_point);
         else 
-            return right->getMinSignedDistance(_point);
+            return right->getClosestSignedDistance(_point);
 
     }
     return minDist;
+}
+
+glm::vec4 BVH::getClosestRGBSignedDistance(const glm::vec3& _point) const {
+    glm::vec4 closest = glm::vec4(1.0f, 1.0f, 1.0f, float(10.0));
+
+    if (leaf) {
+        for (size_t i = 0; i < elements.size(); i++) {
+            glm::vec4 d = elements[i].getClosestRGBSignedDistance(_point);
+            if (abs(d.a) < abs(closest.a))
+                closest = d;
+        }
+        return closest;
+    }
+    else if (right != nullptr && left != nullptr) {
+        float left_dist  = abs( _point[axis] - left->getClosestOn(_point[axis], axis) );
+        float right_dist = abs( _point[axis] - right->getClosestOn(_point[axis], axis) );
+
+        // if ( abs(left_dist - right_dist) <= left_dist * 0.1 ) {
+        if (left_dist == right_dist) {
+            glm::vec4 left_rgbd = left->getClosestRGBSignedDistance(_point);
+            glm::vec4 right_rgbd = right->getClosestRGBSignedDistance(_point);
+            if (abs(left_rgbd.a) < abs(right_rgbd.a))
+                return left_rgbd;
+            else 
+                return right_rgbd;
+        }
+        else if (left_dist <= right_dist)
+            return left->getClosestRGBSignedDistance(_point);
+        else 
+            return right->getClosestRGBSignedDistance(_point);
+
+    }
+    return closest;
 }
 
 }

@@ -7,7 +7,15 @@
 namespace vera {
 
 // TEXTURE
-Texture::Texture():m_path(""), m_width(0), m_height(0), m_id(0), m_vFlip(false) {
+Texture::Texture() : m_path(""), m_width(0), m_height(0), m_id(0), m_vFlip(false) {
+}
+
+Texture::Texture(const Image& _img, TextureFilter _filter, TextureWrap _wrap) : m_path(""), m_width(0), m_height(0), m_id(0), m_vFlip(false) {
+    load(_img);
+}
+
+Texture::Texture(const Image* _img, TextureFilter _filter, TextureWrap _wrap) : m_path(""), m_width(0), m_height(0), m_id(0), m_vFlip(false) {
+    load(_img);
 }
 
 Texture::~Texture() {

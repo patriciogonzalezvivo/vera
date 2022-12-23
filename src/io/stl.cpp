@@ -17,9 +17,11 @@ namespace vera {
 bool loadSTL(const std::string& _filename, Scene* _scene, bool _verbose) {
     std::string name = _filename.substr(0, _filename.size()-4);
 
+    if (_scene->materials.find("default") == _scene->materials.end())
+        _scene->materials["default"] = new Material("default");
+        
     Mesh mesh;
-    Material default_material;
-    _scene->materials[default_material.name] = default_material;
+    Material* default_material = _scene->materials["default"];
 
     FILE * stl_file = fopen(_filename.c_str(),"rb");
     if (NULL == stl_file) {

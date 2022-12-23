@@ -624,13 +624,12 @@ Image   toSdf(const Mesh& _mesh, float _paddingPct, int _resolution) {
                     glm::vec3 p = glm::vec3(x, y, z) * voxel_size;
                     p = acc.min + p * bdiagonal;
 
-                    float c = acc.getMinSignedDistance(p);
+                    glm::vec4 c = acc.getClosestRGBSignedDistance(p);
+                    c.a = glm::clamp(c.a/max_dist, -1.0f, 1.0f) * 0.5 + 0.5;
 
                     size_t layerX = (z % layersTotal) * voxel_resolution; 
                     size_t layerY = floor(z / layersTotal) * voxel_resolution;
-                    size_t index = rta.getIndex(layerX + x, layerY + y);
-                    if (index < rta.size())
-                        rta.setValue(index, glm::clamp(c/max_dist, -1.0f, 1.0f) * 0.5 + 0.5);
+                    rta.setColor(rta.getIndex(layerX + x, layerY + y), c);
                 }
             }
         );
@@ -645,12 +644,22 @@ Image   toSdf(const Mesh& _mesh, float _paddingPct, int _resolution) {
 
 Image toSdfLayer( const BVH* _acc, size_t _voxel_resolution, size_t _z_layer) {
     float voxel_size    = 1.0/float(_voxel_resolution);
-    const int nThreads  = std::thread::hardware_concurrency();
+    int nThreads  = std::thread::hardware_concurrency();
+
+    if (nThreads > _voxel_resolution)
+        nThreads = _voxel_resolution;
+
     int layersPerThread = _voxel_resolution / nThreads;
     int layersLeftOver  = _voxel_resolution % nThreads;
     glm::vec3 bdiagonal = _acc->getDiagonal();
     float max_dist      = glm::length(bdiagonal) * 0.5f;
+
     Image layer = Image(_voxel_resolution, _voxel_resolution, 4);
+
+    bool RGBD = _acc->elements[0].haveColors();
+    if (!RGBD && _acc->elements[0].material != nullptr)
+        if (_acc->elements[0].material->haveProperty("diffuse"))
+            RGBD = true;
 
     std::vector<std::thread> threads;
     for (int i = 0; i < nThreads; ++i) {
@@ -659,22 +668,48 @@ Image toSdfLayer( const BVH* _acc, size_t _voxel_resolution, size_t _z_layer) {
         if (i == nThreads - 1)
             end_row = start_row + layersPerThread + layersLeftOver;
 
-        std::thread t(
-            [_acc, &layer, start_row, end_row, _z_layer, _voxel_resolution, voxel_size, bdiagonal, max_dist]() {
-                for (int y = start_row; y < end_row; y++)
-                for (int x = 0; x < _voxel_resolution; x++) {
-                    
-                    glm::vec3 p = (glm::vec3(x, y, _z_layer) + 0.5f) * voxel_size;
-                    p = _acc->min + p * bdiagonal;
+        if (RGBD) {
+            std::thread t(
+                [_acc, &layer, start_row, end_row, _z_layer, _voxel_resolution, voxel_size, bdiagonal, max_dist]() {
+                    for (int y = start_row; y < end_row; y++)
+                    for (int x = 0; x < _voxel_resolution; x++) {
+                        // std::cout << "p " << x << ", " << y << ", " << _z_layer << std::endl;
+                        glm::vec3 p = (glm::vec3(x, y, _z_layer) + 0.5f) * voxel_size;
+                        p = _acc->min + p * bdiagonal;
 
-                    float c = _acc->getMinSignedDistance(p);
-                    size_t index = layer.getIndex(x, y);
-                    if (index < layer.size())
-                        layer.setColor(index, glm::vec4( glm::clamp(c/max_dist, -1.0f, 1.0f) * 0.5 + 0.5 ) );
+                        glm::vec4 c = _acc->getClosestRGBSignedDistance(p);
+
+                        c.a = glm::clamp(c.a/max_dist, -1.0f, 1.0f) * 0.5 + 0.5;
+                        size_t index = layer.getIndex(x, y);
+
+                        // std::cout << index << " " << std::endl;
+                        layer.setColor(index, c);
+                    }
                 }
-            }
-        );
-        threads.push_back(std::move(t));
+            );
+            threads.push_back(std::move(t));
+        }
+        else {
+            std::thread t(
+                [_acc, &layer, start_row, end_row, _z_layer, _voxel_resolution, voxel_size, bdiagonal, max_dist]() {
+                    for (int y = start_row; y < end_row; y++)
+                    for (int x = 0; x < _voxel_resolution; x++) {
+                        // std::cout << "p " << x << ", " << y << ", " << _z_layer << std::endl;
+                        glm::vec3 p = (glm::vec3(x, y, _z_layer) + 0.5f) * voxel_size;
+                        p = _acc->min + p * bdiagonal;
+
+                        glm::vec4 c = glm::vec4( 1.0f, 1.0f, 1.0f, _acc->getClosestSignedDistance(p) );
+
+                        c.a = glm::clamp(c.a/max_dist, -1.0f, 1.0f) * 0.5 + 0.5;
+                        size_t index = layer.getIndex(x, y);
+
+                        // std::cout << index << " " << std::endl;
+                        layer.setColor(index, c);
+                    }
+                }
+            );
+            threads.push_back(std::move(t));
+        }
     }
 
     for (std::thread& t : threads)
@@ -734,12 +769,13 @@ void refineSdfLayers(const BVH* _acc, std::vector<Image>& _images, float _dist) 
                     p = p + (_acc->elements[t].getNormal() * max_dist * _dist) + samples[t%64] * max_dist * _dist * 0.5f;
 
                     if (_acc->contains(p)) {
+                        glm::vec4 c = _acc->getClosestRGBSignedDistance(p);
+                        c.a = glm::clamp(c.a/max_dist, -1.0f, 1.0f) * 0.5 + 0.5;
 
-                        float c = glm::clamp(_acc->getMinSignedDistance(p) / max_dist, -1.0f, 1.0f);
                         glm::ivec3 v = remap(p, _acc->min, _acc->max, glm::vec3(0.0f), glm::vec3(voxel_resolution), true);
                         size_t z = v.z % voxel_resolution;
                         size_t index = _images[z].getIndex(v.x % voxel_resolution, v.y % voxel_resolution);
-                        _images[z].setColor(index, glm::vec4( c * 0.5 + 0.5 ) );
+                        _images[z].setColor(index, c);
                     }
                 }
             }

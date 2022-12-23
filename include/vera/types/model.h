@@ -18,7 +18,7 @@ class Model : public Node {
 public:
     Model();
     Model(const std::string& _name, const Mesh& _mesh);
-    Model(const std::string& _name, const Mesh& _mesh, const Material& _mat);
+    Model(const std::string& _name, const Mesh& _mesh, Material* _mat);
     virtual ~Model();
 
     bool            loaded() const { return m_model_vbo != nullptr; }
@@ -28,7 +28,7 @@ public:
 
     bool            setGeom(const Mesh& _mesh);
     void            setName(const std::string& _str);
-    bool            setMaterial(const Material& _material);
+    bool            setMaterial(Material* _material);
     void            setShader(const std::string& _fragStr, const std::string& _vertStr);
     void            setBufferShader(const std::string _bufferName, const std::string& _fragStr, const std::string& _vertStr);
 

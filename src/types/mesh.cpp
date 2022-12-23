@@ -8,10 +8,10 @@
 
 namespace vera {
 
-Mesh::Mesh():m_drawMode(TRIANGLES) {
+Mesh::Mesh():m_drawMode(TRIANGLES), m_material(nullptr) {
 }
 
-Mesh::Mesh(const Mesh &_mother) : m_drawMode(_mother.getDrawMode()) {
+Mesh::Mesh(const Mesh &_mother) : m_drawMode(_mother.getDrawMode()), m_material(nullptr) {
     append(_mother);
 }
 
@@ -446,7 +446,8 @@ std::vector<Triangle> Mesh::getTriangles() const {
         if (haveNormals()) tri.setNormals(m_normals[it->x], m_normals[it->y], m_normals[it->z]);
         if (haveTexCoords()) tri.setTexCoords(m_texCoords[it->x], m_texCoords[it->y], m_texCoords[it->z]);
         if (haveTangents()) tri.setTangents(m_tangents[it->x], m_tangents[it->y], m_tangents[it->z]);
-        // if (haveMaterials()) tri.material = getMaterialForFaceIndex(it->x);
+        if (m_material) tri.material = m_material;
+        
         triangles.push_back( tri );
         t++;
     }

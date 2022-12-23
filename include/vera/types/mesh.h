@@ -37,6 +37,10 @@ public:
     void                setDrawMode(DrawMode _drawMode = TRIANGLES) { m_drawMode = _drawMode; }
     DrawMode            getDrawMode() const { return m_drawMode; }
 
+    void                setMaterial(Material* _material) { m_material = _material; }
+    Material*           getMaterial() { return m_material; }
+    bool                haveMaterial() const { return m_material != nullptr; }
+
     // VERTICES
     void                addVertex(const glm::vec3 &_point);
     void                addVertices(const std::vector<glm::vec3> &_verts);
@@ -112,6 +116,7 @@ public:
     std::vector<Triangle>   getTriangles() const;
     std::vector<glm::ivec3> getTrianglesIndices() const;
 
+
 private:
     std::vector<glm::vec4>  m_colors;
     std::vector<glm::vec4>  m_tangents;
@@ -121,6 +126,7 @@ private:
     std::vector<INDEX_TYPE> m_indices;
 
     DrawMode                m_drawMode;
+    Material*               m_material;
 
     friend void transform(Mesh&, const glm::quat&);
     friend void transform(Mesh&, const glm::mat3&);
