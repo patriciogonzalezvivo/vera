@@ -53,7 +53,7 @@ Image               toSdf(      const Mesh& _mesh,
                                 float _paddingPct = 0.01f, 
                                 int _resolution = 6);
 
-Image               toSdfLayer(const BVH* _bvh, size_t _voxel_resolution, size_t _z_layer);
+Image               toSdfLayer(const BVH* _bvh, size_t _voxel_resolution, size_t _z_layer, float _refinement = 0.00125f);
 
 // void                refineSdfLayer(const BVH* _bvh, Image& _images);
 void                refineSdfLayers(const BVH* _bvh, std::vector<Image>& _images, float _dist);
