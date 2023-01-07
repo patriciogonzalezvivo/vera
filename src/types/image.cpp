@@ -130,17 +130,18 @@ bool Image::save(const std::string& _filepath, bool _vFlip) {
             for (size_t x = 0; x < m_width; x++) {
                 size_t index = getIndex(x, y);
                 glm::vec4 c = getColor( index );
-                
-                pixels[index * 4 + 0] = (unsigned char)(c.r * 255);
-                pixels[index * 4 + 1] = (unsigned char)(c.g * 255);
-                pixels[index * 4 + 2] = (unsigned char)(c.b * 255);
-                pixels[index * 4 + 3] = (unsigned char)(c.a * 255);
+                pixels[(y * m_width + x) * 4 + 0] = (unsigned char)(c.r * 255);
+                pixels[(y * m_width + x) * 4 + 1] = (unsigned char)(c.g * 255);
+                pixels[(y * m_width + x) * 4 + 2] = (unsigned char)(c.b * 255);
+                pixels[(y * m_width + x) * 4 + 3] = (unsigned char)(c.a * 255);
             }
         }
     }
 
-    return vera::savePixels(_filepath, pixels, m_width, m_height);
+    bool saved = vera::savePixels(_filepath, pixels, m_width, m_height);
     freePixels(pixels);
+
+    return saved;
 }
 
 bool Image::allocate(size_t _width, size_t _height, size_t _channels) {
