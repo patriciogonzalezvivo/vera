@@ -5,7 +5,6 @@
 #include <string>
 #include <map>
 
-
 #include "vera/gl/vbo.h"
 #include "vera/ops/fs.h"
 #include "vera/ops/pixel.h"

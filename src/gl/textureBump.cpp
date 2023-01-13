@@ -2,9 +2,9 @@
 
 #include "vera/gl/textureBump.h"
 
-#include "glm/glm.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/normal.hpp>
+#include "glm/glm.hpp"
+#include "glm/gtx/normal.hpp"
 
 #include "vera/ops/fs.h"
 #include "vera/ops/pixel.h"

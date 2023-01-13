@@ -227,8 +227,10 @@ Shader  loadShader(const std::string& _fragFile, const std::string& _vertFile);
 Shader  createShader(const std::string& _fragSrc = "", const std::string& _vertSrc = "");
 Shader  createShader(DefaultShaders _frag, DefaultShaders _vert);
 
-void    addShader(Shader& _shader, const std::string& _name);
-void    addShader(Shader* _shader, const std::string& _name);
+void    addShader(const std::string& _name, Shader& _shader);
+void    addShader(const std::string& _name, Shader* _shader);
+void    addShader(const std::string& _name, const std::string& _fragSrc = "", const std::string& _vertSrc = "");
+
 Shader* getShader();
 Shader* getShader(const std::string& _name);
 Shader* getFillShader();
@@ -240,8 +242,12 @@ void    shader(const std::string& _name);
 
 // TEXTURES
 // -----------------------------
-void texture(Texture& _texture, const std::string _name = "");
-void texture(Texture* _texture, const std::string _name = "");
+void    addTexture(const std::string& _name, const std::string& _filename, bool _vFlip = false, TextureFilter _filter = LINEAR, TextureWrap _wrap = REPEAT);
+void    addTexture(const std::string& _name, const vera::Image& _image, TextureFilter _filter = LINEAR, TextureWrap _wrap = REPEAT);
+Texture* getTexture(const std::string& _name);
+void    texture(Texture& _texture, const std::string _uniform_name = "");
+void    texture(Texture* _texture, const std::string _uniform_name = "");
+void    texture(const std::string _name, const std::string _uniform_name = "");
 // textureMode()
 // textureWrap()
 

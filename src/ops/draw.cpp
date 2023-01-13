@@ -14,8 +14,8 @@
 
 namespace vera {
 
-Shader*     shaderPtr     = nullptr;
-bool        shaderChange  = true; 
+Shader*     shaderPtr       = nullptr;
+bool        shaderChange    = true; 
 
 glm::vec4   fill_color      = glm::vec4(1.0f);
 Shader*     fill_shader     = nullptr;
@@ -796,8 +796,17 @@ Shader createShader(DefaultShaders _frag, DefaultShaders _vert) {
     return s;
 }
 
-void addShader(Shader& _shader, const std::string& _name) { addShader(&_shader, _name); }
-void addShader(Shader* _shader, const std::string& _name) { scene->shaders[_name] = _shader; }
+void addShader(const std::string& _name, Shader& _shader) { addShader(_name, &_shader); }
+void addShader(const std::string& _name, Shader* _shader) { scene->shaders[_name] = _shader; }
+void addShader(const std::string& _name, const std::string& _fragSrc, const std::string& _vertSrc) {
+    scene->shaders[_name] = new Shader();
+    if (!_fragSrc.empty() && _vertSrc.empty())
+        scene->shaders[_name]->setSource(_fragSrc, getDefaultSrc(VERT_DEFAULT_SCENE));
+    else if (_fragSrc.empty())
+        scene->shaders[_name]->setSource(getDefaultSrc(FRAG_DEFAULT_SCENE), getDefaultSrc(VERT_DEFAULT_SCENE));
+    else
+        scene->shaders[_name]->setSource(_fragSrc, _vertSrc);
+}
 
 Shader* getShader(const std::string& _name) {
     ShadersMap::iterator it = scene->shaders.find(_name);
@@ -912,17 +921,46 @@ void shader(Shader* _program) {
     }
 }
 
-void texture(Texture& _texture, const std::string _name) { texture(&_texture, _name); }
-void texture(Texture* _texture, const std::string _name) {
+void addTexture(const std::string& _name, const std::string& _filename, bool _vFlip, TextureFilter _filter, TextureWrap _wrap) {
+    Texture* tex = new Texture();
+    if (tex->load(_filename, _vFlip, _filter, _wrap))
+        scene->textures[_name] = tex;
+    else
+        delete tex;
+}
+
+void addTexture(const std::string& _name, const vera::Image& _image, TextureFilter _filter, TextureWrap _wrap) {
+    Texture* tex = new Texture();
+    if (tex->load(_image, _filter, _wrap))
+        scene->textures[_name] = tex;
+    else
+        delete tex;
+}
+
+Texture* getTexture(const std::string& _name) {
+    vera::TexturesMap::iterator it = scene->textures.find(_name);
+    if (it != scene->textures.end())
+        return it->second;
+    else
+        return nullptr;
+}
+
+void texture(const std::string _name, const std::string _uniform_name) {
+    vera::TexturesMap::iterator it = scene->textures.find(_name);
+    if (it != scene->textures.end())
+        texture(it->second, _uniform_name);
+}
+void texture(Texture& _texture, const std::string _uniform_name) { texture(&_texture, _uniform_name); }
+void texture(Texture* _texture, const std::string _uniform_name) {
     if (shaderPtr == nullptr)
         shaderPtr = getFillShader();
     
-    std::string name = _name;
-    if (_name.size() == 0)
-        name = "u_tex" + toString(shaderPtr->textureIndex);
-    shaderPtr->addDefine("USE_TEXTURE", name);
-    shaderPtr->setUniformTexture(name, _texture, shaderPtr->textureIndex );
-    shaderPtr->setUniform(name + "Resolution", (float)_texture->getWidth(), (float)_texture->getHeight());
+    std::string uniform_name = _uniform_name;
+    if (_uniform_name.size() == 0)
+        uniform_name = "u_tex" + toString(shaderPtr->textureIndex);
+    shaderPtr->addDefine("USE_TEXTURE", uniform_name);
+    shaderPtr->setUniformTexture(uniform_name, _texture, shaderPtr->textureIndex );
+    shaderPtr->setUniform(uniform_name + "Resolution", (float)_texture->getWidth(), (float)_texture->getHeight());
     shaderPtr->textureIndex++;
 }
 
