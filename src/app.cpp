@@ -130,6 +130,11 @@ void App::run(WindowProperties _properties) {
     setScrollCallback( [&](float _yoffset) { 
         onScroll(_yoffset); 
     } );
+
+    setDropCallback( [&](int _count, const char** _paths) {
+        onDrop(_count, _paths);
+    } );
+
 #endif
 
 #if defined(__EMSCRIPTEN__)

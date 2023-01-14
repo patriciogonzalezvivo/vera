@@ -44,6 +44,8 @@ public:
 
     virtual void onScroll(float _yoffset) {};
 
+    virtual void onDrop(int _count, const char** _paths) {};
+
     virtual void background();
     virtual void background( float _brightness );
     virtual void background( const glm::vec3& _color );
