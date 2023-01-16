@@ -3,21 +3,9 @@
 #include <string>
 #include <vector>
 #include "glm/glm.hpp"
+#include "vera/types/props.h"
 
 namespace vera {
-
-enum FontHorizontalAlign {
-    ALIGN_LEFT 	    = 1<<0,	// Default
-    ALIGN_CENTER 	= 1<<1,
-    ALIGN_RIGHT 	= 1<<2
-};
-
-enum FontVerticalAlign {
-    ALIGN_TOP 	    = 1<<3,
-    ALIGN_MIDDLE 	= 1<<4,
-    ALIGN_BOTTOM 	= 1<<5,
-    ALIGN_BASELINE  = 1<<6
-};
 
 enum FontEffect {
     EFFECT_NONE = 0,
@@ -39,8 +27,8 @@ public:
 
     virtual void setSize(float _size) { m_size = _size; }
 
-    virtual void setAlign(FontHorizontalAlign _align) { m_hAlign = _align; }
-    virtual void setAlign(FontVerticalAlign _align) { m_vAlign = _align; }
+    virtual void setAlign(HorizontalAlign _align) { m_hAlign = _align; }
+    virtual void setAlign(VerticalAlign _align) { m_vAlign = _align; }
 
     virtual void setEffect(FontEffect _effect) { m_effect = _effect; }
     virtual void setBlurAmount(float _blur) { m_effect = EFFECT_BLUR; m_blur = _blur; }
@@ -63,8 +51,8 @@ public:
 
 private:
 
-    FontHorizontalAlign m_hAlign;
-    FontVerticalAlign   m_vAlign;
+    HorizontalAlign     m_hAlign;
+    VerticalAlign       m_vAlign;
 
     FontEffect          m_effect;
     float               m_blur;

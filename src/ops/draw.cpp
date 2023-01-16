@@ -17,6 +17,9 @@ namespace vera {
 Shader*     shaderPtr       = nullptr;
 bool        shaderChange    = true; 
 
+HorizontalAlign shapeHAlign = ALIGN_CENTER;
+VerticalAlign   shapeVAlign = ALIGN_MIDDLE;
+
 glm::vec4   fill_color      = glm::vec4(1.0f);
 Shader*     fill_shader     = nullptr;
 bool        fill_enabled    = true;
@@ -176,6 +179,7 @@ void clear( const glm::vec4& _color ) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 }
 
+const glm::vec4& getFillColor() { return fill_color; }
 void noFill() { fill_enabled = false; }
 void fill( float _brightness ) { fill( glm::vec4( _brightness, _brightness, _brightness, fill_color.a ) ); }
 void fill( float _red, float _green, float _blue) { fill( glm::vec4( _red, _green, _blue, fill_color.a ) );  }
@@ -190,6 +194,7 @@ void fill( const glm::vec4& _color ) {
         shaderPtr = fill_shader;
 }
 
+const glm::vec4& getStrokeColor() { return stroke_color; }
 void noStroke() { stroke_enabled = false;}
 void stroke( float _brightness ) { stroke( glm::vec4( _brightness, _brightness, _brightness, stroke_color.a ) ); }
 void stroke( float _red, float _green, float _blue) { stroke( glm::vec4( _red, _green, _blue, stroke_color.a ) );  }
@@ -654,13 +659,13 @@ Font* textFont(const std::string& _name) {
     return scene->activeFont; 
 }
 
-void textAlign(FontHorizontalAlign _align, Font* _font) {
+void textAlign(HorizontalAlign _align, Font* _font) {
     if (_font == nullptr)
         _font = getFont();
     _font->setAlign( _align );
 }
 
-void textAlign(FontVerticalAlign _align, Font* _font) {
+void textAlign(VerticalAlign _align, Font* _font) {
     if (_font == nullptr)
         _font = getFont();
     _font->setAlign( _align );
@@ -734,18 +739,20 @@ void triangles(const std::vector<glm::vec3>& _positions, Shader* _program) {
 #endif
 }
 
-void rect(const glm::vec2& _pos, const glm::vec2& _size, Shader* _program) {
-    rect(_pos.x, _pos.y, _size.x, _size.y, _program);
-}
-
+void rectAlign(VerticalAlign _align) { shapeVAlign = _align; }
+void rectAlign(HorizontalAlign _align) { shapeHAlign = _align; }
+void rect(const glm::vec2& _pos, const glm::vec2& _size, Shader* _program) { rect(_pos.x, _pos.y, _size.x, _size.y, _program); }
 void rect(float _x, float _y, float _w, float _h, Shader* _program) {
-    // _x = _x * 2.0f - 1.0f;
-    // _y = _y * 2.0f - 1.0f;
-    // _w = _w * 2.0f;
-    // _h = _h * 2.0f;
+    if (shapeHAlign == ALIGN_CENTER)
+        _x -= _w * 0.5f;
+    else if (shapeHAlign == ALIGN_RIGHT)
+        _x -= _w;
     
-    _x -= _w * 0.5f;
-    _y -= _h * 0.5f;
+    if (shapeVAlign == ALIGN_MIDDLE)
+        _y -= _h * 0.5f;
+    else if (shapeVAlign == ALIGN_BOTTOM)
+        _y -= _h;
+
     std::vector<glm::vec2> coorners = { glm::vec2(_x, _y),     glm::vec2(_x + _w, _y), 
                                         glm::vec2(_x + _w, _y + _h), glm::vec2(_x, _y + _h),
                                         glm::vec2(_x, _y) };

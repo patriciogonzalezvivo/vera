@@ -56,6 +56,7 @@ void fill( float _red, float _green, float _blue, float _alpha);
 void fill( const glm::vec3& _color );
 void fill( const glm::vec4& _color );
 void noFill();
+const glm::vec4& getFillColor();
 
 void stroke( float _brightness );
 void stroke( float _red, float _green, float _blue);
@@ -64,6 +65,7 @@ void stroke( const glm::vec3& _color );
 void stroke( const glm::vec4& _color );
 void noStroke();
 void strokeWeight(float _weight);
+const glm::vec4& getStrokeColor();
 
 // MATRICES
 // -----------------------------
@@ -130,6 +132,8 @@ void lineBoundingBox(const glm::vec4& _bbox, Shader* _program = nullptr);
 void triangles(const std::vector<glm::vec2>& _positions, Shader* _program = nullptr);
 void triangles(const std::vector<glm::vec3>& _positions, Shader* _program = nullptr);
 
+void rectAlign(HorizontalAlign _align);
+void rectAlign(VerticalAlign _align);
 void rect(float _x, float _y, float _w, float _h, Shader* _program = nullptr);
 void rect(const glm::vec2& _pos, const glm::vec2& _size, Shader* _program = nullptr);
 
@@ -205,8 +209,8 @@ void  addFont(Font* _font, const std::string _name);
 // textWrap()
 
 Font* textFont(const std::string& _name);
-void textAlign(FontHorizontalAlign _align, Font* _font = nullptr);
-void textAlign(FontVerticalAlign _align, Font* _font = nullptr);
+void textAlign(HorizontalAlign _align, Font* _font = nullptr);
+void textAlign(VerticalAlign _align, Font* _font = nullptr);
 void textAngle(float _angle, Font* _font = nullptr);
 void textSize(float _size, Font* _font = nullptr);
 void text(const std::string& _text, const glm::vec2& _pos, Font* _font = nullptr );

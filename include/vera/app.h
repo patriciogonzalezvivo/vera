@@ -88,7 +88,6 @@ protected:
     #else
     static void loop(double _time, App* _app);
     #endif
-
 };
 
 }
