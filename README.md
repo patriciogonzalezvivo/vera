@@ -1,6 +1,6 @@
 ![](.github/vera.jpg)
 
-# VERA 
+# VERA  [![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/patriciogonzalezvivo)
 
 VERA is a C++11 & OpenGL/WebGL framework designed for creating and displaying real-time visual application in a big variety of surfaces.
 
