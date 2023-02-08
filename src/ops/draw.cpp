@@ -803,8 +803,8 @@ Shader createShader(DefaultShaders _frag, DefaultShaders _vert) {
     return s;
 }
 
-void addShader(const std::string& _name, Shader& _shader) { addShader(_name, &_shader); }
 void addShader(const std::string& _name, Shader* _shader) { scene->shaders[_name] = _shader; }
+void addShader(const std::string& _name, Shader& _shader) { addShader(_name, &_shader); }
 void addShader(const std::string& _name, const std::string& _fragSrc, const std::string& _vertSrc) {
     scene->shaders[_name] = new Shader();
     if (!_fragSrc.empty() && _vertSrc.empty())

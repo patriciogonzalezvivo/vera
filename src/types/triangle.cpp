@@ -1,6 +1,5 @@
 #include "vera/types/triangle.h"
 
-#define GLM_SWIZZLE
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/glm.hpp"
 #include "glm/gtx/norm.hpp"
