@@ -86,7 +86,8 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
     }
 
     else if (ext == "hdr" || ext == "HDR") {
-        float* data = loadPixelsHDR(_path, &m_width, &m_height, false);
+        int channels = 3;
+        float* data = loadPixelsFloat(_path, &m_width, &m_height, &channels, false);
 
         // LOAD FACES
         CubemapFace<float> **faces = new CubemapFace<float>*[6];

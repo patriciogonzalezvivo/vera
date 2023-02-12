@@ -14,6 +14,7 @@ file(GLOB XR_HEADER "${INCLUDE_FOLDER}/vera/xr/*.h")
 
 # SOURCE files
 set(VERA_SOURCES
+    ${DEPS_FOLDER}/miniz/miniz.cpp
     ${DEPS_FOLDER}/glob/glob.cpp
     ${DEPS_FOLDER}/phonedepth/extract_depthmap.cpp
     ${DEPS_FOLDER}/skymodel/ArHosekSkyModel.cpp
@@ -290,6 +291,8 @@ target_include_directories(vera PUBLIC
     "${PROJECT_SOURCE_DIR}/deps/tinygltf"
     "${PROJECT_SOURCE_DIR}/deps/tinyobjloader"
     "${PROJECT_SOURCE_DIR}/deps/tinyply"
+    "${PROJECT_SOURCE_DIR}/deps/miniz"
+    "${PROJECT_SOURCE_DIR}/deps/tinyexr"
     ${INCLUDE_FOLDER}
 )
 

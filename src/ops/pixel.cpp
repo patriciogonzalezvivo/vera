@@ -10,6 +10,15 @@
 #include "stb_image_write.h"
 #include "extract_depthmap.h"
 
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#endif
+
+#define TINYEXR_IMPLEMENTATION
+#include "tinyexr.h"
+
 namespace vera {
 
 unsigned char* loadPixels(unsigned char const *_data, int len, int *_width, int *_height, vera::Channels _channels, bool _vFlip) {
@@ -32,11 +41,36 @@ uint16_t* loadPixels16(const std::string& _path, int *_width, int *_height, Chan
     return pixels;
 }
 
-float* loadPixelsHDR(const std::string& _path, int *_width, int *_height, bool _vFlip) {
-    stbi_set_flip_vertically_on_load(_vFlip);
-    int comp;
-    float* pixels = stbi_loadf(_path.c_str(), _width, _height, &comp, 0);
-    return pixels;
+float* loadPixelsFloat(const std::string& _path, int *_width, int *_height, int* _channels, bool _vFlip) {
+    std::string ext = getExt(_path);
+
+    if (ext == "hdr" || ext == "HDR") {    
+        stbi_set_flip_vertically_on_load(_vFlip);
+        int comp;
+        *_channels = 3;
+        return stbi_loadf(_path.c_str(), _width, _height, &comp, 0);
+    }
+    else if (ext == "exr" || ext == "EXR") {
+
+        float* out; // width * height * RGBA
+        *_channels = 4;
+        const char* err = NULL; // or nullptr in C++11
+
+        int ret = LoadEXR(&out, _width, _height, _path.c_str(), &err);
+        if (ret != TINYEXR_SUCCESS) {
+            if (err) {
+                fprintf(stderr, "ERR : %s\n", err);
+                FreeEXRErrorMessage(err); // release memory of error message.
+            }
+            return nullptr;
+        }
+
+        flipPixelsVertically<float>(out, *_width, *_height, *_channels);
+
+        return out;
+    }
+
+    return nullptr;
 }
 
 unsigned char* loadPixelsDepth(const std::string& _path, int *_width, int *_height, bool _vFlip) {
@@ -131,16 +165,23 @@ bool savePixels16(const std::string& _path, unsigned short* _pixels, int _width,
     return true;
 }
 
-bool savePixelsHDR(const std::string& _path, float* _pixels, int _width, int _height) {
+bool savePixelsFloat(const std::string& _path, float* _pixels, int _width, int _height) {
     int channels = 4;
 
     // Flip the image on Y
     flipPixelsVertically<float>(_pixels, _width, _height, channels);
     
-    if (0 == stbi_write_hdr(_path.c_str(), _width, _height, channels, _pixels)) {
-        std::cout << "Can't create file " << _path << std::endl;
-        return false;
+    std::string ext = getExt(_path);
+    if (ext == "hdr" || ext == "HDR") {    
+        if (0 == stbi_write_hdr(_path.c_str(), _width, _height, channels, _pixels)) {
+            std::cout << "Can't create file " << _path << std::endl;
+            return false;
+        }
     }
+    else if (ext == "exr" || ext == "EXR") { 
+        // TODO
+    }
+
     return true;
 }
 

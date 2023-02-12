@@ -16,14 +16,14 @@ enum Channels {
 // Implementation of savePixels and loadPixels is on gltf.cpp because tiny_gltf.h also use stb_image*.h
 bool            savePixels(const std::string& _path, unsigned char* _pixels, int _width, int _height);
 bool            savePixels16(const std::string& _path, unsigned short* _pixels, int _width, int _height);
-bool            savePixelsHDR(const std::string& _path, float* _pixels, int _width, int _height);
+bool            savePixelsFloat(const std::string& _path, float* _pixels, int _width, int _height);
 
+unsigned char*  loadPixels(unsigned char const *_data, int len, int *_width, int *_height, Channels _channels, bool _vFlip);
 unsigned char*  loadPixels(const std::string& _path, int *_width, int *_height, Channels _channels = RGB, bool _vFlip = true);
 uint16_t *      loadPixels16(const std::string& _path, int *_width, int *_height, Channels _channels = RGB, bool _vFlip = true);
-float*          loadPixelsHDR(const std::string& _path, int *_width, int *_height, bool _vFlip = true);
 unsigned char*  loadPixelsDepth(const std::string& _path, int *_width, int *_height, bool _vFlip = true);
 unsigned char*  loadPixelsBase64(const std::string& _base64, int *_width, int *_height, Channels _channels = RGB_ALPHA, bool _vFlip = true);
-unsigned char*  loadPixels(unsigned char const *_data, int len, int *_width, int *_height, Channels _channels, bool _vFlip);
+float*          loadPixelsFloat(const std::string& _path, int *_width, int *_height, int* _channels, bool _vFlip = true);
 void            freePixels(void *pixels);
 
 template<typename T>

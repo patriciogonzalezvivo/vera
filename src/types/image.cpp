@@ -98,9 +98,10 @@ bool Image::load(const std::string& _path, bool _flip) {
     }
 
     // HDR (radiance rgbE format)
-    else if (ext == "hdr" || ext == "HDR") {
-        float* pixels = loadPixelsHDR(_path, &m_width, &m_height, _flip);
+    else if (ext == "hdr" || ext == "HDR"||
+             ext == "exr" || ext == "EXR" ) {
         m_channels = 3;
+        float* pixels = loadPixelsFloat(_path, &m_width, &m_height, &m_channels, _flip);
         int total = m_width * m_height * m_channels;
         if (total != m_data.size())
             m_data.resize(total);

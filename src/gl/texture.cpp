@@ -68,9 +68,11 @@ bool Texture::load(const std::string& _path, bool _vFlip, TextureFilter _filter,
     }
 
     // HDR (radiance rgbE format)
-    else if (ext == "hdr" || ext == "HDR") {
-        float* pixels = loadPixelsHDR(_path, &m_width, &m_height, _vFlip);
-        loaded = load(m_width, m_height, 3, 32, pixels, _filter, _wrap);
+    else if (   ext == "hdr" || ext == "HDR" ||
+                ext == "exr" || ext == "EXR" ) {
+        int channels = 3;
+        float* pixels = loadPixelsFloat(_path, &m_width, &m_height, &channels, _vFlip);
+        loaded = load(m_width, m_height, channels, 32, pixels, _filter, _wrap);
         freePixels(pixels);
     }
 
