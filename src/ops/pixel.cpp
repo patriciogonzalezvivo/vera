@@ -52,11 +52,10 @@ float* loadPixelsFloat(const std::string& _path, int *_width, int *_height, int*
     }
     else if (ext == "exr" || ext == "EXR") {
 
-        float* out; // width * height * RGBA
         *_channels = 4;
+        float* pixels;
         const char* err = NULL; // or nullptr in C++11
-
-        int ret = LoadEXR(&out, _width, _height, _path.c_str(), &err);
+        int ret = LoadEXR(&pixels, _width, _height, _path.c_str(), &err);
         if (ret != TINYEXR_SUCCESS) {
             if (err) {
                 fprintf(stderr, "ERR : %s\n", err);
@@ -65,9 +64,9 @@ float* loadPixelsFloat(const std::string& _path, int *_width, int *_height, int*
             return nullptr;
         }
 
-        flipPixelsVertically<float>(out, *_width, *_height, *_channels);
+        flipPixelsVertically<float>(pixels, *_width, *_height, *_channels);
 
-        return out;
+        return pixels;
     }
 
     return nullptr;

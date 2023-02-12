@@ -4,6 +4,8 @@
 #include "vera/ops/fs.h"
 #include "vera/ops/pixel.h"
 
+#include "vera/window.h"
+
 namespace vera {
 
 // TEXTURE
@@ -106,6 +108,21 @@ bool Texture::load(int _width, int _height, int _channels, int _bits, const void
     else if (_bits == 8)    type = GL_UNSIGNED_BYTE;
     else std::cout << "Unrecognize GLenum type for " << _bits << " bits" << std::endl;
 
+    GLenum internalFormat = format;
+    if (_bits == 32 && _channels == 4) {
+        #if defined(PLATFORM_RPI) || defined(DRIVER_GBM)
+        #else
+        // if ( haveExtension("OES_texture_float") )
+            internalFormat = GL_RGBA32F;
+        // else if ( haveExtension("OES_texture_half_float") )
+            // internalFormat = GL_RGBA16F;
+        // else
+            // internalFormat = GL_RGBA16;
+        #endif
+        _filter = NEAREST;
+        _wrap = CLAMP;
+    }
+
     if (_width  == m_width  && _height  == m_height &&
         _filter == m_filter && _wrap    == m_wrap   &&
         format  == m_format && type     == m_type   )
@@ -161,7 +178,7 @@ bool Texture::load(int _width, int _height, int _channels, int _bits, const void
     else
         glTexImage2D(GL_TEXTURE_2D, 0, format, m_width, m_height, 0, format, type, _data);
 #else
-    glTexImage2D(GL_TEXTURE_2D, 0, format, m_width, m_height, 0, format, type, _data);
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, m_width, m_height, 0, format, type, _data);
 #endif
     return true;
 }

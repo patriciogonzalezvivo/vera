@@ -100,7 +100,6 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
         GLenum type = GL_UNSIGNED_BYTE;
 
 #if defined(PLATFORM_RPI) || defined(DRIVER_GBM)
-
 #else
         if (_type == COLOR_FLOAT_TEXTURE || 
             _type == GBUFFER_TEXTURE) {
@@ -118,6 +117,7 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
             }
         }
 #endif
+
         glTexImage2D(GL_TEXTURE_2D, 0, format, m_width, m_height, 0, GL_RGBA, type, NULL);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, getWrap(_wrap));
