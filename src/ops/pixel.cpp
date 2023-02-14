@@ -64,7 +64,8 @@ float* loadPixelsFloat(const std::string& _path, int *_width, int *_height, int*
             return nullptr;
         }
 
-        flipPixelsVertically<float>(pixels, *_width, *_height, *_channels);
+        if (_vFlip)
+            flipPixelsVertically<float>(pixels, *_width, *_height, *_channels);
 
         return pixels;
     }
