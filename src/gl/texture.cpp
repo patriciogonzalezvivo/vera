@@ -119,8 +119,6 @@ bool Texture::load(int _width, int _height, int _channels, int _bits, const void
         // else
             // internalFormat = GL_RGBA16;
         #endif
-        _filter = NEAREST;
-        _wrap = CLAMP;
     }
 
     if (_width  == m_width  && _height  == m_height &&
