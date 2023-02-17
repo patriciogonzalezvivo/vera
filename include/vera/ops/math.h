@@ -131,11 +131,11 @@ inline glm::vec4 remap(const glm::vec4& _value, const glm::vec4& _inputMin, cons
                         remap(_value.w, _inputMin.w, _inputMax.w, _outputMin.w, _outputMax.w, _clamp) );
 }
 
-inline glm::mat2 inverse(const glm::mat2& m) {
+inline glm::mat2 inverseMatrix(const glm::mat2& m) {
     return glm::mat2(   m[1][1],-m[0][1], -m[1][0], m[0][0]) / (m[0][0]*m[1][1] - m[0][1]*m[1][0]);
 }
 
-inline glm::mat3 inverse(const glm::mat3& m) {
+inline glm::mat3 inverseMatrix(const glm::mat3& m) {
     float   b01 =  m[2][2] * m[1][1] - m[1][2] * m[2][1],
             b11 = -m[2][2] * m[1][0] + m[1][2] * m[2][0],
             b21 =  m[2][1] * m[1][0] - m[1][1] * m[2][0];
@@ -147,7 +147,7 @@ inline glm::mat3 inverse(const glm::mat3& m) {
                         b21, (-m[2][1] * m[0][0] + m[0][1] * m[2][0]), (m[1][1] * m[0][0] - m[0][1] * m[1][0])) / det;
 }
 
-inline glm::mat4 inverse(const glm::mat4& m) {
+inline glm::mat4 inverseMatrix(const glm::mat4& m) {
     float   b00 = m[0][0] * m[1][1] - m[0][1] * m[1][0],
             b01 = m[0][0] * m[1][2] - m[0][2] * m[1][0],
             b02 = m[0][0] * m[1][3] - m[0][3] * m[1][0],

@@ -14,7 +14,7 @@ Vbo::Vbo() :
     m_isUploaded(false) {
 }
 
-Vbo::Vbo(VertexLayout* _vertexLayout, GLenum _drawMode) : 
+Vbo::Vbo(VertexLayout* _vertexLayout, DrawMode _drawMode) : 
     m_vertexLayout(_vertexLayout), 
     m_glVertexBuffer(0), 
     m_nVertices(0), 
@@ -199,22 +199,22 @@ void Vbo::setDrawType(GLenum _drawType) {
     }
 }
 
-void Vbo::setDrawMode(GLenum _drawMode) {
-    switch (_drawMode) {
-        case GL_POINTS:
-        case GL_LINE_STRIP:
-        case GL_LINE_LOOP:
-        case GL_LINES:
-        case GL_TRIANGLE_STRIP:
-        case GL_TRIANGLE_FAN:
-        case GL_TRIANGLES:
-            m_drawMode = _drawMode;
-            break;
-        default:
-            std::cout << "Invalid draw mode for mesh! Defaulting to GL_TRIANGLES" << std::endl;
-            m_drawMode = GL_TRIANGLES;
-    }
-}
+// void Vbo::setDrawMode(GLenum _drawMode) {
+//     switch (_drawMode) {
+//         case GL_POINTS:
+//         case GL_LINE_STRIP:
+//         case GL_LINE_LOOP:
+//         case GL_LINES:
+//         case GL_TRIANGLE_STRIP:
+//         case GL_TRIANGLE_FAN:
+//         case GL_TRIANGLES:
+//             m_drawMode = _drawMode;
+//             break;
+//         default:
+//             std::cout << "Invalid draw mode for mesh! Defaulting to GL_TRIANGLES" << std::endl;
+//             m_drawMode = GL_TRIANGLES;
+//     }
+// }
 
 void Vbo::setDrawMode(DrawMode _drawMode) {
     if (_drawMode == POINTS)

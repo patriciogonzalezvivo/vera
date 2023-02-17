@@ -312,6 +312,8 @@ void setDropCallback(std::function<void(int, const char**)>_callback) { onDrop =
 
             return eglGetDisplay(gbmDevice);
         #endif
+
+        return nullptr;
     }
 #endif
 
@@ -966,6 +968,8 @@ bool isGL() {
     return true;
 
 #endif
+
+    return false;
 }
 
 void updateGL() {

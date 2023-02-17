@@ -64,7 +64,7 @@ std::vector<Image>  scaleSprite(const std::vector<Image>& _images, int _times);
 
 std::vector<Image>  splitChannels(const Image& _image);
 
-Image               scale(  const Image& _image, int _width, int _height);
-Image               mix(const Image& _A, const Image& _B, float _pct);
+Image               scale(const Image& _image, int _width, int _height);
+Image               fade(const Image& _A, const Image& _B, float _pct);
 
 }

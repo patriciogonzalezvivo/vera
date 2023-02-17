@@ -548,7 +548,7 @@ Image scale(const Image& _image, int _width, int _height) {
     return out;
 }
 
-Image mix(const Image& _A, const Image& _B, float _pct) {
+Image fade(const Image& _A, const Image& _B, float _pct) {
     Image out = Image(_A.getWidth(), _A.getHeight(), _A.getChannels());
 
     if (_A.getWidth() != _B.getWidth() || _A.getHeight() != _B.getHeight() || _A.getChannels() != _B.getChannels()) {
@@ -870,7 +870,7 @@ std::vector<Image>  scaleSprite(const std::vector<Image>& _in, int _times) {
             out.push_back( in_scaled[z] );
         else {
             for (int i = 1; i < _times; i++)
-                out.push_back( vera::mix(last_layer, in_scaled[z], float(i) / float(_times)) );
+                out.push_back( vera::fade(last_layer, in_scaled[z], float(i) / float(_times)) );
             out.push_back( in_scaled[z] );
         }
 

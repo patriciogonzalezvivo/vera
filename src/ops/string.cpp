@@ -265,7 +265,7 @@ std::string getVersion(const std::string& _src, size_t& _versionNumber) {
 }
 
 
-StringList merge(const StringList &_A,const StringList &_B) {
+StringList mergeLists(const StringList &_A,const StringList &_B) {
 
 #ifdef PLATFORM_WINDOWS
     // std::merge on Windows would expect _A and _B to be already sorted to work
@@ -288,13 +288,13 @@ StringList merge(const StringList &_A,const StringList &_B) {
     return rta;
 }
 
-void add(const std::string &_str, StringList &_list) {
+void addListElement(const std::string &_str, StringList &_list) {
     _list.push_back(_str);
     std::sort( _list.begin(), _list.end() );
     _list.erase(std::unique(_list.begin(), _list.end()), _list.end());    
 }
 
-void del(const std::string &_str, StringList &_list) {
+void delListElement(const std::string &_str, StringList &_list) {
     for (size_t i = _list.size() - 1; i >= 0 ; i--)
         if ( _list[i] == _str )
             _list.erase(_list.begin() + i);

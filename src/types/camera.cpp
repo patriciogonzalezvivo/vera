@@ -99,8 +99,8 @@ void Camera::setVirtualOffset(float scale, int currentViewIndex, int totalViews,
     m_projectionMatrix = projectionMatrix;
     m_projectionViewMatrix = projectionMatrix * m_viewMatrix;
 
-    m_inverseViewMatrix = vera::inverse(m_viewMatrix);
-    m_inverseProjectionMatrix = vera::inverse(m_projectionMatrix);
+    m_inverseViewMatrix = vera::inverseMatrix(m_viewMatrix);
+    m_inverseProjectionMatrix = vera::inverseMatrix(m_projectionMatrix);
     
     bChange = true;
 
@@ -197,8 +197,8 @@ void Camera::updateProjectionViewMatrix() {
     m_projectionViewMatrix = m_projectionMatrix * getViewMatrix();
     m_normalMatrix = glm::transpose(glm::inverse(glm::mat3(getViewMatrix())));
 
-    m_inverseViewMatrix = vera::inverse(getViewMatrix());
-    m_inverseProjectionMatrix = vera::inverse(m_projectionMatrix);
+    m_inverseViewMatrix = vera::inverseMatrix(getViewMatrix());
+    m_inverseProjectionMatrix = vera::inverseMatrix(m_projectionMatrix);
     
     bChange = true;
 }

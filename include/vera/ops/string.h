@@ -93,9 +93,9 @@ inline std::istream& operator>>(std::istream& is, glm::vec3& vec);
 
 typedef std::vector<std::string> StringList;
 
-StringList merge(const StringList &_A,const StringList &_B);
-void add(const std::string &_str, StringList &_list);
-void del(const std::string &_str, StringList &_list);
+StringList mergeLists(const StringList &_A,const StringList &_B);
+void addListElement(const std::string &_str, StringList &_list);
+void delListElement(const std::string &_str, StringList &_list);
 
 std::string getUniformName(const std::string& _str);
 
