@@ -112,6 +112,8 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
     if (isLinked == GL_FALSE) {
         GLint infoLength = 0;
         glGetProgramiv(m_program, GL_INFO_LOG_LENGTH, &infoLength);
+
+        #if !defined(SWIG)
         if (infoLength > 1) {
             std::vector<GLchar> infoLog(infoLength);
             glGetProgramInfoLog(m_program, infoLength, NULL, &infoLog[0]);
@@ -124,6 +126,8 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
             std::string lineNum = error.substr(start,end-start);
             std::cerr << (unsigned)toInt(lineNum) << ": " << getLineNumber(_fragmentSrc,(unsigned)toInt(lineNum)) << std::endl;
         }
+        #endif
+
         glDeleteProgram(m_program);
         load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), DONT_KEEP_SHADER, false);
         return false;

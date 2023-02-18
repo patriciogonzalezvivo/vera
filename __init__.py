@@ -1,6 +1,6 @@
 # outer __init__.py
 
-from .hilma import *
+from .vera import *
 
 import importlib
 bpy_found = importlib.util.find_spec("bpy")
@@ -9,7 +9,7 @@ def toBlenderImage(_name, _image,
     float_buffer=True, alpha=True, alpha_mode='STRAIGHT', file_format='PNG'):
 
     if bpy_found is None:
-        raise Exception('hilma.toBlenderImage() requires Blender enviroment')
+        raise Exception('vera.toBlenderImage() requires Blender enviroment')
 
     import bpy
     from itertools import chain
@@ -42,60 +42,10 @@ def toBlenderImage(_name, _image,
         bimage.pixels = tuple(chain.from_iterable(feedColorPixels(_image)))
 
     bimage.update()
-
-
-def toBlenderPolyline(_name, _polyline, _collection_name="Collection"):
-    if bpy is None:
-        raise Exception('hilma.toBlenderPolyline() requires Blender enviroment')
-
-    import bpy
-
-    if _name in bpy.data.curves:
-        bcurve = bpy.data.curves[_name]
-    else:
-        bcurve = bpy.data.curves.new(_name, type="CURVE")
-        obj = bpy.data.objects.new(bcurve.name, bcurve)
-        col = bpy.data.collections.get(_collection_name)
-        col.objects.link(obj)
-        bpy.context.view_layer.objects.active = obj
-        
-    bcurve.dimensions = '3D'
-    bcurve.splines.clear()
-    polyline = bcurve.splines.new("POLY")
-    polyline.points.add( _polyline.size()-1 )
-    for i, v in enumerate( _polylines.getVertices()):
-        polyline.points[i].co = (v.x, v.y, v.z, 1)
-        
-
-def toBlenderPolygon(_name, _polygon, _collection_name="Collection"):
-    if bpy_found is None:
-        raise Exception('hilma.toBlenderPolygon() requires Blender enviroment')
-
-    import bpy
-
-    if _name in bpy.data.curves:
-        bcurve = bpy.data.curves[_name]
-    else:
-        bcurve = bpy.data.curves.new(_name, type="CURVE")
-        obj = bpy.data.objects.new(bcurve.name, bcurve)
-        col = bpy.data.collections.get(_collection_name)
-        col.objects.link(obj)
-        bpy.context.view_layer.objects.active = obj
-        
-    bcurve.dimensions = '3D'
-    bcurve.splines.clear()
-    
-    for p in range(_polygon.size()):
-        polyline = bcurve.splines.new("POLY")
-        points = _polygon.get(p).getVertices()
-        polyline.points.add( len(points)-1 )
-        for i in range( len(points) ):
-            polyline.points[i].co = (points[i].x, points[i].y, points[i].z, 1)
-    
     
 def toBlenderMesh(_name, _mesh, _collection_name="Collection"):   
     if bpy_found is None:
-        raise Exception('hilma.toBlendermesh() requires Blender enviroment')
+        raise Exception('vera.toBlendermesh() requires Blender enviroment')
 
     import bpy
 

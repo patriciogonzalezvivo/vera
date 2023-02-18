@@ -4,6 +4,8 @@
 #endif
 %}
 
+// %include "glfw3.i"
+
 %module vera
 
 %include <typemaps.i>
@@ -24,7 +26,6 @@
 
 %{
     #define SWIG_FILE_WITH_INIT
-    #define DRIVER_GLFW
     #include "vera/gl/gl.h"
     #include "vera/gl/texture.h"
     #include "vera/gl/vbo.h"
@@ -60,19 +61,6 @@
     #include "vera/ops/pixel.h"
     #include "vera/ops/string.h"
     #include "vera/ops/time.h"
-    // #include "vera/shaders/billboard.h"
-    // #include "vera/shaders/cubemap.h"
-    // #include "vera/shaders/default_buffers.h"
-    // #include "vera/shaders/default_error.h"
-    // #include "vera/shaders/default_scene.h"
-    // #include "vera/shaders/default.h"
-    // #include "vera/shaders/defaultShaders.h"
-    // #include "vera/shaders/draw.h"
-    // #include "vera/shaders/dynamic_billboard.h"
-    // #include "vera/shaders/fxaa.h"
-    // #include "vera/shaders/light_ui.h"
-    // #include "vera/shaders/plot.h"
-    // #include "vera/shaders/poissonfill.h"
     #include "vera/types/boundingBox.h"
     #include "vera/types/bvh.h"
     #include "vera/types/camera.h"
@@ -96,7 +84,6 @@
 %}
 
 %include "glm.i"
-// %include "glfw3.i"
 %include "numpy.i"
 %init %{
     import_array();
