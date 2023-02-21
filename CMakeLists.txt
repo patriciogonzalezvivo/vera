@@ -7,7 +7,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 add_compile_options(-DGLM_FORCE_CXX11 -fPIE -fPIC)
 
 if (NO_X11 OR FORCE_GBM)
-    add_compile_options(-std=c++11 -fpermissive -Wno-psabi)
+    add_compile_options(-std=c++14 -fpermissive -Wno-psabi)
 endif()
 
 # The compiled library code is here

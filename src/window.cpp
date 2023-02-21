@@ -521,6 +521,11 @@ int initGL(WindowProperties _prop) {
     clock_gettime(CLOCK_MONOTONIC, &time_start);
     properties = _prop;
 
+    if (properties.style == EMBEDDED) {
+        setViewport(properties.screen_width, properties.screen_height);
+        return 0;
+    }
+
 // NON GLFW
 #if !defined(DRIVER_GLFW)
 
@@ -1125,7 +1130,7 @@ void setWindowSize(int _width, int _height) {
     glfwSetWindowSize(window, _width * getPixelDensity(true), _height * getPixelDensity(true));
     return;
 
-#elif defined(DRIVER_GLFW) 
+#elif defined(DRIVER_GLFW) && !defined(PYTHON_RENDER)
     glfwSetWindowSize(window, _width / getPixelDensity(true), _height / getPixelDensity(true));
 #endif
 
@@ -1147,16 +1152,20 @@ void setWindowVSync(bool _value) {
 void setViewport(float _width, float _height) {
     viewport.z = _width;
     viewport.w = _height;
+
     updateViewport();
 }
 
 void updateViewport() {
-    fPixelDensity = getPixelDensity(true);
+    fPixelDensity = 1.0f;
     float width = getWindowWidth();
     float height = getWindowHeight();
 
-    glViewport( (float)viewport.x * fPixelDensity, (float)viewport.y * fPixelDensity,
-                width, height);
+    if (properties.style != EMBEDDED) {
+        fPixelDensity = getPixelDensity(true);
+        glViewport( (float)viewport.x * fPixelDensity, (float)viewport.y * fPixelDensity,
+                    width, height);
+    }
 
     orthoMatrix = glm::ortho(   (float)viewport.x * fPixelDensity, width, 
                                 (float)viewport.y * fPixelDensity, height);
@@ -1232,7 +1241,7 @@ void setFullscreen(bool _fullscreen) {
         properties.style = FULLSCREEN;
     }
     
-#elif defined(DRIVER_GLFW)
+#elif defined(DRIVER_GLFW) && !defined(PYTHON_RENDER)
 
     if ( _fullscreen ) {
         // backup window position and window size
@@ -1261,7 +1270,7 @@ float getPixelDensity(bool _compute) {
     if (_compute) {
 #if defined(__EMSCRIPTEN__)
         return emscripten_get_device_pixel_ratio();
-#elif defined(DRIVER_GLFW)
+#elif defined(DRIVER_GLFW) && !defined(PYTHON_RENDER)
         int window_width, window_height, framebuffer_width, framebuffer_height;
         glfwGetWindowSize(window, &window_width, &window_height);
         glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);

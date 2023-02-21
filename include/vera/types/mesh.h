@@ -43,6 +43,7 @@ public:
 
     // VERTICES
     void                addVertex(const glm::vec3 &_point);
+    void                addVertex(float _x, float _y, float _z) { addVertex( glm::vec3(_x, _y, _z) ); } 
     void                addVertices(const std::vector<glm::vec3> &_verts);
     void                addVertices(const glm::vec3* _verts, int _amt);
 
@@ -65,6 +66,7 @@ public:
     
     // NORMALS
     void                addNormal(const glm::vec3 &_normal);
+    void                addNormal(float _x, float _y, float _z) { addNormal( glm::vec3(_x, _y, _z) ); }
     void                addNormals(const std::vector<glm::vec3> &_normals );
 
     const bool          haveNormals() const { return !m_normals.empty(); }
@@ -89,6 +91,7 @@ public:
 
     // TEXTURE COORDINATES
     void                addTexCoord(const glm::vec2 &_uv);
+    void                addTexCoord(float _u, float _v) { addTexCoord( glm::vec2(_u, _v) ); }
     void                addTexCoords(const std::vector<glm::vec2> &_uvs);
 
     const bool          haveTexCoords() const { return !m_texCoords.empty(); }

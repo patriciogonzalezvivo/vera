@@ -67,6 +67,16 @@ std::string getAbsPath(const std::string& _path) {
     else return "";
 }
 
+std::string urlResolve(const std::string& _path, const StringList &_include_folders) {
+    // .. search on the include path
+    for ( uint32_t i = 0; i < _include_folders.size(); i++) {
+        std::string new_path = _include_folders[i] + "/" + _path;
+        if (urlExists(new_path)) 
+            return realpath(new_path.c_str(), NULL);
+    }
+    return _path;
+}
+
 std::string urlResolve(const std::string& _path, const std::string& _pwd, const StringList &_include_folders) {
     std::string url = _pwd +'/'+ _path;
 
@@ -75,14 +85,8 @@ std::string urlResolve(const std::string& _path, const std::string& _pwd, const 
         return realpath(url.c_str(), NULL);
 
     // .. search on the include path
-    else {
-        for ( uint32_t i = 0; i < _include_folders.size(); i++) {
-            std::string new_path = _include_folders[i] + "/" + _path;
-            if (urlExists(new_path)) 
-                return realpath(new_path.c_str(), NULL);
-        }
-        return _path;
-    }
+    else
+        return urlResolve(_path, _include_folders);
 }
 
 bool extractDependency(const std::string &_line, std::string *_dependency) {
@@ -90,9 +94,14 @@ bool extractDependency(const std::string &_line, std::string *_dependency) {
     if (_line.find("#include ") == 0 || _line.find("#pragma include ") == 0) {
         unsigned begin = _line.find_first_of("\"");
         unsigned end = _line.find_last_of("\"");
-        if (begin != end) {
-            (*_dependency) = _line.substr(begin+1,end-begin-1);
-            return true;
+        if ((end - begin) > 4) {
+            std::string sub = _line.substr(begin+1, end-begin-1);
+            std::vector<std::string> subs = split(sub, '.');
+            if (subs.size() > 1)
+                if (subs[subs.size() - 1] == "glsl" || subs[subs.size() - 1] == "GLSL") {
+                    (*_dependency) = sub;
+                    return true;
+                }
         }
     }
     return false;
@@ -122,7 +131,6 @@ std::string loadGlslFrom(const std::string &_path, const StringList& _include_fo
 bool loadGlslFrom(const std::string &_path, std::string *_into) {
     const std::vector<std::string> folders;
     StringList deps;
-
     _into->clear();
     return loadGlslFrom(_path, _into, folders, &deps);
 }
@@ -138,6 +146,7 @@ bool loadGlslFrom(const std::string &_path, std::string *_into, const std::vecto
     // Get absolute home folder
     std::string original_path = getAbsPath(_path);
 
+    // Get absolute home folder
     std::string line;
     std::string dependency;
     std::string newBuffer;
@@ -157,16 +166,49 @@ bool loadGlslFrom(const std::string &_path, std::string *_into, const std::vecto
                     _dependencies->push_back(dependency);
                 }
             }
-            else {
+            else
                 std::cerr << "Error: " << dependency << " not found at " << original_path << std::endl;
-            }
         }
-        else {
+        else
             (*_into) += line + "\n";
-        }
     }
 
     file.close();
+    return true;
+}
+
+std::string resolveGlsl(const std::string& _src, const StringList& _include_folders, StringList *_dependencies) {
+    std::string str = "";
+    resolveGlsl(_src, &str, _include_folders, _dependencies);
+    return str;
+}
+
+bool resolveGlsl(const std::string& _src, std::string *_into, const StringList& _include_folders, StringList *_dependencies) {
+    std::vector<std::string> lines = split(_src, '\n');
+
+    std::string dependency = "";
+    std::string newBuffer;
+    for (size_t i = 0; i < lines.size(); i++) {
+        dependency = "";
+        if (extractDependency(lines[i], &dependency)) {
+            dependency = urlResolve(dependency, _include_folders);
+            newBuffer = "";
+            if (loadGlslFrom(dependency, &newBuffer, _include_folders, _dependencies)) {
+                if (!alreadyInclude(dependency, _dependencies)) {
+                    // Insert the content of the dependency
+                    (*_into) += "\n" + newBuffer + "\n";
+
+                    // Add dependency to dependency list
+                    _dependencies->push_back(dependency);
+                }
+            }
+            else
+                std::cerr << "Error: " << dependency << " not found." <<  std::endl;
+        }
+        else
+            (*_into) += lines[i] + "\n";
+    }
+
     return true;
 }
 

@@ -19,6 +19,10 @@ public:
 
     // virtual void        setPosition(const glm::vec3& _pos);
     void                setType(LightType _type) { m_lightType = _type; }
+    void                setColor(float _r, float _g, float _b) { color = glm::vec3(_r, _g, _b); }
+    void                setDirection(float _x, float _y, float _z) { direction = glm::vec3(_x, _y, _z); }
+    void                setIntensity(float _intensity) { intensity = _intensity; }
+    void                setFallOff(float _falloff) { falloff = _falloff; }
 
     const LightType&    getLightType() const { return m_lightType; }
 

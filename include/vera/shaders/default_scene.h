@@ -44,14 +44,14 @@ varying vec4    v_lightCoord;
 
 void main(void) {
     
-    v_position = a_position;
+    v_position = u_modelMatrix * a_position;
     
 #ifdef MODEL_VERTEX_COLOR
     v_color = a_color;
 #endif
     
 #ifdef MODEL_VERTEX_NORMAL
-    v_normal = a_normal;
+    v_normal = vec4(u_modelMatrix * vec4(a_normal, 0.0) ).xyz;
 #endif
     
 #ifdef MODEL_VERTEX_TEXCOORD
@@ -69,7 +69,8 @@ void main(void) {
     v_lightCoord = u_lightMatrix * v_position;
 #endif
     
-    gl_Position = u_modelViewProjectionMatrix * v_position;
+    gl_Position = u_projectionMatrix * u_viewMatrix * v_position;
+    //gl_Position = u_modelViewProjectionMatrix * v_position;
 }
 )";
 
@@ -113,14 +114,14 @@ out     vec4    v_lightCoord;
 #endif
 
 void main(void) {
-    v_position = a_position;
+    v_position = u_modelMatrix * a_position;
     
 #ifdef MODEL_VERTEX_COLOR
     v_color = a_color;
 #endif
     
 #ifdef MODEL_VERTEX_NORMAL
-    v_normal = a_normal;
+    v_normal = vec4(u_modelMatrix * vec4(a_normal, 0.0) ).xyz;
 #endif
     
 #ifdef MODEL_VERTEX_TEXCOORD
@@ -138,7 +139,7 @@ void main(void) {
     v_lightCoord = u_lightMatrix * v_position;
 #endif
     
-    gl_Position = u_modelViewProjectionMatrix * v_position;
+    gl_Position = u_projectionMatrix * u_viewMatrix * v_position;
 }
 )";
 

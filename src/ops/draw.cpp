@@ -894,8 +894,8 @@ void shader(Shader* _program) {
             _program->setUniform("u_lightColor", it->second->color);
             _program->setUniform("u_lightIntensity", it->second->intensity);
 
-            if (it->second->getLightType() != vera::LIGHT_DIRECTIONAL)
-                _program->setUniform("u_light", it->second->getPosition());
+            // if (it->second->getLightType() != vera::LIGHT_DIRECTIONAL)
+            _program->setUniform("u_light", it->second->getPosition());
             if (it->second->getLightType() == vera::LIGHT_DIRECTIONAL || it->second->getLightType() == vera::LIGHT_SPOT)
                 _program->setUniform("u_lightDirection", it->second->direction);
             if (it->second->falloff > 0)

@@ -15,7 +15,8 @@ enum WindowStyle {
     UNDECORATED,
     UNDECORATED_ALLWAYS_ON_TOP,
     FULLSCREEN,
-    LENTICULAR
+    LENTICULAR,
+    EMBEDDED
 };
 
 struct WindowProperties {
@@ -34,9 +35,9 @@ struct WindowProperties {
     std::string display = "/dev/dri/card0";
     #endif
 
-    // #if !defined(DRIVER_GLFW)
+    #if !defined(DRIVER_GLFW)
     std::string mouse = "/dev/input/mice";
-    // #endif
+    #endif
 
     #if defined(__EMSCRIPTEN__)
     size_t      webgl = 0;

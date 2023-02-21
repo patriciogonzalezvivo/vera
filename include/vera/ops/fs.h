@@ -21,6 +21,9 @@ std::string loadGlslFrom(const std::string& _path, const StringList& _include_fo
 bool loadGlslFrom(const std::string& _path, std::string *_into);
 bool loadGlslFrom(const std::string& _filename, std::string *_into, const StringList& _include_folders, StringList *_dependencies);
 
+std::string resolveGlsl(const std::string& _src, const StringList& _include_folders, StringList *_dependencies);
+bool resolveGlsl(const std::string& _filename, std::string *_into, const StringList& _include_folders, StringList *_dependencies);
+
 // Binnaries
 std::string encodeBase64(const unsigned char* _src, size_t _size);
 size_t decodeBase64(const std::string& _src, unsigned char *_to);
