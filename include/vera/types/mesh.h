@@ -57,6 +57,7 @@ public:
     void                setColor(const glm::vec4 &_color);
     void                addColor(const glm::vec4 &_color);
     void                addColors(const std::vector<glm::vec4> &_colors);
+    void                addColor(float _r, float _g, float _b, float _a) { addColor(glm::vec4(_r, _g, _b, _a)); };
 
     const bool          haveColors() const { return !m_colors.empty(); }
     void                clearColors() { m_colors.clear(); }
