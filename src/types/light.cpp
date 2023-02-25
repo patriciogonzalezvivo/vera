@@ -60,7 +60,7 @@ const glm::mat4& Light::getMVPMatrix( const glm::mat4 &_model, float _area) {
         // Compute the MVP matrix from the light's point of view
         m_projectionMatrix = glm::ortho<float>(-_area, _area, -_area, _area, m_near, m_far);
         m_viewMatrix = glm::lookAt(glm::normalize(getPosition()), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
-        m_mvp = m_projectionMatrix * m_viewMatrix * _model;
+        m_mvp = m_projectionMatrix * m_viewMatrix * glm::mat4(1.0f);// * _model;
 
         // Make biased MVP matrix (0 ~ 1) instad of (-1 to 1)
         const glm::mat4 biasMatrix(

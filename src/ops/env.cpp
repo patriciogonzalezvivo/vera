@@ -87,14 +87,14 @@ void latLongFromVec(float& _u, float& _v, const float _vec[3]) {
 }
 
 template <typename T> 
-void splitFacesFromVerticalCross(T *_data, int _width, int _height, CubemapFace<T> **_faces ) {
+void splitFacesFromVerticalCross(const T *_data, size_t _width, size_t _height, size_t _channels, CubemapFace<T> **_faces ) {
     int faceWidth = _width / 3;
     int faceHeight = _height / 4;
 
     for (int i = 0; i < 6; i++) {
         _faces[i] = new CubemapFace<T>();
         _faces[i]->id = i;
-        _faces[i]->data = new T[3 * faceWidth * faceHeight];
+        _faces[i]->data = new T[_channels * faceWidth * faceHeight];
         _faces[i]->width = faceWidth;
         _faces[i]->height = faceHeight;
         _faces[i]->currentOffset = 0;
@@ -105,7 +105,7 @@ void splitFacesFromVerticalCross(T *_data, int _width, int _height, CubemapFace<
 
         for (int iFace = 0; iFace < 3; iFace++) {
             CubemapFace<T> *face = NULL;
-            int offset = 3 * (faceWidth * iFace + l * _width);
+            int offset = _channels * (faceWidth * iFace + l * _width);
 
             //      0   1   2   i
             //  3      -Z       
@@ -123,24 +123,24 @@ void splitFacesFromVerticalCross(T *_data, int _width, int _height, CubemapFace<
 
             if (face) {
                 // the number of components to copy
-                int n = sizeof(T) * faceWidth * 3;
+                int n = sizeof(T) * faceWidth * _channels;
 
                 std::memcpy(face->data + face->currentOffset, _data + offset, n);
-                face->currentOffset += (3 * faceWidth);
+                face->currentOffset += (_channels * faceWidth);
             }
         }
     }
 }
 
 template <typename T> 
-void splitFacesFromHorizontalCross(T *_data, int _width, int _height, CubemapFace<T> **_faces ) {
+void splitFacesFromHorizontalCross(const T *_data, size_t _width, size_t _height, size_t _channels, CubemapFace<T> **_faces ) {
     int faceWidth = _width / 4;
     int faceHeight = _height / 3;
 
     for (int i = 0; i < 6; i++) {
         _faces[i] = new CubemapFace<T>();
         _faces[i]->id = i;
-        _faces[i]->data = new T[3 * faceWidth * faceHeight];
+        _faces[i]->data = new T[_channels * faceWidth * faceHeight];
         _faces[i]->width = faceWidth;
         _faces[i]->height = faceHeight;
         _faces[i]->currentOffset = 0;
@@ -151,7 +151,7 @@ void splitFacesFromHorizontalCross(T *_data, int _width, int _height, CubemapFac
 
         for (int iFace = 0; iFace < 4; iFace++) {
             CubemapFace<T> *face = NULL;
-            int offset = 3 * (faceWidth * iFace + l * _width);
+            int offset = _channels * (faceWidth * iFace + l * _width);
 
             //      0   1   2   3 i      
             //  2      -X 
@@ -168,24 +168,24 @@ void splitFacesFromHorizontalCross(T *_data, int _width, int _height, CubemapFac
 
             if (face) {
                 // the number of components to copy
-                int n = sizeof(T) * faceWidth * 3;
+                int n = sizeof(T) * faceWidth * _channels;
 
                 std::memcpy(face->data + face->currentOffset, _data + offset, n);
-                face->currentOffset += (3 * faceWidth);
+                face->currentOffset += (_channels * faceWidth);
             }
         }
     }
 }
 
 template <typename T> 
-void splitFacesFromHorizontalRow(T *_data, int _width, int _height, CubemapFace<T> **_faces ) {
+void splitFacesFromHorizontalRow(const T *_data, size_t _width, size_t _height, size_t _channels, CubemapFace<T> **_faces ) {
     int faceWidth = _width / 6;
     int faceHeight = _height;
 
     for (int i = 0; i < 6; i++) {
         _faces[i] = new CubemapFace<T>();
         _faces[i]->id = i;
-        _faces[i]->data = new T[3 * faceWidth * faceHeight];
+        _faces[i]->data = new T[_channels * faceWidth * faceHeight];
         _faces[i]->width = faceWidth;
         _faces[i]->height = faceHeight;
         _faces[i]->currentOffset = 0;
@@ -195,7 +195,7 @@ void splitFacesFromHorizontalRow(T *_data, int _width, int _height, CubemapFace<
         // int jFace = (l - (l % faceHeight)) / faceHeight;
         for (int iFace = 0; iFace < 6; iFace++) {
             CubemapFace<T> *face = NULL;
-            int offset = 3 * (faceWidth * iFace + l * _width);
+            int offset = _channels * (faceWidth * iFace + l * _width);
 
             //   0   1   2   3   4   5 i      
             //  +X  -X  +Y  -Y  +Z  -Z 
@@ -204,7 +204,7 @@ void splitFacesFromHorizontalRow(T *_data, int _width, int _height, CubemapFace<
 
             if (face) {
                 // the number of components to copy
-                int n = sizeof(T) * faceWidth * 3;
+                int n = sizeof(T) * faceWidth * _channels;
 
                 std::memcpy(face->data + face->currentOffset, _data + offset, n);
                 face->currentOffset += (3 * faceWidth);
@@ -217,7 +217,7 @@ void splitFacesFromHorizontalRow(T *_data, int _width, int _height, CubemapFace<
 // https://github.com/google/filament/blob/master/tools/cmgen/src/CubemapSH.cpp
 // 
 template <typename T> 
-void splitFacesFromVerticalRow(T *_data, int _width, int _height, CubemapFace<T> **_faces ) {
+void splitFacesFromVerticalRow(const T *_data, size_t _width, size_t _height, size_t _channels, CubemapFace<T> **_faces ) {
     int faceWidth = _width;
     int faceHeight = _height/6;
 
@@ -225,7 +225,7 @@ void splitFacesFromVerticalRow(T *_data, int _width, int _height, CubemapFace<T>
     for (int i = 0; i < 6; i++) {
         _faces[i] = new CubemapFace<T>();
         _faces[i]->id = i;
-        _faces[i]->data = new T[3 * faceWidth * faceHeight];
+        _faces[i]->data = new T[_channels * faceWidth * faceHeight];
         _faces[i]->width = faceWidth;
         _faces[i]->height = faceHeight;
         _faces[i]->currentOffset = 0;
@@ -244,10 +244,10 @@ void splitFacesFromVerticalRow(T *_data, int _width, int _height, CubemapFace<T>
 
             if (face) {
                 // the number of components to copy
-                int n = sizeof(T) * faceWidth * 3;
+                int n = sizeof(T) * faceWidth * _channels;
 
                 std::memcpy(face->data + face->currentOffset, _data + offset, n);
-                face->currentOffset += (3 * faceWidth);
+                face->currentOffset += (_channels * faceWidth);
             }
         }
     }
@@ -266,7 +266,7 @@ inline void vec3Mul(T* __restrict _result, const T* __restrict _a, float _b) {
 // https://github.com/dariomanesku/cmft/blob/master/src/cmft/image.cpp#L3124
 // 
 template <typename T> 
-void splitFacesFromEquirectangular(T *_data, unsigned int _width, unsigned int _height, CubemapFace<T> **_faces ) {
+void splitFacesFromEquirectangular(const T *_data, size_t _width, size_t _height, size_t _channels, CubemapFace<T> **_faces ) {
     // Alloc data.
     const uint32_t faceWidth = (_height + 1)/2;
     const uint32_t faceHeight = faceWidth;
@@ -279,16 +279,16 @@ void splitFacesFromEquirectangular(T *_data, unsigned int _width, unsigned int _
     for (int i = 0; i < 6; i++) {
         _faces[i] = new CubemapFace<T>();
         _faces[i]->id = i;
-        _faces[i]->data = new T[3 * faceWidth * faceHeight];
+        _faces[i]->data = new T[_channels * faceWidth * faceHeight];
         _faces[i]->width = faceWidth;
         _faces[i]->height = faceHeight;
         _faces[i]->currentOffset = 0;
 
         for (uint32_t yy = 0; yy < faceHeight; ++yy) {
-            T* dstRowData = &_faces[i]->data[yy * faceWidth * 3];
+            T* dstRowData = &_faces[i]->data[yy * faceWidth * _channels];
 
             for (uint32_t xx = 0; xx < faceWidth; ++xx) {
-                T* dstColumnData = &dstRowData[xx * 3];
+                T* dstColumnData = &dstRowData[xx * _channels];
 
                 // Cubemap (u,v) on current face.
                 const float uu = 2.0f*xx*invfaceWidthf-1.0f;
@@ -314,10 +314,10 @@ void splitFacesFromEquirectangular(T *_data, unsigned int _width, unsigned int _
                     const uint32_t x1 = M_MIN(x0+1, _width-1);
                     const uint32_t y1 = M_MIN(y0+1, _height-1);
 
-                    const T *src0 = &_data[y0 * _width * 3 + x0 * 3];
-                    const T *src1 = &_data[y0 * _width * 3 + x1 * 3];
-                    const T *src2 = &_data[y1 * _width * 3 + x0 * 3];
-                    const T *src3 = &_data[y1 * _width * 3 + x1 * 3];
+                    const T *src0 = &_data[y0 * _width * _channels + x0 * _channels];
+                    const T *src1 = &_data[y0 * _width * _channels + x1 * _channels];
+                    const T *src2 = &_data[y1 * _width * _channels + x0 * _channels];
+                    const T *src3 = &_data[y1 * _width * _channels + x1 * _channels];
 
                     const float tx = xSrcf - float(int(x0));
                     const float ty = ySrcf - float(int(y0));
@@ -344,9 +344,9 @@ void splitFacesFromEquirectangular(T *_data, unsigned int _width, unsigned int _
                     const uint32_t xSrc = ftou(xSrcf);
                     const uint32_t ySrc = ftou(ySrcf);
 
-                    dstColumnData[0] = _data[ySrc * _width * 3 + xSrc * 3 + 0];
-                    dstColumnData[1] = _data[ySrc * _width * 3 + xSrc * 3 + 1];
-                    dstColumnData[2] = _data[ySrc * _width * 3 + xSrc * 3 + 2];
+                    dstColumnData[0] = _data[ySrc * _width * _channels + xSrc * _channels + 0];
+                    dstColumnData[1] = _data[ySrc * _width * _channels + xSrc * _channels + 1];
+                    dstColumnData[2] = _data[ySrc * _width * _channels + xSrc * _channels + 2];
                 #endif
             }
         }
@@ -433,7 +433,7 @@ void dynamicCubemap(std::function<void(Camera&, glm::vec4&, int&)> _renderFnc, c
 
 // SKY BOX GENERATOR
 // -------------------------------------------------------------- 
-float* skyEquirectangular(SkyData* _sky, int _width, int _height) {
+float* skyEquirectangular(SkyData* _sky, size_t _width, size_t _height) {
     int nPixels = _width * _height * 3;
     float *data = new float[nPixels]; 
 
@@ -526,7 +526,7 @@ CubemapFace<float>** skyCubemap(SkyData* _sky, int _width) {
 
     // LOAD FACES
     CubemapFace<float> **faces = new CubemapFace<float>*[6];
-    splitFacesFromEquirectangular<float>(data, width, height, faces);
+    splitFacesFromEquirectangular<float>(data, width, height, 3, faces);
 
     return faces;
 }
@@ -534,19 +534,19 @@ CubemapFace<float>** skyCubemap(SkyData* _sky, int _width) {
 template class CubemapFace<float>;
 template class CubemapFace<unsigned char>;
 
-template void splitFacesFromVerticalCross(float *_data, int _width, int _height, CubemapFace<float> **_faces );
-template void splitFacesFromVerticalCross(unsigned char *_data, int _width, int _height, CubemapFace<unsigned char> **_faces );
+template void splitFacesFromVerticalCross(const float *_data, size_t _width, size_t _height, size_t _channels, CubemapFace<float> **_faces );
+template void splitFacesFromVerticalCross(const unsigned char *_data, size_t _width, size_t _height, size_t _channels, CubemapFace<unsigned char> **_faces );
 
-template void splitFacesFromHorizontalCross(float *_data, int _width, int _height, CubemapFace<float> **_faces );
-template void splitFacesFromHorizontalCross(unsigned char *_data, int _width, int _height, CubemapFace<unsigned char> **_faces );
+template void splitFacesFromHorizontalCross(const float *_data, size_t _width, size_t _height, size_t _channels, CubemapFace<float> **_faces );
+template void splitFacesFromHorizontalCross(const unsigned char *_data, size_t _width, size_t _height, size_t _channels, CubemapFace<unsigned char> **_faces );
 
-template void splitFacesFromHorizontalRow(float *_data, int _width, int _height, CubemapFace<float> **_faces );
-template void splitFacesFromHorizontalRow(unsigned char *_data, int _width, int _height, CubemapFace<unsigned char> **_faces );
+template void splitFacesFromHorizontalRow(const float *_data, size_t _width, size_t _height, size_t _channels, CubemapFace<float> **_faces );
+template void splitFacesFromHorizontalRow(const unsigned char *_data, size_t _width, size_t _height, size_t _channels, CubemapFace<unsigned char> **_faces );
 
-template void splitFacesFromVerticalRow(float *_data, int _width, int _height, CubemapFace<float> **_faces );
-template void splitFacesFromVerticalRow(unsigned char *_data, int _width, int _height, CubemapFace<unsigned char> **_faces );
+template void splitFacesFromVerticalRow(const float *_data, size_t _width, size_t _height, size_t _channels, CubemapFace<float> **_faces );
+template void splitFacesFromVerticalRow(const unsigned char *_data, size_t _width, size_t _height, size_t _channels, CubemapFace<unsigned char> **_faces );
 
-template void splitFacesFromEquirectangular(float *_data, unsigned int _width, unsigned int _height, CubemapFace<float> **_faces );
-template void splitFacesFromEquirectangular(unsigned char *_data, unsigned int _width, unsigned int _height, CubemapFace<unsigned char> **_faces );
+template void splitFacesFromEquirectangular(const float *_data, size_t _width, size_t _height, size_t _channels, CubemapFace<float> **_faces );
+template void splitFacesFromEquirectangular(const unsigned char *_data, size_t _width, size_t _height, size_t _channels, CubemapFace<unsigned char> **_faces );
 
 }

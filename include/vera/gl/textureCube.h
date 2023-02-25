@@ -16,6 +16,7 @@ public:
 
     virtual bool    load(SkyData* _skyData, int _width = 1024 );
     virtual bool    load(const std::string &_fileName, bool _vFlip = true);
+    virtual bool    load(size_t _width, size_t _height, size_t _component, const float* _data, bool _vFlip = true);
 
     virtual void    bind();
 
