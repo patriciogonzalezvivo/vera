@@ -32,6 +32,8 @@ Scene::Scene():
     activeCubemap(nullptr), 
     activeCamera(nullptr),
     activeFont(nullptr),
+    m_skyboxSize(1024),
+    m_skyboxFlip(false),
     m_streamsPrevs(0), 
     m_streamsPrevsChange(false) {
     
@@ -73,7 +75,7 @@ void Scene::load(const std::string& _filename, bool _verbose) {
 
 void Scene::update() {
     if (m_skybox.change) {
-        cubemaps["default"]->load(&m_skybox);
+        cubemaps["default"]->load(&m_skybox, m_skyboxSize, m_skyboxFlip);
         m_skybox.change = false;
     }
 

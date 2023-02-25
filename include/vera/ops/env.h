@@ -33,6 +33,6 @@ void        dynamicCubemap(std::function<void(Camera&, glm::vec4&, int&)> _rende
 void        dynamicCubemap(std::function<void(Camera&, glm::vec4&, int&)> _renderFnc, const std::string& _file, glm::vec3 _pos = glm::vec3(0.0), int _viewSize = 512);
 
 float*                  skyEquirectangular(SkyData* _sky, size_t _width, size_t _height);
-CubemapFace<float>**    skyCubemap(SkyData* _sky, int _width);
+CubemapFace<float>**    skyCubemap(SkyData* _sky, int _width, bool _vFlip);
 
 }

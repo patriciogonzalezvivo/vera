@@ -506,7 +506,6 @@ float* skyEquirectangular(SkyData* _sky, size_t _width, size_t _height) {
                 data[i + 1] = _sky->groundAlbedo.g;
                 data[i + 2] = _sky->groundAlbedo.b;
             }
-
             else {
                 data[i + 0] *= hdrScale;
                 data[i + 1] *= hdrScale;
@@ -518,11 +517,14 @@ float* skyEquirectangular(SkyData* _sky, size_t _width, size_t _height) {
     return data;
 }
 
-CubemapFace<float>** skyCubemap(SkyData* _sky, int _width) {
+CubemapFace<float>** skyCubemap(SkyData* _sky, int _width, bool _vFlip) {
     int width = _width;
     int height = int(_width/2);
 
     float *data = skyEquirectangular(_sky, width, height);
+
+    if (_vFlip)
+        flipPixelsVertically<float>(data, width, height, 3);
 
     // LOAD FACES
     CubemapFace<float> **faces = new CubemapFace<float>*[6];

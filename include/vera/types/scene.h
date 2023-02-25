@@ -91,6 +91,8 @@ public:
     virtual void        setSunPosition(const glm::vec3& _v);
     virtual void        setSunPosition(float _az, float _elev, float _distance = 10000.0f);
     virtual void        setSkyTurbidity(float _turbidity);
+    virtual void        setSkyFlip(bool _flip) { m_skyboxFlip = _flip; }
+    virtual void        setSkySize(size_t _size) { m_skyboxSize = _size; }
     virtual void        setGroundAlbedo(const glm::vec3& _albedo);
     virtual float       getSunAzimuth() const;
     virtual float       getSunElevation() const;
@@ -142,6 +144,8 @@ public:
 
 protected:
     SkyData             m_skybox;
+    size_t              m_skyboxSize;
+    bool                m_skyboxFlip;
 
     size_t              m_streamsPrevs;
     bool                m_streamsPrevsChange;

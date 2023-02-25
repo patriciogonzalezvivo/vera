@@ -240,7 +240,7 @@ bool TextureCube::load(size_t _width, size_t _height, size_t _channels, const fl
     return true;    
 }
 
-bool TextureCube::load(SkyData* _sky, int _width) {
+bool TextureCube::load(SkyData* _sky, int _width, bool _vFlip) {
 
     if (m_id == 0)
         glGenTextures(1, &m_id);
@@ -258,7 +258,7 @@ bool TextureCube::load(SkyData* _sky, int _width) {
     // CubemapFace<float> **faces = new CubemapFace<float>*[6];
     // splitFacesFromEquirectangular<float>(data, m_width, m_height, faces);
 
-    CubemapFace<float> **faces = skyCubemap(_sky, m_width);
+    CubemapFace<float> **faces = skyCubemap(_sky, m_width, _vFlip);
     
     for (int i = 0; i < 6; i++) {
         faces[i]->upload();
