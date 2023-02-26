@@ -187,7 +187,7 @@ void Font::render(const std::string &_text, float _x, float _y) {
     fonsSetColor(fs, m_color);
     fonsSetAlign(fs, m_hAlign | m_vAlign);
 
-    // if (m_effect != EFFECT_NONE) 
+    //if (m_effect != EFFECT_NONE) 
     {
         fonsSetBlurType(fs, m_effect);
         fonsSetBlur(fs, m_blur);

@@ -103,9 +103,8 @@ float contourAlpha(in sampler2D tex, in vec2 uv, float distance, in float off) {
 }
 
 void main(void) {
-    if (v_alpha == 0.0) {
+    if (v_alpha == 0.0)
         discard;
-    }
 
     float distance = texture2D(u_tex, v_uv).a;
     float alpha = contourAlpha(u_tex, v_uv, distance, sdf) * tint;

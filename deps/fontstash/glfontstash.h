@@ -601,9 +601,8 @@ void glfonsUpdateBuffer(FONScontext* ctx, void* owner) {
 void glfonsDraw(FONScontext* ctx) {
     GLFONScontext* gl = (GLFONScontext*)ctx->params.userPtr;
 
-    if(!gl->params.useGLBackend) {
+    if(!gl->params.useGLBackend)
         return;
-    }
 
     GLboolean blending;
     glGetBooleanv(GL_BLEND, &blending);
@@ -620,25 +619,21 @@ void glfonsDraw(FONScontext* ctx) {
     glActiveTexture(GL_TEXTURE0 + ATLAS_TEXTURE_SLOT);
     glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint*) &textureUnit0);
 
-    if(depthTest) {
+    if(depthTest)
         glDisable(GL_DEPTH_TEST);
-    }
 
-    if(!blending) {
+    if(!blending)
         glEnable(GL_BLEND);
-    }
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glfons__draw(gl, gl->atlas != textureUnit0);
     glBindBuffer(GL_ARRAY_BUFFER, boundBuffer);
 
-    if(!blending) {
+    if(!blending)
         glDisable(GL_BLEND);
-    }
 
-    if(depthTest) {
+    if(depthTest)
         glEnable(GL_DEPTH_TEST);
-    }
 
     glActiveTexture(GL_TEXTURE0 + ATLAS_TEXTURE_SLOT);
     glBindTexture(GL_TEXTURE_2D, textureUnit0);
