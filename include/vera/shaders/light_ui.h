@@ -22,9 +22,9 @@ void main(void) {
     vec3 cam_right = vec3(u_viewMatrix[0][0], u_viewMatrix[1][0], u_viewMatrix[2][0]);
     vec3 cam_up = vec3(u_viewMatrix[0][1], u_viewMatrix[1][1], u_viewMatrix[2][1]);
     
+    pos.xyz += u_translate;
     pos.xyz -= cam_right * (v_texcoord.x - 0.5) * u_scale.x;
     pos.xyz -= cam_up * (v_texcoord.y - 0.5) * u_scale.y;
-    pos.xyz += u_translate;
     
     gl_Position = u_modelViewProjectionMatrix * pos;
 })";
