@@ -13,4 +13,5 @@ Release/
 
 # CMake
 CMakeFiles/
+build/
 *.stamp
