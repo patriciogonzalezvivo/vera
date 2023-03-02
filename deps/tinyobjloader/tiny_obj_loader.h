@@ -226,7 +226,7 @@ typedef struct {
 
   std::map<std::string, std::string> unknown_parameter;
 
-#ifdef TINY_OBJ_LOADER_H_
+#ifdef TINY_OBJ_LOADER_PYTHON_BINDING
   // For pybind11
   std::array<double, 3> GetDiffuse() {
     std::array<double, 3> values;
