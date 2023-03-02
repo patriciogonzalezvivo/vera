@@ -1130,8 +1130,9 @@ void setWindowSize(int _width, int _height) {
     glfwSetWindowSize(window, _width * getPixelDensity(true), _height * getPixelDensity(true));
     return;
 
-#elif defined(DRIVER_GLFW) && !defined(PYTHON_RENDER)
-    glfwSetWindowSize(window, _width / getPixelDensity(true), _height / getPixelDensity(true));
+#elif defined(DRIVER_GLFW)
+    if (properties.style != EMBEDDED)
+        glfwSetWindowSize(window, _width / getPixelDensity(true), _height / getPixelDensity(true));
 #endif
 
     setViewport((float)_width / getPixelDensity(true), (float)_height / getPixelDensity(true));
@@ -1221,7 +1222,8 @@ bool isFullscreen() {
 }
 
 void setFullscreen(bool _fullscreen) {
-    if ( isFullscreen() == _fullscreen )
+    if ( isFullscreen() == _fullscreen || 
+         properties.style == EMBEDDED)
         return;
 
 #if defined(__EMSCRIPTEN__)
@@ -1241,8 +1243,7 @@ void setFullscreen(bool _fullscreen) {
         properties.style = FULLSCREEN;
     }
     
-#elif defined(DRIVER_GLFW) && !defined(PYTHON_RENDER)
-
+#elif defined(DRIVER_GLFW)
     if ( _fullscreen ) {
         // backup window position and window size
         glfwGetWindowPos( window, &viewport_last.x, &viewport_last.y );
@@ -1267,10 +1268,10 @@ void setFullscreen(bool _fullscreen) {
 
 void setPixelDensity(float _density) { fPixelDensity = _density; }
 float getPixelDensity(bool _compute) {
-    if (_compute) {
+    if (_compute && properties.style != EMBEDDED) {
 #if defined(__EMSCRIPTEN__)
         return emscripten_get_device_pixel_ratio();
-#elif defined(DRIVER_GLFW) && !defined(PYTHON_RENDER)
+#elif defined(DRIVER_GLFW)
         int window_width, window_height, framebuffer_width, framebuffer_height;
         glfwGetWindowSize(window, &window_width, &window_height);
         glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
