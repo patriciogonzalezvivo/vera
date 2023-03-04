@@ -99,6 +99,7 @@ bool Texture::load(int _width, int _height, int _id ) {
 
     m_filter    = LINEAR;
     m_wrap      = REPEAT;
+    return true;
 }
 
 bool Texture::load(int _width, int _height, int _channels, int _bits, const void* _data, TextureFilter _filter, TextureWrap _wrap) {
