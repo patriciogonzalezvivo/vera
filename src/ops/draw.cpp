@@ -1087,6 +1087,12 @@ void labels() {
     setCamera(cam);
 }
 
+void cleanLabels() {
+    for (size_t i = 0; i < scene->labels.size(); i++)
+        delete scene->labels[i];
+    scene->labels.clear();
+}
+
 int labelAt(float _x, float _y) {
     for (size_t i = 0; i < scene->labels.size(); i++)
         if (scene->labels[i]->contains(_x, _y))

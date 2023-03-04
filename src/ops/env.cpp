@@ -94,7 +94,7 @@ void splitFacesFromVerticalCross(const T *_data, size_t _width, size_t _height, 
     for (int i = 0; i < 6; i++) {
         _faces[i] = new CubemapFace<T>();
         _faces[i]->id = i;
-        _faces[i]->data = new T[_channels * faceWidth * faceHeight];
+        _faces[i]->data = new T[3 * faceWidth * faceHeight];
         _faces[i]->width = faceWidth;
         _faces[i]->height = faceHeight;
         _faces[i]->currentOffset = 0;
@@ -105,7 +105,7 @@ void splitFacesFromVerticalCross(const T *_data, size_t _width, size_t _height, 
 
         for (int iFace = 0; iFace < 3; iFace++) {
             CubemapFace<T> *face = NULL;
-            int offset = _channels * (faceWidth * iFace + l * _width);
+            int offset = 3 * (faceWidth * iFace + l * _width);
 
             //      0   1   2   i
             //  3      -Z       
@@ -123,10 +123,10 @@ void splitFacesFromVerticalCross(const T *_data, size_t _width, size_t _height, 
 
             if (face) {
                 // the number of components to copy
-                int n = sizeof(T) * faceWidth * _channels;
+                int n = sizeof(T) * faceWidth * 3;
 
                 std::memcpy(face->data + face->currentOffset, _data + offset, n);
-                face->currentOffset += (_channels * faceWidth);
+                face->currentOffset += (3 * faceWidth);
             }
         }
     }
@@ -185,7 +185,7 @@ void splitFacesFromHorizontalRow(const T *_data, size_t _width, size_t _height, 
     for (int i = 0; i < 6; i++) {
         _faces[i] = new CubemapFace<T>();
         _faces[i]->id = i;
-        _faces[i]->data = new T[_channels * faceWidth * faceHeight];
+        _faces[i]->data = new T[3 * faceWidth * faceHeight];
         _faces[i]->width = faceWidth;
         _faces[i]->height = faceHeight;
         _faces[i]->currentOffset = 0;
@@ -195,7 +195,7 @@ void splitFacesFromHorizontalRow(const T *_data, size_t _width, size_t _height, 
         // int jFace = (l - (l % faceHeight)) / faceHeight;
         for (int iFace = 0; iFace < 6; iFace++) {
             CubemapFace<T> *face = NULL;
-            int offset = _channels * (faceWidth * iFace + l * _width);
+            int offset = 3 * (faceWidth * iFace + l * _width);
 
             //   0   1   2   3   4   5 i      
             //  +X  -X  +Y  -Y  +Z  -Z 
@@ -204,7 +204,7 @@ void splitFacesFromHorizontalRow(const T *_data, size_t _width, size_t _height, 
 
             if (face) {
                 // the number of components to copy
-                int n = sizeof(T) * faceWidth * _channels;
+                int n = sizeof(T) * faceWidth * 3;
 
                 std::memcpy(face->data + face->currentOffset, _data + offset, n);
                 face->currentOffset += (3 * faceWidth);
@@ -225,7 +225,7 @@ void splitFacesFromVerticalRow(const T *_data, size_t _width, size_t _height, si
     for (int i = 0; i < 6; i++) {
         _faces[i] = new CubemapFace<T>();
         _faces[i]->id = i;
-        _faces[i]->data = new T[_channels * faceWidth * faceHeight];
+        _faces[i]->data = new T[3 * faceWidth * faceHeight];
         _faces[i]->width = faceWidth;
         _faces[i]->height = faceHeight;
         _faces[i]->currentOffset = 0;
@@ -244,10 +244,10 @@ void splitFacesFromVerticalRow(const T *_data, size_t _width, size_t _height, si
 
             if (face) {
                 // the number of components to copy
-                int n = sizeof(T) * faceWidth * _channels;
+                int n = sizeof(T) * faceWidth * 3;
 
                 std::memcpy(face->data + face->currentOffset, _data + offset, n);
-                face->currentOffset += (_channels * faceWidth);
+                face->currentOffset += (3 * faceWidth);
             }
         }
     }
@@ -279,16 +279,16 @@ void splitFacesFromEquirectangular(const T *_data, size_t _width, size_t _height
     for (int i = 0; i < 6; i++) {
         _faces[i] = new CubemapFace<T>();
         _faces[i]->id = i;
-        _faces[i]->data = new T[_channels * faceWidth * faceHeight];
+        _faces[i]->data = new T[3 * faceWidth * faceHeight];
         _faces[i]->width = faceWidth;
         _faces[i]->height = faceHeight;
         _faces[i]->currentOffset = 0;
 
         for (uint32_t yy = 0; yy < faceHeight; ++yy) {
-            T* dstRowData = &_faces[i]->data[yy * faceWidth * _channels];
+            T* dstRowData = &_faces[i]->data[yy * faceWidth * 3];
 
             for (uint32_t xx = 0; xx < faceWidth; ++xx) {
-                T* dstColumnData = &dstRowData[xx * _channels];
+                T* dstColumnData = &dstRowData[xx * 3];
 
                 // Cubemap (u,v) on current face.
                 const float uu = 2.0f*xx*invfaceWidthf-1.0f;
