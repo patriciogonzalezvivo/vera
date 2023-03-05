@@ -44,7 +44,7 @@ varying vec2        v_texcoord;
 
 float linearizeDepth(float depth) {
     depth = 2.0 * depth - 1.0;
-    return (2.0 * u_cameraNearClip) / (u_cameraFarClip + u_cameraNearClip - depth * (u_cameraFarClip - u_cameraNearClip));
+    return (2.0 * u_cameraNearClip * u_cameraFarClip) / (u_cameraFarClip + u_cameraNearClip - depth * (u_cameraFarClip - u_cameraNearClip));
 }
 
 vec3 heatmap(float v) {
@@ -62,8 +62,7 @@ void main(void) {
     if (u_depth > 0.0) {
         float depth = color.r;
         color.rgb = vec3( depth );
-        // float depthLinear = u_cameraNearClip + linearizeDepth(depth) * u_cameraFarClip;
-        // color.rgb = heatmap( (u_cameraDistance - depthLinear) );
+        color.rgb = heatmap( fract(linearizeDepth(depth) * 0.1) );
     }
 
     if (u_tex0TotalFrames > 0.0)

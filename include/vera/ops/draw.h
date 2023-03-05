@@ -319,6 +319,7 @@ void addLabel(std::function<std::string(void)> _func, glm::vec3* _position, Labe
 void addLabel(std::function<std::string(void)> _func, Node* _node, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
 void addLabel(std::function<std::string(void)> _func, Model* _model, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
 void labels();
+void cleanLabels();
 int labelAt(float _x, float _y);
 Label* label(size_t _index);
 
