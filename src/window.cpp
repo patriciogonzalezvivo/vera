@@ -1158,12 +1158,11 @@ void setViewport(float _width, float _height) {
 }
 
 void updateViewport() {
-    fPixelDensity = 1.0f;
+    fPixelDensity = getPixelDensity(true);
     float width = getWindowWidth();
     float height = getWindowHeight();
 
     if (properties.style != EMBEDDED) {
-        fPixelDensity = getPixelDensity(true);
         glViewport( (float)viewport.x * fPixelDensity, (float)viewport.y * fPixelDensity,
                     width, height);
     }
