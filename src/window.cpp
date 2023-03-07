@@ -1327,6 +1327,10 @@ std::string getExtensions() {
 }
 
 bool haveExtension(std::string _name) { 
+    std::string gl_version = getGLVersion();
+    if (gl_version[0] == '4')
+        return true;
+
     if (properties.extensions == "") properties.extensions = std::string((const char*)glGetString(GL_EXTENSIONS));
     return properties.extensions.find(_name) == std::string::npos; 
 }

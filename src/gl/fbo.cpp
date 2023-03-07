@@ -27,8 +27,6 @@ Fbo::~Fbo() {
 }
 
 void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type, TextureFilter _filter, TextureWrap _wrap, bool _autoclear) {
-    m_type = _type;
-
     bool color_texture = true;
     bool depth_texture = false;
     
@@ -36,10 +34,6 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
     
     switch(_type) {
         case COLOR_TEXTURE:
-            m_depth = false;
-            color_texture = true;
-            depth_texture = false;
-        break;
         case COLOR_FLOAT_TEXTURE:
             m_depth = false;
             color_texture = true;
@@ -74,7 +68,11 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
         if (m_depth) 
             glGenRenderbuffers(1, &m_depth_buffer);
     }
+    // If it's already declare skip
+    else if (m_width == _width && m_height == _height && m_type == _type)
+        return;
 
+    m_type = _type;
     m_width = _width;
     m_height = _height;
 
