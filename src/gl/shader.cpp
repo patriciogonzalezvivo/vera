@@ -74,10 +74,14 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
     m_vertexShader = compileShader(_vertexSrc, GL_VERTEX_SHADER, _verbose);
     if (!m_vertexShader) {
         if (_onError == SHOW_MAGENTA_SHADER) {
-            load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), DONT_KEEP_SHADER, false);
+            if (_verbose)
+                printf("Error compiling vertex shader, loading magenta shader\n");
+            load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), DONT_KEEP_SHADER, _verbose);
             return false;
         }
         else if (_onError == REVERT_TO_PREVIOUS_SHADER) {
+            if (_verbose)
+                printf("Error compiling vertex shader, reverting to default shader\n");
             load(m_fragmentSource, m_vertexSource, SHOW_MAGENTA_SHADER, _verbose);
             return false;
         }
@@ -86,10 +90,18 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
     // FRAGMENT
     m_fragmentShader = compileShader(_fragmentSrc, GL_FRAGMENT_SHADER, _verbose);
     if (!m_fragmentShader) {
-        if (_onError == SHOW_MAGENTA_SHADER)
-            load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), SHOW_MAGENTA_SHADER, false);
-        else if (_onError == REVERT_TO_PREVIOUS_SHADER)
+        if (_onError == SHOW_MAGENTA_SHADER) {
+            if (_verbose)
+                printf("Error compiling fragment shader, loading magenta shader\n");
+            load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), DONT_KEEP_SHADER, _verbose);
+            return false;
+        }
+        else if (_onError == REVERT_TO_PREVIOUS_SHADER) {
+            if (_verbose)
+                printf("Error compiling fragment shader, reverting to default shader\n");
             load(m_fragmentSource, m_vertexSource, SHOW_MAGENTA_SHADER, _verbose);
+            return false;
+        }
     }
 
     // PROGRAM
@@ -124,12 +136,15 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
             std::size_t start = error.find("line ")+5;
             std::size_t end = error.find_last_of(")");
             std::string lineNum = error.substr(start,end-start);
-            std::cerr << (unsigned)toInt(lineNum) << ": " << getLineNumber(_fragmentSrc,(unsigned)toInt(lineNum)) << std::endl;
+            if (toInt(lineNum) > 0)
+                std::cerr << (unsigned)toInt(lineNum) << ": " << getLineNumber(_fragmentSrc,(unsigned)toInt(lineNum)) << std::endl;
         }
         #endif
 
+        if (_verbose)
+            printf("Linking fail, deleting program and loading error shader\n");
         glDeleteProgram(m_program);
-        load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), DONT_KEEP_SHADER, false);
+        load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), DONT_KEEP_SHADER, _verbose);
         return false;
     } 
     else {

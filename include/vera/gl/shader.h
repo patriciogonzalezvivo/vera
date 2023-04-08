@@ -20,7 +20,6 @@ enum ShaderErrorResolve {
     SHOW_MAGENTA_SHADER,
     DONT_KEEP_SHADER,
     KEEP_BROKEN_SHADER,
-
 };
 
 class Shader : public HaveDefines {

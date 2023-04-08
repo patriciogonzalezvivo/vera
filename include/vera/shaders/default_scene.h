@@ -28,8 +28,8 @@ varying vec3    v_normal;
 
 #ifdef MODEL_VERTEX_TEXCOORD
 attribute vec2  a_texcoord;
-varying vec2    v_texcoord;
 #endif
+varying vec2    v_texcoord;
 
 #ifdef MODEL_VERTEX_TANGENT
 attribute vec4  a_tangent;
@@ -45,6 +45,7 @@ varying vec4    v_lightCoord;
 void main(void) {
     
     v_position = u_modelMatrix * a_position;
+    v_texcoord = v_position.xy;
     
 #ifdef MODEL_VERTEX_COLOR
     v_color = a_color;
@@ -99,8 +100,8 @@ out     vec3    v_normal;
 
 #ifdef MODEL_VERTEX_TEXCOORD
 in      vec2    a_texcoord;
-out     vec2    v_texcoord;
 #endif
+out     vec2    v_texcoord;
 
 #ifdef MODEL_VERTEX_TANGENT
 in      vec4    a_tangent;
@@ -115,6 +116,7 @@ out     vec4    v_lightCoord;
 
 void main(void) {
     v_position = u_modelMatrix * a_position;
+    v_texcoord = v_position.xy;
     
 #ifdef MODEL_VERTEX_COLOR
     v_color = a_color;
