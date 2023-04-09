@@ -23,8 +23,8 @@ varying vec4    v_lightCoord;
 #endif
 
 void main(void) {
-    v_position =  a_position;
-    v_texcoord = v_position.xy;
+    v_position = a_position;
+    v_texcoord = a_position.xy * 0.5 + 0.5;
     // v_color = vec4(1.0);
     // v_normal = vec3(0.0,0.0,1.0);
 
