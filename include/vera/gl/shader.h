@@ -43,7 +43,8 @@ public:
     const std::string& getVertexSource() const { return m_vertexSource; };
 
     bool    inUse() const;
-    bool    loaded() const;
+    bool    isDirty() const { return m_program == 0 || m_needsReloading || m_defineChange; }
+    bool    isLoaded() const;
    
     void    setUniform(const std::string& _name, int _x);
     void    setUniform(const std::string& _name, int _x, int _y);

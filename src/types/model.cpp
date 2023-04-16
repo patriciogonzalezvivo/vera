@@ -157,7 +157,7 @@ void Model::printVboInfo() {
 }
 
 void Model::render() {
-    if (m_model_vbo && mainShader.loaded())
+    if (m_model_vbo && mainShader.isLoaded())
         m_model_vbo->render(&mainShader);
 }
 

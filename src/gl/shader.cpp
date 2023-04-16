@@ -46,7 +46,7 @@ Shader::Shader():
 
 Shader::~Shader() {
     // Avoid crash when no command line arguments supplied
-    if (m_program != 0)
+    if (isLoaded())
         glDeleteProgram(m_program);
 }
 
@@ -162,7 +162,7 @@ const GLint Shader::getAttribLocation(const std::string& _attribute) const {
 }
 
 void Shader::use() {
-    if (!loaded() || m_needsReloading || m_defineChange)
+    if (isDirty())
         load(m_fragmentSource, m_vertexSource, m_error_screen, false);
 
     if (!inUse()) 
@@ -176,7 +176,7 @@ bool Shader::inUse() const {
     return (getProgram() == (GLuint)currentProgram);
 }
 
-bool Shader::loaded() const {
+bool Shader::isLoaded() const {
     return m_program != 0;
 }
 
