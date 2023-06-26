@@ -33,7 +33,7 @@ public:
 
     bool    load(const std::string& _fragmentSrc, const std::string& _vertexSrc, ShaderErrorResolve _onError = SHOW_MAGENTA_SHADER, bool _verbose = false);
     void    use();
-    
+
     const   GLuint  getProgram() const { return m_program; };
     const   GLuint  getFragmentShader() const { return m_fragmentShader; };
     const   GLuint  getVertexShader() const { return m_vertexShader; };
@@ -45,7 +45,7 @@ public:
     bool    inUse() const;
     bool    isDirty() const { return m_program == 0 || m_needsReloading || m_defineChange; }
     bool    isLoaded() const;
-   
+
     void    setUniform(const std::string& _name, int _x);
     void    setUniform(const std::string& _name, int _x, int _y);
     void    setUniform(const std::string& _name, int _x, int _y, int _z);
@@ -92,7 +92,10 @@ protected:
     std::string m_defineStack;
     std::string m_fragmentSource;
     std::string m_vertexSource;
-    
+
+    std::string m_previousFragmentSource;
+    std::string m_previousVertexSource;
+
     GLuint      m_program;
     GLuint      m_fragmentShader;
     GLuint      m_vertexShader;
