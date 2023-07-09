@@ -16,6 +16,8 @@ namespace vera {
 Shader::Shader():
     m_fragmentSource(""),
     m_vertexSource(""),
+    m_previousFragmentSource(""),
+    m_previousVertexSource(""),
     m_program(0), m_fragmentShader(0), m_vertexShader(0),
     m_error_screen(SHOW_MAGENTA_SHADER),
     m_needsReloading(true) {
@@ -26,7 +28,7 @@ Shader::Shader():
 
     #elif defined(_WIN32)
     addDefine("PLATFORM_WIN");
-    
+
     #elif defined(PLATFORM_RPI)
     addDefine("PLATFORM_RPI");
 
@@ -35,10 +37,10 @@ Shader::Shader():
 
     if (getXR() != NONE_XR_MODE)
         addDefine("PLATFORM_WEBXR", toString((int)getXR()));
-    
+
     #else
     addDefine("PLATFORM_LINUX");
-    
+
     #endif
 
     m_defineChange = true;
@@ -65,10 +67,11 @@ void Shader::setSource(const std::string& _fragmentSrc, const std::string& _vert
 
 bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc, ShaderErrorResolve _onError, bool _verbose) {
     setVersionFromCode(_fragmentSrc);
-    if (m_fragmentSource == "" || m_vertexSource =="") {
+    if (m_fragmentSource == "" || m_vertexSource == "") {
         m_fragmentSource = getDefaultSrc(FRAG_ERROR);
         m_vertexSource = getDefaultSrc(VERT_ERROR);
     }
+
 
     // VERTEX
     m_vertexShader = compileShader(_vertexSrc, GL_VERTEX_SHADER, _verbose);
@@ -82,7 +85,7 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
         else if (_onError == REVERT_TO_PREVIOUS_SHADER) {
             if (_verbose)
                 printf("Error compiling vertex shader, reverting to default shader\n");
-            load(m_fragmentSource, m_vertexSource, SHOW_MAGENTA_SHADER, _verbose);
+            load(m_previousFragmentSource, m_previousVertexSource, SHOW_MAGENTA_SHADER, _verbose);
             return false;
         }
     }
@@ -99,7 +102,7 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
         else if (_onError == REVERT_TO_PREVIOUS_SHADER) {
             if (_verbose)
                 printf("Error compiling fragment shader, reverting to default shader\n");
-            load(m_fragmentSource, m_vertexSource, SHOW_MAGENTA_SHADER, _verbose);
+            load(m_previousFragmentSource, m_previousVertexSource, SHOW_MAGENTA_SHADER, _verbose);
             return false;
         }
     }
@@ -114,8 +117,11 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
 
     // SUCCESS
     if (_onError != DONT_KEEP_SHADER) {
+        // we need to explicitely remember the previous shader or REVERT_TO_PREVIOUS_SHADER always falls through to SHOW_MAGENTA_SHADER.
         m_fragmentSource = _fragmentSrc;
         m_vertexSource = _vertexSrc;
+        m_previousFragmentSource = _fragmentSrc;
+        m_previousVertexSource = _vertexSrc;
     }
 
     GLint isLinked;
@@ -146,7 +152,7 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
         glDeleteProgram(m_program);
         load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), DONT_KEEP_SHADER, _verbose);
         return false;
-    } 
+    }
     else {
         glDeleteShader(m_vertexShader);
         glDeleteShader(m_fragmentShader);
@@ -165,7 +171,7 @@ void Shader::use() {
     if (isDirty())
         load(m_fragmentSource, m_vertexSource, m_error_screen, false);
 
-    if (!inUse()) 
+    if (!inUse())
         glUseProgram(getProgram());
     textureIndex = 0;
 }
@@ -288,7 +294,7 @@ GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbos
 
     GLint infoLength = 0;
     glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLength);
-    
+
 #if defined(PLATFORM_RPI) || defined(__EMSCRIPTEN__)
     if (infoLength > 1 && !isCompiled) {
 #else
@@ -302,9 +308,9 @@ GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbos
 
         std::vector<std::string> chuncks = vera::split(error_msg, ' ');
         size_t line_number = 0;
-        
-#if defined(__APPLE__) 
-    // Error Message on Apple M1 
+
+#if defined(__APPLE__)
+    // Error Message on Apple M1
         // ERROR: 0:41: 'color' : syntax error: syntax error
 
         std::vector<std::string> error_loc = vera::split(chuncks[1], ':');
@@ -315,11 +321,11 @@ GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbos
 
 #elif defined(__EMSCRIPTEN__)
 
-#else 
+#else
     // Linux ARM
         // 0:41(2): error: syntax error, unexpected IDENTIFIER, expecting ',' or ';'
-    
-    // Linux iX86 
+
+    // Linux iX86
         // Error Message on Mesa Intel(R) Iris(R) Plus Graohics (ICL GT2)
         // 0:41(2): error: syntax error, unexpected IDENTIFIER, expecting ',' or ';'
 
@@ -339,7 +345,7 @@ GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbos
             line_number -= 2;
             std::vector<std::string> lines = vera::split(_src, '\n', true);
             for (size_t i = line_number; i < lines.size() && i < line_number + 3; i++)
-                std::cerr << i + 1 << " " << lines[i] << std::endl; 
+                std::cerr << i + 1 << " " << lines[i] << std::endl;
         }
 
     }
