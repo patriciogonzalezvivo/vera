@@ -28,7 +28,7 @@ Shader::Shader():
 
     #elif defined(_WIN32)
     addDefine("PLATFORM_WIN");
-    
+
     #elif defined(PLATFORM_RPI)
     addDefine("PLATFORM_RPI");
 
@@ -37,10 +37,10 @@ Shader::Shader():
 
     if (getXR() != NONE_XR_MODE)
         addDefine("PLATFORM_WEBXR", toString((int)getXR()));
-    
+
     #else
     addDefine("PLATFORM_LINUX");
-    
+
     #endif
 
     m_defineChange = true;
@@ -67,10 +67,11 @@ void Shader::setSource(const std::string& _fragmentSrc, const std::string& _vert
 
 bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc, ShaderErrorResolve _onError, bool _verbose) {
     setVersionFromCode(_fragmentSrc);
-    if (m_fragmentSource == "" || m_vertexSource =="") {
+    if (m_fragmentSource == "" || m_vertexSource == "") {
         m_fragmentSource = getDefaultSrc(FRAG_ERROR);
         m_vertexSource = getDefaultSrc(VERT_ERROR);
     }
+
 
     // VERTEX
     m_vertexShader = compileShader(_vertexSrc, GL_VERTEX_SHADER, _verbose);
@@ -116,11 +117,11 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
 
     // SUCCESS
     if (_onError != DONT_KEEP_SHADER) {
-        // if setSource() and use() are used, the previous shader is lost and we need to explicitely remember it or REVERT_TO_PREVIOUS_SHADER always falls through to SHOW_MAGENTA_SHADER.
-        m_previousFragmentSource = m_fragmentSource;
-        m_previousVertexSource = m_vertexSource;
+        // we need to explicitely remember the previous shader or REVERT_TO_PREVIOUS_SHADER always falls through to SHOW_MAGENTA_SHADER.
         m_fragmentSource = _fragmentSrc;
         m_vertexSource = _vertexSrc;
+        m_previousFragmentSource = _fragmentSrc;
+        m_previousVertexSource = _vertexSrc;
     }
 
     GLint isLinked;
@@ -151,7 +152,7 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
         glDeleteProgram(m_program);
         load(getDefaultSrc(FRAG_ERROR), getDefaultSrc(VERT_ERROR), DONT_KEEP_SHADER, _verbose);
         return false;
-    } 
+    }
     else {
         glDeleteShader(m_vertexShader);
         glDeleteShader(m_fragmentShader);
@@ -293,7 +294,7 @@ GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbos
 
     GLint infoLength = 0;
     glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLength);
-    
+
 #if defined(PLATFORM_RPI) || defined(__EMSCRIPTEN__)
     if (infoLength > 1 && !isCompiled) {
 #else
