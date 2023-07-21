@@ -86,6 +86,7 @@ public:
     virtual bool        addCubemap(const std::string& _name, const std::string& _filename, bool _verbose = true);
     virtual void        clearCubemaps();
     virtual void        printCubemaps();
+    virtual void        printCubemapSH();
 
     // Skybox
     virtual void        setSunPosition(const glm::vec3& _v);

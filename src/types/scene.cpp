@@ -518,6 +518,14 @@ void Scene::printCubemaps() {
     }
 }
 
+void Scene::printCubemapSH(){
+    if (activeCubemap) {
+        for (size_t i = 0; i < 9; i++) {
+            std::cout << "u_SH[" << i << "] = vec3(" << activeCubemap->SH[i].x << ", " << activeCubemap->SH[i].y << " , " << activeCubemap->SH[i].z << ");" << std::endl;
+        }
+    }
+}
+
 void Scene::clearCubemaps() {
     activeCubemap = nullptr;
     for (TextureCubesMap::iterator itr = cubemaps.begin(); itr != cubemaps.end(); ++itr)

@@ -26,7 +26,7 @@ Mesh planeMesh(float _width, float _height, int _columns, int _rows, DrawMode _d
 Mesh boxMesh( float _width, float _height, float _depth, int _resX = 1, int _resY = 1, int _resZ = 1);
 
 Mesh cubeMesh(float _size = 1.0f);
-Mesh cubeMesh( float _size, int _resolution );
+Mesh cubeMesh(float _size, int _resolution );
 
 Mesh cubeCornersMesh(const BoundingBox& _bbox, float _size = 1.0f);
 Mesh cubeCornersMesh(const std::vector<glm::vec3> &_pts, float _size = 1.0);
