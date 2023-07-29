@@ -33,6 +33,7 @@ public:
     virtual void    replaceDefines( const DefinesMap &_defines );
     
     virtual void    printDefines();
+    virtual void    addDefinesTo( const std::string &_path );
 
 protected:
     DefinesMap  m_defines;
