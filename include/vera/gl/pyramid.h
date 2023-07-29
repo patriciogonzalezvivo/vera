@@ -31,7 +31,7 @@ public:
     void            process(const Fbo *_fbo);
     std::function<void(Fbo*,const Fbo*,const Fbo*, int)> pass;
 
-    bool            fixed;
+    float           scale;
 private:
     Fbo             m_downs[PYRAMID_MAX_LAYERS];
     Fbo             m_ups[PYRAMID_MAX_LAYERS];

@@ -35,7 +35,7 @@ public:
     virtual int     getWidth() const { return m_width; };
     virtual int     getHeight() const { return m_height; };
 
-    bool            fixed;
+    float           scale;
 
 protected:
     GLuint  m_id;

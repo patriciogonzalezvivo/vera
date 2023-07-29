@@ -8,7 +8,7 @@
 namespace vera {
 
 Fbo::Fbo():
-    fixed(false),
+    scale(1.0),
     m_id(0), 
     m_fbo_id(0), m_old_fbo_id(0), 
     m_depth_id(0), m_depth_buffer(0),  

@@ -6,7 +6,7 @@
 
 namespace vera {
 
-Pyramid::Pyramid(): m_depth(0) {
+Pyramid::Pyramid(): scale(1.0), m_depth(0) {
 }
 
 Pyramid::~Pyramid() {
