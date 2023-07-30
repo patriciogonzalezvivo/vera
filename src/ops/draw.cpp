@@ -224,7 +224,7 @@ void points(const std::vector<glm::vec2>& _positions, Shader* _program) {
 
 #if defined(__EMSCRIPTEN__)
     Vbo vbo = _positions;
-    vbo.setDrawMode(GL_POINTS);
+    vbo.setDrawMode(POINTS);
     vbo.render(_program);
 #else
 
@@ -251,7 +251,7 @@ void points(const std::vector<glm::vec3>& _positions, Shader* _program) {
 
 #if defined(__EMSCRIPTEN__)
     Vbo vbo = _positions;
-    vbo.setDrawMode(GL_POINTS);
+    vbo.setDrawMode(POINTS);
     vbo.render(_program);
 #else
     #if !defined(PLATFORM_RPI) && !defined(DRIVER_GBM) && !defined(_WIN32)
@@ -331,7 +331,7 @@ void line(const std::vector<glm::vec2>& _positions, Shader* _program) {
 
 #if defined(__EMSCRIPTEN__)
     Vbo vbo = _positions;
-    vbo.setDrawMode(GL_LINE_STRIP);
+    vbo.setDrawMode(LINE_STRIP);
     vbo.render(_program);
 #else
     const GLint location = _program->getAttribLocation("a_position");
@@ -358,7 +358,7 @@ void line(const std::vector<glm::vec3>& _positions, Shader* _program) {
 
 #if defined(__EMSCRIPTEN__)
     Vbo vbo = _positions;
-    vbo.setDrawMode(GL_LINE_STRIP);
+    vbo.setDrawMode(LINE_STRIP);
     vbo.render(_program);
 #else
     const GLint location = _program->getAttribLocation("a_position");
@@ -705,7 +705,7 @@ void triangles(const std::vector<glm::vec2>& _positions, Shader* _program) {
 
 #if defined(__EMSCRIPTEN__)
     Vbo vbo = _positions;
-    vbo.setDrawMode(GL_TRIANGLES);
+    vbo.setDrawMode(TRIANGLES);
     vbo.render(_program);
 #else
     const GLint location = _program->getAttribLocation("a_position");
@@ -726,7 +726,7 @@ void triangles(const std::vector<glm::vec3>& _positions, Shader* _program) {
 
 #if defined(__EMSCRIPTEN__)
     Vbo vbo = _positions;
-    vbo.setDrawMode(GL_TRIANGLES);
+    vbo.setDrawMode(TRIANGLES);
     vbo.render(_program);
 #else
     const GLint location = _program->getAttribLocation("a_position");
