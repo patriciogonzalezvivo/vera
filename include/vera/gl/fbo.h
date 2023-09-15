@@ -36,25 +36,26 @@ public:
     virtual int     getHeight() const { return m_height; };
 
     float           scale;
+    bool            enabled;
 
 protected:
-    GLuint  m_id;
-    GLuint  m_fbo_id;
-    GLuint  m_old_fbo_id;
+    GLuint      m_id;
+    GLuint      m_fbo_id;
+    GLuint      m_old_fbo_id;
 
-    GLuint  m_depth_id;
-    GLuint  m_depth_buffer;
+    GLuint      m_depth_id;
+    GLuint      m_depth_buffer;
 
-    FboType m_type;
+    FboType     m_type;
 
-    int     m_width;
-    int     m_height;
+    int         m_width;
+    int         m_height;
 
-    bool    m_allocated;
-    bool    m_binded;
-    bool    m_depth;
+    bool        m_allocated;
+    bool        m_binded;
+    bool        m_depth;
     
-    bool    m_autoclear;
+    bool        m_autoclear;
 };
 
 }
