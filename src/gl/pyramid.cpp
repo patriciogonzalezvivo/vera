@@ -6,7 +6,7 @@
 
 namespace vera {
 
-Pyramid::Pyramid(): scale(1.0), m_depth(0) {
+Pyramid::Pyramid(): pass(NULL), scale(1.0), m_depth(0) {
 }
 
 Pyramid::~Pyramid() {
@@ -37,19 +37,21 @@ void Pyramid::allocate(int _width, int _height) {
 
 void Pyramid::process(const vera::Fbo *_input) {
     unsigned int i;
+    // Copy the input to the first downscale
     pass(&m_downs[0], _input, NULL, 0);
 
     // DOWNSCALE
     for (i = 1; i < m_depth; i++)
         pass(&m_downs[i], &(m_downs[i-1]), NULL, i);
     
-    // UPSCALE
+    // Copy the last downscale to the first upscale
     pass(&m_ups[0], &(m_downs[m_depth-2]), &(m_downs[m_depth-1]), m_depth-1);
     
+    // UPSCALE
     for (i = 1; i < m_depth-1; i++)
         pass(&m_ups[i], &(m_downs[m_depth-i-2]), &(m_ups[i-1]), m_depth-1-i);
     
-    // FINISH re inserting the original input
+    // Copy the last upscale to the output
     pass(&m_ups[m_depth-1], _input, &(m_ups[m_depth-2]), 0);
 }
 
