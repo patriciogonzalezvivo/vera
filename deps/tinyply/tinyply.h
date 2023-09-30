@@ -1,7 +1,7 @@
 /*
- * tinyply 2.3.2 (https://github.com/ddiakopoulos/tinyply)
+ * tinyply 2.3.4 (https://github.com/ddiakopoulos/tinyply)
  *
- * A single-header, zero-dependency (except the C++ STL) public domain implementation 
+ * A single-header, zero-dependency (except the C++ STL) public domain implementation
  * of the PLY mesh file format. Requires C++11; errors are handled through exceptions.
  *
  * This software is in the public domain. Where that dedication is not
@@ -13,7 +13,7 @@
  * tinyply.h may be included in many files, however in a single compiled file,
  * the implementation must be created with the following defined prior to header inclusion
  * #define TINYPLY_IMPLEMENTATION
- * 
+ *
  */
 
 ////////////////////////
@@ -81,8 +81,9 @@ namespace tinyply
     public:
         Buffer() {};
         Buffer(const size_t size) : data(new uint8_t[size], delete_array()), size(size) { alias = data.get(); } // allocating
-        Buffer(uint8_t * ptr): alias(ptr) { } // non-allocating, todo: set size?
+        Buffer(const uint8_t * ptr): alias(const_cast<uint8_t*>(ptr)) { } // non-allocating, todo: set size?
         uint8_t * get() { return alias; }
+        const uint8_t * get_const() {return const_cast<const uint8_t*>(alias); }
         size_t size_bytes() const { return size; }
     };
 
@@ -98,7 +99,7 @@ namespace tinyply
     {
         PlyProperty(std::istream & is);
         PlyProperty(Type type, std::string & _name) : name(_name), propertyType(type) {}
-        PlyProperty(Type list_type, Type prop_type, std::string & _name, size_t list_count) 
+        PlyProperty(Type list_type, Type prop_type, std::string & _name, size_t list_count)
             : name(_name), propertyType(prop_type), isList(true), listType(list_type), listCount(list_count) {}
         std::string name;
         Type propertyType{ Type::INVALID };
@@ -125,26 +126,26 @@ namespace tinyply
         ~PlyFile();
 
         /*
-         * The ply format requires an ascii header. This can be used to determine at 
-         * runtime which properties or elements exist in the file. Limited validation of the 
-         * header is performed; it is assumed the header correctly reflects the contents of the 
-         * payload. This function may throw. Returns true on success, false on failure. 
-         */ 
+         * The ply format requires an ascii header. This can be used to determine at
+         * runtime which properties or elements exist in the file. Limited validation of the
+         * header is performed; it is assumed the header correctly reflects the contents of the
+         * payload. This function may throw. Returns true on success, false on failure.
+         */
         bool parse_header(std::istream & is);
 
-        /* 
-         * Execute a read operation. Data must be requested via `request_properties_from_element(...)` 
+        /*
+         * Execute a read operation. Data must be requested via `request_properties_from_element(...)`
          * prior to calling this function.
          */
         void read(std::istream & is);
 
-        /* 
-         * `write` performs no validation and assumes that the data passed into 
-         * `add_properties_to_element` is well-formed. 
+        /*
+         * `write` performs no validation and assumes that the data passed into
+         * `add_properties_to_element` is well-formed.
          */
         void write(std::ostream & os, bool isBinary);
 
-        /* 
+        /*
          * These functions are valid after a call to `parse_header(...)`. In the case of
          * writing, get_comments() reference may also be used to add new comments to the ply header.
          */
@@ -160,15 +161,15 @@ namespace tinyply
          * an expected list length that will apply to this element. Doing so results in an up-front
          * memory allocation and a single-pass import, a 2x performance optimization.
          */
-        std::shared_ptr<PlyData> request_properties_from_element(const std::string & elementKey, 
+        std::shared_ptr<PlyData> request_properties_from_element(const std::string & elementKey,
             const std::vector<std::string> propertyKeys, const uint32_t list_size_hint = 0);
 
-        void add_properties_to_element(const std::string & elementKey, 
-            const std::vector<std::string> propertyKeys, 
-            const Type type, 
-            const size_t count, 
-            uint8_t * data, 
-            const Type listType, 
+        void add_properties_to_element(const std::string & elementKey,
+            const std::vector<std::string> propertyKeys,
+            const Type type,
+            const size_t count,
+            const uint8_t * data,
+            const Type listType,
             const size_t listCount);
     };
 
@@ -188,7 +189,9 @@ namespace tinyply
 #include <iostream>
 #include <cstring>
 
-using namespace tinyply;
+namespace tinyply
+{
+
 using namespace std;
 
 template<typename T, typename T2> inline T2 endian_swap(const T & v) noexcept { return v; }
@@ -274,10 +277,10 @@ struct PlyFile::PlyFileImpl
 
     void add_properties_to_element(const std::string & elementKey,
         const std::vector<std::string> propertyKeys,
-        const Type type, const size_t count, uint8_t * data, const Type listType, const size_t listCount);
+        const Type type, const size_t count, const uint8_t * data, const Type listType, const size_t listCount);
 
-    size_t read_property_binary(const size_t & stride, void * dest, size_t & destOffset, std::istream & is) noexcept;
-    size_t read_property_ascii(const Type & t, const size_t & stride, void * dest, size_t & destOffset, std::istream & is);
+    size_t read_property_binary(const size_t & stride, void * dest, size_t & destOffset, size_t destSize, std::istream & is);
+    size_t read_property_ascii(const Type & t, const size_t & stride, void * dest, size_t & destOffset, size_t destSize, std::istream & is);
 
     std::vector<std::vector<PropertyLookup>> make_property_lookup_table();
 
@@ -291,8 +294,8 @@ struct PlyFile::PlyFileImpl
     void write_header(std::ostream & os) noexcept;
     void write_ascii_internal(std::ostream & os) noexcept;
     void write_binary_internal(std::ostream & os) noexcept;
-    void write_property_ascii(Type t, std::ostream & os, uint8_t * src, size_t & srcOffset);
-    void write_property_binary(std::ostream & os, uint8_t * src, size_t & srcOffset, const size_t & stride) noexcept;
+    void write_property_ascii(Type t, std::ostream & os, const uint8_t * src, size_t & srcOffset);
+    void write_property_binary(std::ostream & os, const uint8_t * src, size_t & srcOffset, const size_t & stride) noexcept;
 };
 
 PlyProperty::PlyProperty(std::istream & is) : isList(false)
@@ -350,9 +353,9 @@ int64_t find_property(const std::string & key, const std::vector<PlyProperty> & 
 }
 
 // The `userData` table is an easy data structure for capturing what data the
-// user would like out of the ply file, but an inner-loop hash lookup is non-ideal. 
+// user would like out of the ply file, but an inner-loop hash lookup is non-ideal.
 // The property lookup table flattens the table down into a 2D array optimized
-// for parsing. The first index is the element, and the second index is the property. 
+// for parsing. The first index is the element, and the second index is the property.
 std::vector<std::vector<PlyFile::PlyFileImpl::PropertyLookup>> PlyFile::PlyFileImpl::make_property_lookup_table()
 {
     std::vector<std::vector<PropertyLookup>> element_property_lookup;
@@ -426,15 +429,25 @@ void PlyFile::PlyFileImpl::read_header_property(std::istream & is)
     elements.back().properties.emplace_back(is);
 }
 
-size_t PlyFile::PlyFileImpl::read_property_binary(const size_t & stride, void * dest, size_t & destOffset, std::istream & is) noexcept
+size_t PlyFile::PlyFileImpl::read_property_binary(const size_t & stride, void * dest, size_t & destOffset, size_t destSize, std::istream & is)
 {
+    if (destOffset + stride > destSize)
+    {
+        throw std::runtime_error("unexpected EOF. malformed file?");
+    }
+
     destOffset += stride;
     is.read((char*)dest, stride);
     return stride;
 }
 
-size_t PlyFile::PlyFileImpl::read_property_ascii(const Type & t, const size_t & stride, void * dest, size_t & destOffset, std::istream & is)
+size_t PlyFile::PlyFileImpl::read_property_ascii(const Type & t, const size_t & stride, void * dest, size_t & destOffset, size_t destSize, std::istream & is)
 {
+    if (destOffset + stride > destSize)
+    {
+        throw std::runtime_error("unexpected EOF. malformed file?");
+    }
+
     destOffset += stride;
     switch (t)
     {
@@ -446,30 +459,30 @@ size_t PlyFile::PlyFileImpl::read_property_ascii(const Type & t, const size_t & 
     case Type::UINT32:     ply_cast_ascii<uint32_t>(dest, is);                break;
     case Type::FLOAT32:    ply_cast_ascii<float>(dest, is);                   break;
     case Type::FLOAT64:    ply_cast_ascii<double>(dest, is);                  break;
-    case Type::INVALID:    throw std::invalid_argument("invalid ply property"); 
+    case Type::INVALID:    throw std::invalid_argument("invalid ply property");
     }
     return stride;
 }
 
-void PlyFile::PlyFileImpl::write_property_ascii(Type t, std::ostream & os, uint8_t * src, size_t & srcOffset)
+void PlyFile::PlyFileImpl::write_property_ascii(Type t, std::ostream & os, const uint8_t * src, size_t & srcOffset)
 {
     switch (t)
     {
-    case Type::INT8:       os << static_cast<int32_t>(*reinterpret_cast<int8_t*>(src));   break;
-    case Type::UINT8:      os << static_cast<uint32_t>(*reinterpret_cast<uint8_t*>(src)); break;
-    case Type::INT16:      os << *reinterpret_cast<int16_t*>(src);  break;
-    case Type::UINT16:     os << *reinterpret_cast<uint16_t*>(src); break;
-    case Type::INT32:      os << *reinterpret_cast<int32_t*>(src);  break;
-    case Type::UINT32:     os << *reinterpret_cast<uint32_t*>(src); break;
-    case Type::FLOAT32:    os << *reinterpret_cast<float*>(src);    break;
-    case Type::FLOAT64:    os << *reinterpret_cast<double*>(src);   break;
+    case Type::INT8:       os << static_cast<int32_t>(*reinterpret_cast<const int8_t*>(src));   break;
+    case Type::UINT8:      os << static_cast<uint32_t>(*reinterpret_cast<const uint8_t*>(src)); break;
+    case Type::INT16:      os << *reinterpret_cast<const int16_t*>(src);  break;
+    case Type::UINT16:     os << *reinterpret_cast<const uint16_t*>(src); break;
+    case Type::INT32:      os << *reinterpret_cast<const int32_t*>(src);  break;
+    case Type::UINT32:     os << *reinterpret_cast<const uint32_t*>(src); break;
+    case Type::FLOAT32:    os << *reinterpret_cast<const float*>(src);    break;
+    case Type::FLOAT64:    os << *reinterpret_cast<const double*>(src);   break;
     case Type::INVALID:    throw std::invalid_argument("invalid ply property");
     }
     os << " ";
     srcOffset += PropertyTable[t].stride;
 }
 
-void PlyFile::PlyFileImpl::write_property_binary(std::ostream & os, uint8_t * src, size_t & srcOffset, const size_t & stride) noexcept
+void PlyFile::PlyFileImpl::write_property_binary(std::ostream & os, const uint8_t * src, size_t & srcOffset, const size_t & stride) noexcept
 {
     os.write((char *)src, stride);
     srcOffset += stride;
@@ -480,23 +493,23 @@ void PlyFile::PlyFileImpl::read(std::istream & is)
     std::vector<std::shared_ptr<PlyData>> buffers;
     for (auto & entry : userData) buffers.push_back(entry.second.data);
 
-    // Discover if we can allocate up front without parsing the file twice 
+    // Discover if we can allocate up front without parsing the file twice
     uint32_t list_hints = 0;
     for (auto & b : buffers) for (auto & entry : userData) {list_hints += entry.second.list_size_hint;(void)b;}
 
     // No list hints? Then we need to calculate how much memory to allocate
-    if (list_hints == 0) 
+    if (list_hints == 0)
     {
         parse_data(is, true);
     }
 
     // Count the number of properties (required for allocation)
     // e.g. if we have properties x y and z requested, we ensure
-    // that their buffer points to the same PlyData 
+    // that their buffer points to the same PlyData
     std::unordered_map<PlyData*, int32_t> unique_data_count;
     for (auto & ptr : buffers) unique_data_count[ptr.get()] += 1;
 
-    // Since group-requested properties share the same cursor, 
+    // Since group-requested properties share the same cursor,
     // we need to find unique cursors so we only allocate once
     std::sort(buffers.begin(), buffers.end());
     buffers.erase(std::unique(buffers.begin(), buffers.end()), buffers.end());
@@ -538,7 +551,7 @@ void PlyFile::PlyFileImpl::read(std::istream & is)
             uint8_t * data_ptr = b->buffer.get();
             const size_t stride = PropertyTable[b->t].stride;
             const size_t buffer_size_bytes = b->buffer.size_bytes();
-    
+
             switch (b->t)
             {
             case Type::INT16:   endian_swap_buffer<int16_t, int16_t>(data_ptr, buffer_size_bytes, stride);   break;
@@ -556,13 +569,13 @@ void PlyFile::PlyFileImpl::read(std::istream & is)
 void PlyFile::PlyFileImpl::write(std::ostream & os, bool _isBinary)
 {
     for (auto & d : userData) { d.second.cursor->byteOffset = 0; }
-    if (_isBinary) 
+    if (_isBinary)
     {
         isBinary = true;
         isBigEndian = false;
         write_binary_internal(os);
     }
-    else 
+    else
     {
         isBinary = false;
         isBigEndian = false;
@@ -588,7 +601,7 @@ void PlyFile::PlyFileImpl::write_binary_internal(std::ostream & os) noexcept
         {
             size_t property_index = 0;
             for (auto & p : e.properties)
-            {   
+            {
                 auto & f = element_property_lookup[element_idx][property_index];
                 auto * helper = f.helper;
                 if (f.skip || helper == nullptr) continue;
@@ -597,11 +610,11 @@ void PlyFile::PlyFileImpl::write_binary_internal(std::ostream & os) noexcept
                 {
                     std::memcpy(listSize, &p.listCount, sizeof(uint32_t));
                     write_property_binary(os, listSize, dummyCount, f.list_stride);
-                    write_property_binary(os, (helper->data->buffer.get() + helper->cursor->byteOffset), helper->cursor->byteOffset, f.prop_stride * p.listCount);
+                    write_property_binary(os, (helper->data->buffer.get_const() + helper->cursor->byteOffset), helper->cursor->byteOffset, f.prop_stride * p.listCount);
                 }
                 else
                 {
-                    write_property_binary(os, (helper->data->buffer.get() + helper->cursor->byteOffset), helper->cursor->byteOffset, f.prop_stride);
+                    write_property_binary(os, (helper->data->buffer.get_const() + helper->cursor->byteOffset), helper->cursor->byteOffset, f.prop_stride);
                 }
                 property_index++;
             }
@@ -711,14 +724,14 @@ std::shared_ptr<PlyData> PlyFile::PlyFileImpl::request_properties_from_element(c
 
         // Each key in `propertyKey` gets an entry into the userData map (keyed by a hash of
         // element name and property name), but groups of properties (requested from the
-        // public api through this function) all share the same `ParsingHelper`. When it comes 
+        // public api through this function) all share the same `ParsingHelper`. When it comes
         // time to .read(), we check the number of unique PlyData shared pointers
-        // and allocate a single buffer that will be used by each property key group. 
+        // and allocate a single buffer that will be used by each property key group.
         // That way, properties like, {"x", "y", "z"} will all be put into the same buffer.
 
         ParsingHelper helper;
         helper.data = out_data;
-        helper.data->count = element.size; // how many items are in the element? 
+        helper.data->count = element.size; // how many items are in the element?
         helper.data->isList = false;
         helper.data->t = Type::INVALID;
         helper.cursor = std::make_shared<PlyDataCursor>();
@@ -770,9 +783,9 @@ std::shared_ptr<PlyData> PlyFile::PlyFileImpl::request_properties_from_element(c
     return out_data;
 }
 
-void PlyFile::PlyFileImpl::add_properties_to_element(const std::string & elementKey, 
-    const std::vector<std::string> propertyKeys, 
-    const Type type, const size_t count, uint8_t * data, const Type listType, const size_t listCount)
+void PlyFile::PlyFileImpl::add_properties_to_element(const std::string & elementKey,
+    const std::vector<std::string> propertyKeys,
+    const Type type, const size_t count, const uint8_t * data, const Type listType, const size_t listCount)
 {
     ParsingHelper helper;
     helper.data = std::make_shared<PlyData>();
@@ -807,7 +820,7 @@ void PlyFile::PlyFileImpl::add_properties_to_element(const std::string & element
 
 void PlyFile::PlyFileImpl::parse_data(std::istream & is, bool firstPass)
 {
-    std::function<void(PropertyLookup & f, const PlyProperty & p, uint8_t * dest, size_t & destOffset, std::istream & is)> read;
+    std::function<void(PropertyLookup & f, const PlyProperty & p, uint8_t * dest, size_t & destOffset, size_t destSize, std::istream & is)> read;
     std::function<size_t(PropertyLookup & f, const PlyProperty & p, std::istream & is)> skip;
 
     const auto start = is.tellg();
@@ -820,7 +833,7 @@ void PlyFile::PlyFileImpl::parse_data(std::istream & is, bool firstPass)
     // has an additional big endian check to flip the data in place immediately
     // after reading. We do this as a performance optimization; endian flipping is
     // done on regular properties as a post-process after reading (also for optimization)
-    // but we need the correct little-endian list count as we read the file. 
+    // but we need the correct little-endian list count as we read the file.
     auto read_list_binary = [this](const Type & t, void * dst, size_t & destOffset, const size_t & stride, std::istream & _is) noexcept
     {
         destOffset += stride;
@@ -843,14 +856,14 @@ void PlyFile::PlyFileImpl::parse_data(std::istream & is, bool firstPass)
 
     if (isBinary)
     {
-        read = [this, &listSize, &dummyCount, &read_list_binary](PropertyLookup & f, const PlyProperty & p, uint8_t * dest, size_t & destOffset, std::istream & _is) noexcept
+        read = [this, &listSize, &dummyCount, &read_list_binary](PropertyLookup & f, const PlyProperty & p, uint8_t * dest, size_t & destOffset, size_t destSize, std::istream & _is)
         {
             if (!p.isList)
             {
-                return read_property_binary(f.prop_stride, dest + destOffset, destOffset, _is);
+                return read_property_binary(f.prop_stride, dest + destOffset, destOffset, destSize, _is);
             }
             read_list_binary(p.listType, &listSize, dummyCount, f.list_stride, _is); // the list size
-            return read_property_binary(f.prop_stride * listSize, dest + destOffset, destOffset, _is); // properties in list
+            return read_property_binary(f.prop_stride * listSize, dest + destOffset, destOffset, destSize, _is); // properties in list
         };
         skip = [this, &listSize, &dummyCount, &read_list_binary](PropertyLookup & f, const PlyProperty & p, std::istream & _is) noexcept
         {
@@ -867,27 +880,28 @@ void PlyFile::PlyFileImpl::parse_data(std::istream & is, bool firstPass)
     }
     else
     {
-        read = [this, &listSize, &dummyCount](PropertyLookup & f, const PlyProperty & p, uint8_t * dest, size_t & destOffset, std::istream & _is) noexcept
-        { 
+        read = [this, &listSize, &dummyCount](PropertyLookup & f, const PlyProperty & p, uint8_t * dest, size_t & destOffset, size_t destSize, std::istream & _is)
+        {
             if (!p.isList)
             {
-                read_property_ascii(p.propertyType, f.prop_stride, dest + destOffset, destOffset, _is); 
+                read_property_ascii(p.propertyType, f.prop_stride, dest + destOffset, destOffset, destSize, _is);
             }
             else
             {
-                read_property_ascii(p.listType, f.list_stride, &listSize, dummyCount, _is); // the list size
-                for (size_t i = 0; i < listSize; ++i) 
+                read_property_ascii(p.listType, f.list_stride, &listSize, dummyCount, sizeof(listSize), _is); // the list size
+                for (size_t i = 0; i < listSize; ++i)
                 {
-                    read_property_ascii(p.propertyType, f.prop_stride, dest + destOffset, destOffset, _is);
+                    read_property_ascii(p.propertyType, f.prop_stride, dest + destOffset, destOffset, destOffset, _is);
                 }
             }
         };
         skip = [this, &listSize, &dummyCount, &skip_ascii_buffer](PropertyLookup & f, const PlyProperty & p, std::istream & _is) noexcept
-        { 
+        {
             skip_ascii_buffer.clear();
             if (p.isList)
             {
-                read_property_ascii(p.listType, f.list_stride, &listSize, dummyCount, _is); // the list size (does not count for memory alloc)
+                dummyCount = 0;
+                read_property_ascii(p.listType, f.list_stride, &listSize, dummyCount, sizeof(listSize), _is); // the list size (does not count for memory alloc)
                 for (size_t i = 0; i < listSize; ++i) _is >> skip_ascii_buffer; // properties in list
                 return listSize * f.prop_stride;
             }
@@ -914,22 +928,23 @@ void PlyFile::PlyFileImpl::parse_data(std::istream & is, bool firstPass)
                 if (!lookup.skip)
                 {
                     helper = lookup.helper;
-                    if (firstPass) 
+                    if (firstPass)
                     {
                         helper->cursor->totalSizeBytes += skip(lookup, property, is);
 
-                        // These lines will be changed when tinyply supports 
+                        // These lines will be changed when tinyply supports
                         // variable length lists. We add it here so our header data structure
-                        // contains enough info to write it back out again (e.g. transcoding). 
-                        if (property.listCount == 0) property.listCount = listSize; 
+                        // contains enough info to write it back out again (e.g. transcoding).
+                        if (property.listCount == 0) property.listCount = listSize;
                         if (property.listCount != listSize) throw std::runtime_error("variable length lists are not supported yet.");
                     }
-                    else 
+                    else
                     {
-                        read(lookup, property, helper->data->buffer.get(), helper->cursor->byteOffset, is);
+                        const size_t destSize = helper->data->buffer.size_bytes();
+                        read(lookup, property, helper->data->buffer.get(), helper->cursor->byteOffset, destSize, is);
                     }
                 }
-                else 
+                else
                 {
                     skip(lookup, property, is);
                 }
@@ -962,9 +977,11 @@ std::shared_ptr<PlyData> PlyFile::request_properties_from_element(const std::str
 }
 void PlyFile::add_properties_to_element(const std::string & elementKey,
     const std::vector<std::string> propertyKeys,
-    const Type type, const size_t count, uint8_t * data, const Type listType, const size_t listCount)
+    const Type type, const size_t count, const uint8_t * data, const Type listType, const size_t listCount)
 {
     return impl->add_properties_to_element(elementKey, propertyKeys, type, count, data, listType, listCount);
 }
+
+} // end namespace tinyply
 
 #endif // end TINYPLY_IMPLEMENTATION
