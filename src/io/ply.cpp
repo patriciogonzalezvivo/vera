@@ -12,11 +12,11 @@ namespace vera {
 #if defined(SUPPORT_PLY_BINARY)
 
 #define TINYPLY_IMPLEMENTATION
-#include "tinyply/tinyply.h"
+#include "tinyply.h"
 
 
-bool loadPLY(WatchFileList& _files, int _index, Scene* _scene, bool _verbose) {
-    std::string filename = _files[_index].path;
+bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose) {
+    std::cout << "Loading w TinyPly " << _filename < std::endl;
 
     std::string name = filename.substr(0, filename.size()-4);
 
@@ -213,7 +213,7 @@ bool loadPLY(WatchFileList& _files, int _index, Scene* _scene, bool _verbose) {
 
     if (edge_indices.size() > 0) {
         Mesh mesh;
-        mesh.setDrawMode( GL_LINES );
+        mesh.setDrawMode( LINES );
         mesh.addColors(mesh_colors);
         mesh.addVertices(mesh_vertices);
         mesh.addTexCoords(mesh_texcoords);
@@ -228,7 +228,7 @@ bool loadPLY(WatchFileList& _files, int _index, Scene* _scene, bool _verbose) {
 
     if ( face_indices.size() == 0 && edge_indices.size() == 0) {
         Mesh mesh;
-        mesh.setDrawMode( GL_POINTS );
+        mesh.setDrawMode( POINTS );
         mesh.addColors(mesh_colors);
         mesh.addVertices(mesh_vertices);
         mesh.addTexCoords(mesh_texcoords);
@@ -430,7 +430,7 @@ bool loadPLY(const std::string& _filename, Mesh& _mesh ) {
         return true;
     }
     else if (edge_indices.size() > 0) {
-        _mesh.setDrawMode( GL_LINES );
+        _mesh.setDrawMode( LINES );
         _mesh.addColors(mesh_colors);
         _mesh.addVertices(mesh_vertices);
         _mesh.addTexCoords(mesh_texcoords);
@@ -441,7 +441,7 @@ bool loadPLY(const std::string& _filename, Mesh& _mesh ) {
         return true;
     }
     else {
-        _mesh.setDrawMode( GL_POINTS );
+        _mesh.setDrawMode( POINTS );
         _mesh.addColors(mesh_colors);
         _mesh.addVertices(mesh_vertices);
         _mesh.addTexCoords(mesh_texcoords);
@@ -454,7 +454,7 @@ bool loadPLY(const std::string& _filename, Mesh& _mesh ) {
 
 #else
 
-bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose) {
+bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose) {    
     std::fstream is(_filename.c_str(), std::ios::in);
     if (is.is_open()) {
 
@@ -711,9 +711,9 @@ bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose) {
 
         _scene->materials[default_material->name] = default_material;
 
-        if (mesh.getDrawMode() == GL_POINTS)
+        if (mesh.getDrawMode() == POINTS)
             name = "points";
-        else if (mesh.getDrawMode() == GL_LINES)
+        else if (mesh.getDrawMode() == LINES)
             name = "lines";
         else
             name = "mesh";
