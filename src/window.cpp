@@ -1466,7 +1466,7 @@ void    setFps(int _fps) {
     else
         restSec = 1.0f/(float)_fps; 
 }
-double  getFps() { return FPS; }
+double  getFps() { return 1.0/restSec; }
 
 float   getRestSec() { return restSec; }
 int     getRestMs() { return restSec * 1000; }
