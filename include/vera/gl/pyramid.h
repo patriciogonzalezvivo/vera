@@ -1,6 +1,5 @@
 #pragma once
 
-#include "vbo.h"
 #include "fbo.h"
 #include "shader.h"
 

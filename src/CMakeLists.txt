@@ -43,6 +43,7 @@ set(VERA_SOURCES
     ${SOURCE_FOLDER}/gl/defines.cpp 
     ${SOURCE_FOLDER}/gl/pingpong.cpp
     ${SOURCE_FOLDER}/gl/pyramid.cpp
+    ${SOURCE_FOLDER}/gl/flood.cpp
     ${SOURCE_FOLDER}/gl/texture.cpp 
     ${SOURCE_FOLDER}/gl/textureBump.cpp
     ${SOURCE_FOLDER}/gl/textureCube.cpp 

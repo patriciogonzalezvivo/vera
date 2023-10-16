@@ -12,6 +12,7 @@
 #include "vera/shaders/plot.h"
 #include "vera/shaders/fxaa.h"
 #include "vera/shaders/poissonfill.h"
+#include "vera/shaders/jumpFlood.h"
 
 // 3D SCENE
 #include "vera/shaders/light_ui.h"
@@ -163,12 +164,18 @@ std::string getDefaultSrc( DefaultShaders _type ) {
         else if (versionNumber >= 130) 
             rta += fxaa_frag_300;
     }
-    else if (_type == FRAG_POISSON) {
+    else if (_type == FRAG_POISSONFILL) {
         if (versionNumber < 130)
             rta += poissonfill_frag;
         else if (versionNumber >= 130) 
             rta += poissonfill_frag_300;
     } 
+    else if (_type == FRAG_JUMPFLOOD) {
+        if (versionNumber < 130)
+            rta += jumpflood_frag;
+        else if (versionNumber >= 130) 
+            rta += jumpflood_frag_300;
+    }
 
     return rta;
 }

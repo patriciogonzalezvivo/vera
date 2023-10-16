@@ -110,7 +110,6 @@ uniform sampler2D   u_pyramidTex1;
 uniform bool        u_pyramidUpscaling;
 
 uniform vec2        u_resolution;
-uniform vec2        u_pixel;
 
 in      vec2        v_texcoord;
 out     vec4        fragColor;
@@ -144,8 +143,9 @@ float G(int i) {
 
 void main() {
     vec4 color = vec4(0.0);
-    vec2 pixel = u_pixel;
-    vec2 st = v_texcoord;
+    vec2 pixel = 1.0/u_resolution;
+    vec2 st = gl_FragCoord.xy * pixel;
+    // vec2 st = v_texcoord;
 
     if (!u_pyramidUpscaling) {
         // DOWNSCALE
