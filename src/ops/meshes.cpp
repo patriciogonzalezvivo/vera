@@ -414,6 +414,7 @@ Mesh boxMesh( float _width, float _height, float _depth, int _resX, int _resY, i
             mesh.addIndex((y+1)*_resX + x+1 + vertOffset);
         }
     }
+    mesh.computeTangents();
 
     return mesh;
 }
@@ -608,6 +609,7 @@ Mesh floorMesh(float _area, int _subD, float _y) {
             mesh.addIndex(  x   +   y   * (N+1));   // A
         }
     }
+    mesh.computeTangents();
 
     return mesh;
 }
@@ -689,6 +691,7 @@ Mesh sphereMesh(int _resolution, float _radius, DrawMode _drawMode) {
             }
         }
     }
+    mesh.computeTangents();
 
     return mesh;
 }
@@ -756,6 +759,7 @@ Mesh sphereHalfMesh(int _resolution, float _radius ) {
             }
         }
     }
+    mesh.computeTangents();
 
     return mesh;
 }
@@ -916,6 +920,7 @@ Mesh icosphereMesh(float _radius, size_t _iterations) {
 
     mesh.addVertices( vertices );
     mesh.addIndices( indices );
+    mesh.computeTangents();
 
     return  mesh;
 }
