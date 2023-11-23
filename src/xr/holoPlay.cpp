@@ -70,11 +70,10 @@ int getQuiltRows() { return quilt.rows; }
 int getQuiltTotalViews() { return quilt.totalViews; }
 int getQuiltCurrentViewIndex() { return currentViewIndex; }
 
-void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _renderFnc, bool _justQuilt) {
+void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _renderFnc, int _viewIndex, bool _justQuilt) {
     Camera* cam = getCamera();
     if (!cam)
         return;
-
 
     // save the viewport for the total quilt
     GLint viewport[4];
@@ -101,31 +100,41 @@ void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _
         quilt_fbo.bind();
     }
 
-    // render views and copy each view to the quilt
-    for (int viewIndex = 0; viewIndex < quilt.totalViews; viewIndex++) {
-        // get the x and y origin for this view
-        int x = (viewIndex % quilt.columns) * qs_viewWidth;
-        int y = int(float(viewIndex) / float(quilt.columns)) * qs_viewHeight;
+    if (_viewIndex == -1) {
+        // render views and copy each view to the quilt
+        for (int viewIndex = 0; viewIndex < quilt.totalViews; viewIndex++) {
+            // get the x and y origin for this view
+            int x = (viewIndex % quilt.columns) * qs_viewWidth;
+            int y = int(float(viewIndex) / float(quilt.columns)) * qs_viewHeight;
 
-        // get the x and y origin for this view
-        // set the viewport to the view to control the projection extent
-        glViewport(x, y, qs_viewWidth, qs_viewHeight);
+            // get the x and y origin for this view
+            // set the viewport to the view to control the projection extent
+            glViewport(x, y, qs_viewWidth, qs_viewHeight);
 
-        // // set the scissor to the view to restrict calls like glClear from making modifications
-        glEnable(GL_SCISSOR_TEST);
-        glScissor(x, y, qs_viewWidth, qs_viewHeight);
-        glm::vec4 vp = glm::vec4(x, y, qs_viewWidth, qs_viewHeight);
+            // // set the scissor to the view to restrict calls like glClear from making modifications
+            glEnable(GL_SCISSOR_TEST);
+            glScissor(x, y, qs_viewWidth, qs_viewHeight);
+            glm::vec4 vp = glm::vec4(x, y, qs_viewWidth, qs_viewHeight);
 
-        currentViewIndex = viewIndex;
-        
-        _renderFnc(quilt, vp, viewIndex);
+            currentViewIndex = viewIndex;
+            
+            _renderFnc(quilt, vp, viewIndex);
 
-        // reset viewport
+            // reset viewport
+            glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+
+            // // restore scissor
+            glDisable(GL_SCISSOR_TEST);
+            glScissor(viewport[0], viewport[1], viewport[2], viewport[3]);
+        }
+
+    }
+    else {
+        glm::vec4 vp = glm::vec4(0, 0, qs_viewWidth, qs_viewHeight);
+        currentViewIndex = _viewIndex;
+        glViewport(0, 0, qs_viewWidth, qs_viewHeight);
+        _renderFnc(quilt, vp, _viewIndex);
         glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-
-        // // restore scissor
-        glDisable(GL_SCISSOR_TEST);
-        glScissor(viewport[0], viewport[1], viewport[2], viewport[3]);
     }
 
     if (!_justQuilt) {

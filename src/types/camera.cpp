@@ -102,7 +102,6 @@ void Camera::setVirtualOffset(float scale, int currentViewIndex, int totalViews,
     m_inverseProjectionMatrix = vera::inverseMatrix(m_projectionMatrix);
     
     bChange = true;
-
     // updateProjectionViewMatrix();
 }
 

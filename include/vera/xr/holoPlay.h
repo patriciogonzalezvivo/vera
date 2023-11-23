@@ -33,7 +33,7 @@ int  getQuiltTotalViews();
 int  getQuiltCurrentViewIndex();
 Fbo* getQuiltFbo();
 
-void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _renderFnc, bool _justQuilt = false);
+void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _renderFnc, int _tile = -1, bool _justQuilt = false);
 
 // LENTICULAR Display
 //
