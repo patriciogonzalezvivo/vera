@@ -89,10 +89,9 @@ void Camera::setVirtualOffset(float scale, int currentViewIndex, int totalViews,
     m_viewMatrix = glm::translate(getTransformMatrix(), offsetLocal);
     m_normalMatrix = glm::transpose(glm::inverse(glm::mat3(m_viewMatrix)));
 
-    const float fov =  glm::radians(14.0f);
-    glm::mat4 projectionMatrix = glm::perspective(fov, getAspect(), getNearClip(), getFarClip());
-    // modify the projection matrix, relative to the camera size and aspect ratio
+    glm::mat4 projectionMatrix = glm::perspective(m_fov, getAspect(), getNearClip(), getFarClip());
 
+    // modify the projection matrix, relative to the camera size and aspect ratio
     projectionMatrix[2][0] += offset / (scale * aspect);
 
     m_position_offset = -glm::vec3(glm::inverse(m_viewMatrix)[3]);

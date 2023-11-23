@@ -78,12 +78,11 @@ void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _
         if (!quilt_fbo.isAllocated())
             quilt_fbo.allocate(quilt.width, quilt.height, COLOR_TEXTURE_DEPTH_BUFFER);
 
-        Camera* cam = getCamera();
         if (cam)
             if (cam->getProjectionType() != ProjectionType::PERSPECTIVE_VIRTUAL_OFFSET) {
                 // cam->setAspect(1.0);
                 cam->setViewport(getWindowWidth(),getWindowHeight());
-                cam->setFOV(glm::radians(14.0f));
+                // cam->setFOV(glm::radians(14.0f));
                 cam->setProjection(ProjectionType::PERSPECTIVE_VIRTUAL_OFFSET);
                 // cam->setClipping(0.01, 100.0);
             }

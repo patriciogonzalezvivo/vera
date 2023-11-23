@@ -56,7 +56,7 @@ public:
     virtual const float         getDistance() const;
 
     virtual const float         getEv100() const { return m_ev100; }
-    virtual const float         getExposure() const { return m_exposure; }
+    virtual const double        getExposure() const { return m_exposure; }
     virtual const float         getAperture() const { return m_aperture; }          //! returns this camera's aperture in f-stops
     virtual const float         getShutterSpeed() const { return m_shutterSpeed; }  //! returns this camera's shutter speed in seconds
     virtual const float         getSensitivity() const { return m_sensitivity; }    //! returns this camera's sensitivity in ISO
@@ -92,12 +92,12 @@ private:
     glm::vec3   m_target;
     glm::vec3   m_position_offset;
 
-    double      m_aspect;
-    double      m_fov;
-    double      m_nearClip;
-    double      m_farClip;
+    float       m_aspect;
+    float       m_fov;
+    float       m_nearClip;
+    float       m_farClip;
 
-    float       m_exposure; 
+    double      m_exposure; 
     float       m_ev100;
     float       m_aperture;
     float       m_shutterSpeed;

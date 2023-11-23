@@ -870,12 +870,12 @@ void shader(Shader* _program) {
         _program->setUniform("u_cameraNearClip", scene->activeCamera->getNearClip());
         _program->setUniform("u_cameraFarClip", scene->activeCamera->getFarClip());
         _program->setUniform("u_cameraEv100", scene->activeCamera->getEv100());
-        _program->setUniform("u_cameraExposure", scene->activeCamera->getExposure());
+        _program->setUniform("u_cameraExposure", float(scene->activeCamera->getExposure()));
         _program->setUniform("u_cameraAperture", scene->activeCamera->getAperture());
         _program->setUniform("u_cameraShutterSpeed", scene->activeCamera->getShutterSpeed());
         _program->setUniform("u_cameraSensitivity", scene->activeCamera->getSensitivity());
         _program->setUniform("u_cameraChange", scene->activeCamera->bChange);
-        _program->setUniform("u_iblLuminance", 30000.0f * scene->activeCamera->getExposure());
+        _program->setUniform("u_iblLuminance", float(30000.0f * scene->activeCamera->getExposure()));
     }
     else {
         _program->setUniform("u_modelViewProjectionMatrix", getFlippedOrthoMatrix() * matrix_world );
