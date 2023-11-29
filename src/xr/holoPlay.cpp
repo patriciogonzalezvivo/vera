@@ -75,14 +75,6 @@ void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _
     if (!cam)
         return;
 
-    // save the viewport for the total quilt
-    GLint viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-
-    // get quilt view dimensions
-    int qs_viewWidth = int(float(quilt.width) / float(quilt.columns));
-    int qs_viewHeight = int(float(quilt.height) / float(quilt.rows));
-
     if (!_justQuilt) {
 
         if (!quilt_fbo.isAllocated())
@@ -101,6 +93,14 @@ void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _
     }
 
     if (_viewIndex == -1) {
+        // save the viewport for the total quilt
+        GLint viewport[4];
+        glGetIntegerv(GL_VIEWPORT, viewport);
+
+        // get quilt view dimensions
+        int qs_viewWidth = int(float(quilt.width) / float(quilt.columns));
+        int qs_viewHeight = int(float(quilt.height) / float(quilt.rows));
+
         // render views and copy each view to the quilt
         for (int viewIndex = 0; viewIndex < quilt.totalViews; viewIndex++) {
             // get the x and y origin for this view
@@ -130,11 +130,9 @@ void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _
 
     }
     else {
-        glm::vec4 vp = glm::vec4(0, 0, qs_viewWidth, qs_viewHeight);
         currentViewIndex = _viewIndex;
-        glViewport(0, 0, qs_viewWidth, qs_viewHeight);
+        glm::vec4 vp = glm::vec4(0.0, 0.0, float(vera::getWindowWidth()), float(vera::getWindowHeight()));
         _renderFnc(quilt, vp, _viewIndex);
-        glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
     }
 
     if (!_justQuilt) {

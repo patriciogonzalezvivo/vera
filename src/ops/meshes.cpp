@@ -925,7 +925,7 @@ Mesh icosphereMesh(float _radius, size_t _iterations) {
     return  mesh;
 }
 
-Mesh cylinder( float _radius, float _height, int _radiusSegments, int _heightSegments, int _numCapSegments, bool _bCapped, DrawMode _drawMode ) {
+Mesh cylinderMesh( float _radius, float _height, int _radiusSegments, int _heightSegments, int _numCapSegments, bool _bCapped, DrawMode _drawMode ) {
     Mesh mesh;
 
     if (_drawMode != TRIANGLE_STRIP && _drawMode != TRIANGLES)
@@ -1108,8 +1108,9 @@ Mesh cylinder( float _radius, float _height, int _radiusSegments, int _heightSeg
         }
 
         vertOffset = mesh.getVerticesTotal();
-
     }
+    
+    mesh.computeTangents();
 
     return mesh;
 }
