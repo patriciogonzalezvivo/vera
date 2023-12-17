@@ -17,6 +17,7 @@ enum DefaultShaders {
     FRAG_POSITION, FRAG_NORMAL,
     FRAG_PLOT, FRAG_FXAA, 
     FRAG_POISSONFILL, FRAG_JUMPFLOOD,
+    VERT_DEVLOOK_BILLBOARD, VERT_DEVLOOK_SPHERE
 };
 
 void    setVersionFromCode(const std::string& _src);

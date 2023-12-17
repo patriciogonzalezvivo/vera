@@ -18,6 +18,7 @@
 #include "vera/shaders/light_ui.h"
 #include "vera/shaders/cubemap.h"
 #include "vera/shaders/draw.h"
+#include "vera/shaders/devlook.h"
 
 #include "vera/ops/string.h"
 
@@ -175,6 +176,18 @@ std::string getDefaultSrc( DefaultShaders _type ) {
             rta += jumpflood_frag;
         else if (versionNumber >= 130) 
             rta += jumpflood_frag_300;
+    }
+    else if (_type == VERT_DEVLOOK_BILLBOARD) {
+        if (versionNumber < 130)
+            rta += devlook_billboard_vert;
+        else if (versionNumber >= 130) 
+            rta += devlook_billboard_vert_300;
+    }
+    else if (_type == VERT_DEVLOOK_SPHERE) {
+        if (versionNumber < 130)
+            rta += devlook_sphere_vert;
+        else if (versionNumber >= 130) 
+            rta += devlook_sphere_vert_300;
     }
 
     return rta;
