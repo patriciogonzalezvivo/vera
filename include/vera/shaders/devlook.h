@@ -33,6 +33,11 @@ varying vec4    v_tangent;
 varying mat3    v_tangentToWorld;
 #endif
 
+#ifdef LIGHT_SHADOWMAP
+uniform mat4    u_lightMatrix;
+varying vec4    v_lightCoord;
+#endif
+
 mat4 orthographic(float l, float r, float b, float t, float n, float f) {
     return mat4(
         vec4(2.0/(r-l),     0.0,          0.0,         0.0),
@@ -62,6 +67,10 @@ void main(void) {
     vec3 worldTangent = a_tangent.xyz;
     vec3 worldBiTangent = cross(v_normal, worldTangent);// * sign(a_tangent.w);
     v_tangentToWorld = mat3(normalize(worldTangent), normalize(worldBiTangent), normalize(v_normal));
+#endif
+
+#ifdef LIGHT_SHADOWMAP
+    v_lightCoord = vec4(0.0);//u_lightMatrix * v_position;
 #endif
 
     float area = 2.0;
@@ -108,6 +117,11 @@ out vec4    v_tangent;
 out mat3    v_tangentToWorld;
 #endif
 
+#ifdef LIGHT_SHADOWMAP
+uniform mat4    u_lightMatrix;
+out vec4    v_lightCoord;
+#endif
+
 mat4 orthographic(float l, float r, float b, float t, float n, float f) {
     return mat4(
         vec4(2.0/(r-l),     0.0,          0.0,         0.0),
@@ -137,6 +151,10 @@ void main(void) {
     vec3 worldTangent = a_tangent.xyz;
     vec3 worldBiTangent = cross(v_normal, worldTangent);// * sign(a_tangent.w);
     v_tangentToWorld = mat3(normalize(worldTangent), normalize(worldBiTangent), normalize(v_normal));
+#endif
+
+#ifdef LIGHT_SHADOWMAP
+    v_lightCoord = vec4(0.0);//u_lightMatrix * v_position;
 #endif
 
     float area = 2.0;
@@ -184,6 +202,11 @@ varying vec4    v_tangent;
 varying mat3    v_tangentToWorld;
 #endif
 
+#ifdef LIGHT_SHADOWMAP
+uniform mat4    u_lightMatrix;
+varying vec4    v_lightCoord;
+#endif
+
 mat4 toMat4(mat3 m) {
     return mat4(vec4(m[0], 0.0), 
                 vec4(m[1], 0.0), 
@@ -268,6 +291,10 @@ void main(void) {
     vec3 worldTangent = a_tangent.xyz;
     vec3 worldBiTangent = cross(v_normal, worldTangent);// * sign(a_tangent.w);
     v_tangentToWorld = mat3(normalize(worldTangent), normalize(worldBiTangent), normalize(v_normal));
+#endif
+
+#ifdef LIGHT_SHADOWMAP
+    v_lightCoord = vec4(0.0);//u_lightMatrix * v_position;
 #endif
 
     mat4 V = inverse( toMat4( lookAt(vec3(0.0), -normalize(u_camera), vec3(0.0, 1.0, 0.0)) ) );
@@ -315,6 +342,11 @@ out vec4    v_tangent;
 out mat3    v_tangentToWorld;
 #endif
 
+#ifdef LIGHT_SHADOWMAP
+uniform mat4    u_lightMatrix;
+out vec4    v_lightCoord;
+#endif
+
 mat4 toMat4(mat3 m) {
     return mat4(vec4(m[0], 0.0), 
                 vec4(m[1], 0.0), 
@@ -399,6 +431,10 @@ void main(void) {
     vec3 worldTangent = a_tangent.xyz;
     vec3 worldBiTangent = cross(v_normal, worldTangent);// * sign(a_tangent.w);
     v_tangentToWorld = mat3(normalize(worldTangent), normalize(worldBiTangent), normalize(v_normal));
+#endif
+
+#ifdef LIGHT_SHADOWMAP
+    v_lightCoord = vec4(0.0);//u_lightMatrix * v_position;
 #endif
 
     mat4 V = inverse( toMat4( lookAt(vec3(0.0), -normalize(u_camera), vec3(0.0, 1.0, 0.0)) ) );
