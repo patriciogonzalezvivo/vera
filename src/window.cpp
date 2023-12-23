@@ -637,6 +637,11 @@ int initGL(WindowProperties _prop) {
     check();
 
     result = eglInitialize(display, NULL, NULL);
+    #if defined(DRIVER_GBM)
+    if (EGL_FALSE == result) {
+        std::cout << "Fail to initialize EGL context from display " << properties.display << " try another." << std::endl;
+    }
+    #endif
     assert(EGL_FALSE != result);
     check();
 
