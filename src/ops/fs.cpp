@@ -94,15 +94,10 @@ bool extractDependency(const std::string &_line, std::string *_dependency) {
     if (_line.find("#include ") == 0 || _line.find("#pragma include ") == 0) {
         unsigned begin = _line.find_first_of("\"");
         unsigned end = _line.find_last_of("\"");
-        if ((end - begin) > 4) {
-            std::string sub = _line.substr(begin+1, end-begin-1);
-            std::vector<std::string> subs = split(sub, '.');
-            if (subs.size() > 1)
-                if (subs[subs.size() - 1] == "glsl" || subs[subs.size() - 1] == "GLSL") {
-                    (*_dependency) = sub;
-                    return true;
-                }
-        }
+
+        std::string sub = _line.substr(begin+1, end-begin-1);
+        (*_dependency) = sub;
+        return true;
     }
     return false;
 }
