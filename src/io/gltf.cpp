@@ -390,7 +390,7 @@ void extractNodes(const tinygltf::Model& _model, const tinygltf::Node& _node, gl
 
     if (_node.rotation.size() == 4) {
         glm::quat q = glm::make_quat(_node.rotation.data());
-        R = glm::mat4( q );
+        R = glm::toMat4( q );
     }
 
     if (_node.scale.size() == 3)
