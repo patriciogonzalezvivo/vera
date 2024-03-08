@@ -13,7 +13,6 @@
 namespace vera { 
 
 static FONScontext* fs = nullptr;
-static size_t fn = 0;
 
 // Monserrat by Julieta Ulanovsky
 // published under SIL Open Font Licecemse, 1.1 (https://www.fontmirror.com/montserrat)
@@ -117,7 +116,7 @@ Font::~Font() {
 
 bool Font::load(const std::string &_filepath, std::string _name) {
     if (_name.size() == 0)
-        _name = "font" + vera::toString(fn, 0, 3);
+        _name = "font" + vera::toString(m_id, 3, '0');
 
     if (fs == nullptr) {
         GLFONSparams params;
@@ -131,7 +130,7 @@ bool Font::load(const std::string &_filepath, std::string _name) {
 
 bool Font::load(unsigned char* _data, size_t _size, std::string _name) {
     if (_name.size() == 0)
-        _name = "font" + vera::toString(fn, 0, 3);
+        _name = "font" + vera::toString(m_id, 3, '0');
 
     if (fs == nullptr) {
         GLFONSparams params;

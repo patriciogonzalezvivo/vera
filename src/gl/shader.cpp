@@ -173,6 +173,7 @@ void Shader::use() {
 
     if (!inUse())
         glUseProgram(getProgram());
+        
     textureIndex = 0;
 }
 
