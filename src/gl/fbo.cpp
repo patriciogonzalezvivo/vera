@@ -98,7 +98,7 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
         GLenum format = GL_RGBA;
         GLenum type = GL_UNSIGNED_BYTE;
 
-#if defined(PLATFORM_RPI) || defined(DRIVER_GBM)
+#if defined(PLATFORM_RPI) || defined(DRIVER_DRM)
 #else
         if (_type == COLOR_FLOAT_TEXTURE || 
             _type == GBUFFER_TEXTURE) {
@@ -126,6 +126,7 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_id, 0);
     }
 
+#if !defined(DRIVER_DRM)
     // Depth Buffer
     if (m_depth) {
         glBindRenderbuffer(GL_RENDERBUFFER, m_depth_buffer);
@@ -133,7 +134,7 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
         GLenum depth_format = GL_DEPTH_COMPONENT;
         GLenum depth_type = GL_UNSIGNED_SHORT;
 
-#if defined(PLATFORM_RPI) || defined(DRIVER_GBM)
+#if defined(PLATFORM_RPI) || defined(DRIVER_DRM)
         depth_format = GL_DEPTH_COMPONENT16;
 
     #if GL_OES_depth32
@@ -177,11 +178,14 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depth_id, 0);
         }
     }
+    #endif
 
     // CHECK
     GLenum result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (result == GL_FRAMEBUFFER_COMPLETE) m_allocated = true;
-    else std::cout << "FBO: not complete " << result << std::endl;
+    if (result == GL_FRAMEBUFFER_COMPLETE) 
+        m_allocated = true;
+    else 
+        std::cout << "FBO: not complete " << result << std::endl;
     
     unbind();
 

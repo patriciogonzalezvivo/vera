@@ -106,7 +106,7 @@ bool Texture::load(int _width, int _height, int _channels, int _bits, const void
     GLenum format = GL_RGBA;
     if (_channels == 4)         format = GL_RGBA;
     else if (_channels == 3)    format = GL_RGB;
-#if !defined(PLATFORM_RPI) && !defined(DRIVER_GBM)
+#if !defined(PLATFORM_RPI) && !defined(DRIVER_DRM)
     else if (_channels == 2)    format = GL_RG;
     else if (_channels == 1)    format = GL_RED;
 #endif
@@ -120,7 +120,7 @@ bool Texture::load(int _width, int _height, int _channels, int _bits, const void
 
     GLenum internalFormat = format;
     if (_bits == 32 && _channels == 4) {
-        #if defined(PLATFORM_RPI) || defined(DRIVER_GBM)
+        #if defined(PLATFORM_RPI) || defined(DRIVER_DRM)
         #else
         // if ( haveExtension("OES_texture_float") )
             internalFormat = GL_RGBA32F;

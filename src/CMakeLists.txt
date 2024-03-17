@@ -95,41 +95,43 @@ set_target_properties(vera PROPERTIES
     CXX_STANDARD_REQUIRED ON
 )
 
-find_package(BROADCOM)
-if (BROADCOM_FOUND)
-    message(STATUS "BROADCOM_DEFINITIONS:   ${BROADCOM_DEFINITIONS}")
-    message(STATUS "BROADCOM_INCLUDE_DIRS:  ${BROADCOM_INCLUDE_DIRS}")
-    message(STATUS "BROADCOM_LIBRARIES:     ${BROADCOM_LIBRARIES}")
-    target_include_directories(vera PUBLIC   ${BROADCOM_INCLUDE_DIRS})
-    target_link_libraries(vera PUBLIC        ${BROADCOM_LIBRARIES})
-    target_compile_definitions(vera PUBLIC   ${BROADCOM_DEFINITIONS})
-endif()
+if ( ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm32" )
+    find_package(BROADCOM)
+    if (BROADCOM_FOUND)
+        message(STATUS "BROADCOM_DEFINITIONS:   ${BROADCOM_DEFINITIONS}")
+        message(STATUS "BROADCOM_INCLUDE_DIRS:  ${BROADCOM_INCLUDE_DIRS}")
+        message(STATUS "BROADCOM_LIBRARIES:     ${BROADCOM_LIBRARIES}")
+        target_include_directories(vera PUBLIC   ${BROADCOM_INCLUDE_DIRS})
+        target_link_libraries(vera PUBLIC        ${BROADCOM_LIBRARIES})
+        target_compile_definitions(vera PUBLIC   ${BROADCOM_DEFINITIONS})
+    endif()
 
-if (BROADCOM_INCLUDE_DIR)
-message(STATUS "PLATFORM RASPBERRYPI")
-target_compile_definitions(vera PUBLIC       PLATFORM_RPI)
-endif()
-    
-find_package(ILCLIENT)
-if (ILCLIENT_FOUND)
-    message(STATUS "OMAL Supported")
-    target_include_directories(vera PUBLIC   ${ILCLIENT_INCLUDE_DIR} )
-    target_link_libraries(vera PUBLIC        ${ILCLIENT_LIBRARY} )
-endif()      
+    if (BROADCOM_INCLUDE_DIR)
+    message(STATUS "PLATFORM RASPBERRYPI")
+    target_compile_definitions(vera PUBLIC       PLATFORM_RPI)
+    endif()
+        
+    find_package(ILCLIENT)
+    if (ILCLIENT_FOUND)
+        message(STATUS "OMAL Supported")
+        target_include_directories(vera PUBLIC   ${ILCLIENT_INCLUDE_DIR} )
+        target_link_libraries(vera PUBLIC        ${ILCLIENT_LIBRARY} )
+    endif()      
 
-find_package(OMAX)
-if (OMAX_FOUND AND ILCLIENT_FOUND)
-    message(STATUS "OMAL Supported")
-    target_compile_definitions(vera PUBLIC   ${OMAX_DEFINITIONS})
-    target_link_libraries(vera PUBLIC        ${OMAX_LIBRARIES})
-    target_compile_definitions(vera PUBLIC   SUPPORT_OMAX)
-endif()
+    find_package(OMAX)
+    if (OMAX_FOUND AND ILCLIENT_FOUND)
+        message(STATUS "OMAL Supported")
+        target_compile_definitions(vera PUBLIC   ${OMAX_DEFINITIONS})
+        target_link_libraries(vera PUBLIC        ${OMAX_LIBRARIES})
+        target_compile_definitions(vera PUBLIC   SUPPORT_OMAX)
+    endif()
 
-find_package(MMAL)
-if (MMAL_FOUND)
-    message(STATUS "MMAL Supported")
-    target_link_libraries(vera PUBLIC        ${MMAL_LIBRARIES})
-    target_compile_definitions(vera PUBLIC   SUPPORT_MMAL)
+    find_package(MMAL)
+    if (MMAL_FOUND)
+        message(STATUS "MMAL Supported")
+        target_link_libraries(vera PUBLIC        ${MMAL_LIBRARIES})
+        target_compile_definitions(vera PUBLIC   SUPPORT_MMAL)
+    endif()
 endif()
 
 find_package(FFMPEG)
@@ -169,10 +171,10 @@ endif()
 #     message(STATUS "EXIV2 FOUNDED")
 # endif()
 
-if (NO_X11 OR FORCE_GBM)
-    if (BROADCOM_FOUND AND NOT FORCE_GBM)
+if (NO_X11 OR FORCE_DRM)
+    if (BROADCOM_FOUND AND NOT FORCE_DRM)
         message(STATUS "USING BROADCOM DRIVERS")        
-        target_compile_definitions(vera PUBLIC   DRIVER_BROADCOM )
+        target_compile_definitions(vera PUBLIC  DRIVER_BROADCOM )
 
         target_link_libraries(vera PUBLIC        
             ${BCM_EGL} 
@@ -180,32 +182,41 @@ if (NO_X11 OR FORCE_GBM)
         )
 
     else()
-        message(STATUS "USING DRM and GBM DRIVERS")
-        target_compile_definitions(vera PUBLIC   DRIVER_GBM)
+        message(STATUS "USING DRM DRIVERS")
+        target_compile_definitions(vera PUBLIC  DRIVER_DRM)
+
         find_package(DRM)
+        message(STATUS "DRM_INCLUDE_DIRS:       ${DRM_INCLUDE_DIRS}")
+        message(STATUS "DRM_LIBRARIES:          ${DRM_LIBRARIES}")
+
         find_package(GBM)
+        message(STATUS "GBM_INCLUDE_DIRS:       ${GBM_INCLUDE_DIRS}")
+        message(STATUS "GBM_LIBRARY:            ${GBM_LIBRARY}")
+
+        find_package(XCB)
+        message(STATUS "XCB_INCLUDE_DIRS:       ${XCB_INCLUDE_DIRS}")
+        message(STATUS "XCB_LIBRARIES:          ${XCB_LIBRARIES}")
+
+        find_package(EGL)
+        message(STATUS "EGL_INCLUDE_DIRS:       ${EGL_INCLUDE_DIRS}")
+        message(STATUS "EGL_LIBRARIES:          ${EGL_LIBRARIES}")
+        
+        find_package(GLESv2)
+        message(STATUS "GLESv2_INCLUDE_DIRS:    ${GLESv2_INCLUDE_DIRS}")
+        message(STATUS "GLESv2_LIBRARIES:       ${GLESv2_LIBRARIES}")
+
         target_include_directories(vera PUBLIC
             ${DRM_INCLUDE_DIRS}
             ${GBM_INCLUDE_DIRS}
-        )
-        target_link_libraries(vera PUBLIC
-            ${DRM_LIBRARIES}
-            ${GBM_LIBRARY}
-        )
-
-        find_package(EGL)
-        find_package(GLESv2)
-        message(STATUS "EGL_INCLUDE_DIRS:       ${EGL_INCLUDE_DIRS}")
-        message(STATUS "EGL_LIBRARIES:          ${EGL_LIBRARIES}")
-        message(STATUS "GLESv2_INCLUDE_DIRS:    ${GLESv2_INCLUDE_DIRS}")
-        message(STATUS "GLESv2_LIBRARIES:       ${GLESv2_LIBRARIES}")
-    
-        target_include_directories(vera PUBLIC
+            ${XCB_INCLUDE_DIRS}
             ${EGL_INCLUDE_DIRS}
             ${GLESv2_INCLUDE_DIRS}
         )
-    
+        
         target_link_libraries(vera PUBLIC
+            ${DRM_LIBRARIES}
+            ${GBM_LIBRARY}
+            ${XCB_LIBRARIES}
             ${EGL_LIBRARIES}
             ${GLESv2_LIBRARIES}
         )

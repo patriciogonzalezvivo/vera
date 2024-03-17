@@ -31,8 +31,9 @@ struct WindowProperties {
     std::string glsl = "";
     std::string extensions = "";
 
-    #if defined(DRIVER_GBM) 
-    std::string display = "/dev/dri/card0";
+    #if defined(DRIVER_DRM) 
+    std::string display = "";
+    char        mode[DRM_DISPLAY_MODE_LEN] = "";
     #endif
 
     #if !defined(DRIVER_GLFW)
@@ -49,7 +50,7 @@ struct WindowProperties {
     int         screen_height = -1;
 };
 
-//	GL Context
+//  GL Context
 //----------------------------------------------
 int         initGL(WindowProperties _properties = WindowProperties());
 bool        isGL();
@@ -71,7 +72,7 @@ EGLDisplay  getEGLDisplay();
 EGLContext  getEGLContext();
 #endif
 
-//	Windows/Viewport
+//  Windows/Viewport
 //----------------------------------------------
 void        updateViewport();
 

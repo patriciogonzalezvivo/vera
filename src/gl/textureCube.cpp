@@ -140,7 +140,7 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
     for (int i = 0; i < 9; i++)
         SH[i] = SH[i] * (32.0f / (float)sh_samples);
 
-#if defined(PLATFORM_RPI) || defined(DRIVER_GBM) || defined(__EMSCRIPTEN__)
+#if defined(PLATFORM_RPI) || defined(DRIVER_DRM) || defined(__EMSCRIPTEN__)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -218,7 +218,7 @@ bool TextureCube::load(size_t _width, size_t _height, size_t _channels, const fl
     for (int i = 0; i < 9; i++)
         SH[i] = SH[i] * (32.0f / (float)sh_samples);
 
-#if defined(PLATFORM_RPI) || defined(DRIVER_GBM) || defined(__EMSCRIPTEN__)
+#if defined(PLATFORM_RPI) || defined(DRIVER_DRM) || defined(__EMSCRIPTEN__)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -275,7 +275,7 @@ bool TextureCube::load(SkyData* _sky, int _width, bool _vFlip) {
     for (int i = 0; i < 9; i++)
         SH[i] = SH[i] * (32.0f / (float)sh_samples);
 
-#if defined(PLATFORM_RPI) || defined(DRIVER_GBM) || defined(__EMSCRIPTEN__)
+#if defined(PLATFORM_RPI) || defined(DRIVER_DRM) || defined(__EMSCRIPTEN__)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

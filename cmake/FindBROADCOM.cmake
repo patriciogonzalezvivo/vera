@@ -6,24 +6,24 @@
 #   BROADCOM_FOUND
 #   BROADCOM_DEFINITIONS
 #
-find_path(BROADCOM_INCLUDE_DIR
-        NAMES bcm_host.h
-        DOC "Broadcom include directory"
-        PATHS /opt/vc/include)
+find_path(  BROADCOM_INCLUDE_DIR
+            NAMES bcm_host.h
+            DOC "Broadcom include directory"
+            PATHS /opt/vc/include)
 
 if (BROADCOM_INCLUDE_DIR)
     mark_as_advanced(BROADCOM_INCLUDE_DIR)
 
-    find_library(VCOS_LIBRARY
-            NAMES libvcos.so
-            DOC "Path to VCOS Library"
-            PATHS /opt/vc/lib)
+    find_library(   VCOS_LIBRARY
+                    NAMES libvcos.so
+                    DOC "Path to VCOS Library"
+                    PATHS /opt/vc/lib)
     mark_as_advanced(VCOS_LIBRARY)
 
-    find_library(VCHIQ_LIBRARY
-            NAMES libvchiq_arm.so
-            DOC "Path to VCHIQ Library"
-            PATHS /opt/vc/lib)
+    find_library(   VCHIQ_LIBRARY
+                    NAMES libvchiq_arm.so
+                    DOC "Path to VCHIQ Library"
+                    PATHS /opt/vc/lib)
     mark_as_advanced(VCHIQ_LIBRARY)
 
     find_library(   BCM_HOST_LIBRARY
