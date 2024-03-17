@@ -193,9 +193,9 @@ if (NO_X11 OR FORCE_DRM)
         message(STATUS "GBM_INCLUDE_DIRS:       ${GBM_INCLUDE_DIRS}")
         message(STATUS "GBM_LIBRARY:            ${GBM_LIBRARY}")
 
-        find_package(XCB)
-        message(STATUS "XCB_INCLUDE_DIRS:       ${XCB_INCLUDE_DIRS}")
-        message(STATUS "XCB_LIBRARIES:          ${XCB_LIBRARIES}")
+        # find_package(XCB)
+        # message(STATUS "XCB_INCLUDE_DIRS:       ${XCB_INCLUDE_DIRS}")
+        # message(STATUS "XCB_LIBRARIES:          ${XCB_LIBRARIES}")
 
         find_package(EGL)
         message(STATUS "EGL_INCLUDE_DIRS:       ${EGL_INCLUDE_DIRS}")
@@ -208,7 +208,7 @@ if (NO_X11 OR FORCE_DRM)
         target_include_directories(vera PUBLIC
             ${DRM_INCLUDE_DIRS}
             ${GBM_INCLUDE_DIRS}
-            ${XCB_INCLUDE_DIRS}
+            # ${XCB_INCLUDE_DIRS}
             ${EGL_INCLUDE_DIRS}
             ${GLESv2_INCLUDE_DIRS}
         )
@@ -216,7 +216,7 @@ if (NO_X11 OR FORCE_DRM)
         target_link_libraries(vera PUBLIC
             ${DRM_LIBRARIES}
             ${GBM_LIBRARY}
-            ${XCB_LIBRARIES}
+            # ${XCB_LIBRARIES}
             ${EGL_LIBRARIES}
             ${GLESv2_LIBRARIES}
         )
