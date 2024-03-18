@@ -183,6 +183,8 @@ static bool                     bControl        = false;
         DISPMANX_DISPLAY_HANDLE_T dispman_display;
 
     #elif defined(DRIVER_DRM)
+        #include <errno.h>
+
         #include <xf86drm.h>
         #include <xf86drmMode.h>
         
@@ -194,7 +196,6 @@ static bool                     bControl        = false;
         #ifndef DRM_FORMAT_MOD_LINEAR
         #define DRM_FORMAT_MOD_LINEAR 0
         #endif
-
         #ifndef DRM_FORMAT_MOD_INVALID
         #define DRM_FORMAT_MOD_INVALID ((((__u64)0) << 56) | ((1ULL << 56) - 1))
         #endif
@@ -208,9 +209,22 @@ static bool                     bControl        = false;
         uint32_t                drm_format = DRM_FORMAT_XRGB8888;
         uint64_t                drm_modifier = DRM_FORMAT_MOD_LINEAR;
         uint32_t                drm_vrefresh;
-        unsigned int            drm_count;
-        int                     drm_fd;
-        bool                    async_page_flip = false;
+        bool                    drm_async_page_flip = false;
+        uint32_t                drm_flags;
+        int                     drm_waiting_for_flip = 1;
+
+        static void page_flip_handler(int fd, unsigned int frame, unsigned int sec, unsigned int usec, void *data) {
+            /* suppress 'unused parameter' warnings */
+            (void)fd, (void)frame, (void)sec, (void)usec;
+            int *waiting_for_flip = data;
+            *waiting_for_flip = 0;
+        }
+
+        fd_set                  drm_fds;
+        drmEventContext         drm_evctx = {
+                .version            = 2,
+                .page_flip_handler  = page_flip_handler,
+        };
 
         static int get_resources(int fd, drmModeRes **resources) {
             *resources = drmModeGetResources(fd);
@@ -382,25 +396,30 @@ static bool                     bControl        = false;
 
             // Find encoder
             drmModeEncoder *encoder = NULL;
-            for (i = 0; i < resources->count_encoders; i++) {
-                encoder = drmModeGetEncoder(drm_device, resources->encoders[i]);
-                if (encoder->encoder_id == drm_connector_id)
-                    break;
-                drmModeFreeEncoder(encoder);
-                encoder = NULL;
-            }
+            if (connector->encoder_id)
+                encoder = drmModeGetEncoder(drm_device, connector->encoder_id);
+            drm_crtc_id = encoder->crtc_id;
+            // drmModeEncoder *encoder = NULL;
+            // for (i = 0; i < resources->count_encoders; i++) {
+            //     encoder = drmModeGetEncoder(drm_device, resources->encoders[i]);
+            //     if (encoder->encoder_id == drm_connector_id)
+            //         break;
+            //     drmModeFreeEncoder(encoder);
+            //     encoder = NULL;
+            // }
 
-            if (encoder) {
-                drm_crtc_id = encoder->crtc_id;
-            } else {
-                int32_t crtc_id = find_crtc_for_connector(resources, connector);
-                if (crtc_id == -1) {
-                    printf("no crtc found!\n");
-                    return EXIT_FAILURE;
-                }
+            // if (encoder) {
+            //     drm_crtc_id = encoder->crtc_id;
+            // } else {
+            //     printf("No encoder. in the search for a connector.\n");
+            //     int32_t crtc_id = find_crtc_for_connector(resources, connector);
+            //     if (crtc_id == -1) {
+            //         printf("no crtc found!\n");
+            //         return EXIT_FAILURE;
+            //     }
 
-                drm_crtc_id = crtc_id;
-            }
+            //     drm_crtc_id = crtc_id;
+            // }
 
             // drm_crtc = drmModeGetCrtc(device, encoder->crtc_id);
             drm_crtc = drmModeGetCrtc(drm_device, drm_crtc_id);
@@ -417,30 +436,22 @@ static bool                     bControl        = false;
         // GBM
         //
         #define WEAK __attribute__((weak))
+        WEAK struct gbm_surface * gbm_surface_create_with_modifiers(struct gbm_device *gbm, uint32_t width, uint32_t height, uint32_t format, const uint64_t *modifiers, const unsigned int count);
         WEAK union gbm_bo_handle gbm_bo_get_handle_for_plane(struct gbm_bo *bo, int plane);
-        // #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
-        #define NUM_BUFFERS 2
+
         struct gbm {
             struct gbm_device*  device;
             struct gbm_surface* surface;
-            struct gbm_bo*      bos[NUM_BUFFERS];    /* for the surfaceless case */
         };
-        static struct gbm gbm;
 
         struct gbm_fb {
             struct gbm_bo *bo;
             uint32_t fb_id;
         };
 
-        static struct gbm_bo*   previous_bo  = NULL;
-        static uint32_t         previous_fb;
-
-        static void page_flip_handler(int fd, unsigned int frame, unsigned int sec, unsigned int usec, void *data) {
-            /* suppress 'unused parameter' warnings */
-            (void)fd, (void)frame, (void)sec, (void)usec;
-            int *waiting_for_flip = data;
-            *waiting_for_flip = 0;
-        }
+        static struct gbm       gbm;
+        static struct gbm_bo*   gbm_curr_bo = NULL;
+        static uint32_t         gbm_curr_fb;
 
         static void gbm_fb_destroy_callback(struct gbm_bo *bo, void *data) {
             int drm_fd = gbm_device_get_fd(gbm_bo_get_device(bo));
@@ -452,7 +463,7 @@ static bool                     bControl        = false;
             free(fb);
         }
 
-        struct gbm_fb * gbm_fb_get_from_bo(gbm_bo *bo) {
+        struct gbm_fb * gbm_fb_get_from_bo(struct gbm_bo *bo) {
             int drm_fd = gbm_device_get_fd(gbm_bo_get_device(bo));
             struct gbm_fb *fb = gbm_bo_get_user_data(bo);
             uint32_t width, height, format,
@@ -497,13 +508,12 @@ static bool                     bControl        = false;
                 if (flags)
                     fprintf(stderr, "Modifiers failed!\n");
 
-                uint32_t arr_handles[] = {gbm_bo_get_handle(bo).u32,0,0,0};
-                uint32_t arr_strides[] = {gbm_bo_get_stride(bo),0,0,0};
-                memcpy(handles, arr_handles, 16);
-                memcpy(strides, arr_strides, 16);
+                uint32_t handles_arr[] = {gbm_bo_get_handle(bo).u32,0,0,0};
+                uint32_t strides_arr[] = {gbm_bo_get_stride(bo),0,0,0};
+                memcpy(handles, handles_arr, 16);
+                memcpy(strides, strides_arr, 16);
                 memset(offsets, 0, 16);
-                ret = drmModeAddFB2(drm_fd, width, height, format,
-                        handles, strides, offsets, &fb->fb_id, 0);
+                ret = drmModeAddFB2(drm_fd, width, height, format, handles, strides, offsets, &fb->fb_id, 0);
             }
 
             if (ret) {
@@ -519,6 +529,8 @@ static bool                     bControl        = false;
 
         int gbm_init() {
             gbm.device = gbm_create_device(drm_device);
+            gbm.surface = NULL;
+
             if (!gbm.device)
                 return EXIT_FAILURE;
 
@@ -538,6 +550,10 @@ static bool                     bControl        = false;
                 printf("failed to create GBM surface\n");
                 return EXIT_FAILURE;
             }
+            else {
+                printf("GBM surface created at %dx%d\n", screen_width, screen_height);
+                printf("===================================\n");
+            }
 
             return 0;
         }        
@@ -546,9 +562,11 @@ static bool                     bControl        = false;
             // set the previous crtc
             drmModeSetCrtc(drm_device, drm_crtc->crtc_id, drm_crtc->buffer_id, drm_crtc->x, drm_crtc->y, &drm_connector_id, 1, &drm_crtc->mode);
             drmModeFreeCrtc(drm_crtc);
-            if (previous_bo) {
-                drmModeRmFB(drm_device, previous_fb);
-                gbm_surface_release_buffer(gbm.surface, previous_bo);
+            if (gbm_curr_bo) {
+                // struct gbm_fb* fb = gbm_fb_get_from_bo(gbm_curr_bo);
+                // drmModeRmFB(drm_device, fb->fb_id);
+                drmModeRmFB(drm_device, gbm_curr_fb);
+                gbm_surface_release_buffer(gbm.surface, gbm_curr_bo);
             }
             gbm_surface_destroy(gbm.surface);
             gbm_device_destroy(gbm.device);
@@ -601,19 +619,11 @@ static bool                     bControl        = false;
     #define EGL_DMA_BUF_PLANE3_MODIFIER_HI_EXT 0x344A
     #endif
 
-    // EGL context globals
-    struct framebuffer {
-        EGLImageKHR image;
-        GLuint tex;
-        GLuint fb;
-    };
-
     struct egl {
         EGLDisplay  display;
         EGLContext  context;
         EGLSurface  surface;
         EGLConfig   config;
-        struct framebuffer fbs[NUM_BUFFERS]; /* for the surfaceless case */
 
         PFNEGLGETPLATFORMDISPLAYEXTPROC     eglGetPlatformDisplayEXT;
         PFNEGLCREATEIMAGEKHRPROC            eglCreateImageKHR;
@@ -769,92 +779,53 @@ static bool                     bControl        = false;
         return true;
     }
 
-    static bool create_framebuffer(struct gbm_bo *bo, struct framebuffer *fb) {
-        assert(egl.eglCreateImageKHR);
-        assert(bo);
-        assert(fb);
-
-        // 1. Create EGLImage.
-        int fd = gbm_bo_get_fd(bo);
-        if (fd < 0) {
-            printf("failed to get fd for bo: %d\n", fd);
-            return false;
-        }
-
-        EGLint khr_image_attrs[17] = {
-            EGL_WIDTH, gbm_bo_get_width(bo),
-            EGL_HEIGHT, gbm_bo_get_height(bo),
-            EGL_LINUX_DRM_FOURCC_EXT, (int)gbm_bo_get_format(bo),
-            EGL_DMA_BUF_PLANE0_FD_EXT, fd,
-            EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
-            EGL_DMA_BUF_PLANE0_PITCH_EXT, gbm_bo_get_stride(bo),
-            EGL_NONE, EGL_NONE,	/* modifier lo */
-            EGL_NONE, EGL_NONE,	/* modifier hi */
-            EGL_NONE,
-        };
-
-        if (egl.modifiers_supported) {
-            const uint64_t modifier = gbm_bo_get_modifier(bo);
-            if (modifier != DRM_FORMAT_MOD_LINEAR) {
-                size_t attrs_index = 12;
-                khr_image_attrs[attrs_index++] =
-                    EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT;
-                khr_image_attrs[attrs_index++] = modifier & 0xfffffffful;
-                khr_image_attrs[attrs_index++] =
-                    EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT;
-                khr_image_attrs[attrs_index++] = modifier >> 32;
-            }
-        }
-
-        fb->image = egl.eglCreateImageKHR(egl.display, EGL_NO_CONTEXT,
-                EGL_LINUX_DMA_BUF_EXT, NULL /* no client buffer */,
-                khr_image_attrs);
-
-        if (fb->image == EGL_NO_IMAGE_KHR) {
-            printf("failed to make image from buffer object\n");
-            return false;
-        }
-
-        // EGLImage takes the fd ownership
-        close(fd);
-
-        // 2. Create GL texture and framebuffer
-        glGenTextures(1, &fb->tex);
-        glBindTexture(GL_TEXTURE_2D, fb->tex);
-        egl.glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, fb->image);
-        glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glBindTexture(GL_TEXTURE_2D, 0);
-
-        glGenFramebuffers(1, &fb->fb);
-        glBindFramebuffer(GL_FRAMEBUFFER, fb->fb);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-                fb->tex, 0);
-
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            printf("failed framebuffer check for created target buffer\n");
-            glDeleteFramebuffers(1, &fb->fb);
-            glDeleteTextures(1, &fb->tex);
-            return false;
-        }
-        return true;
-    }
-
     static void gbm_swap_buffers() {
         struct gbm_bo *bo = gbm_surface_lock_front_buffer(gbm.surface);
+        
         uint32_t handle = gbm_bo_get_handle(bo).u32;
         uint32_t pitch = gbm_bo_get_stride(bo);
         uint32_t fb;
         drmModeAddFB(drm_device, drm_mode->hdisplay, drm_mode->vdisplay, 24, 32, pitch, handle, &fb);
         drmModeSetCrtc(drm_device, drm_crtc->crtc_id, fb, 0, 0, &drm_connector_id, 1, drm_mode);
-        if (previous_bo) {
-            drmModeRmFB(drm_device, previous_fb);
-            gbm_surface_release_buffer(gbm.surface, previous_bo);
+        if (gbm_curr_bo) {
+            drmModeRmFB(drm_device, gbm_curr_fb);
+            gbm_surface_release_buffer(gbm.surface, gbm_curr_bo);
         }
-        previous_bo = bo;
-        previous_fb = fb;
+        gbm_curr_fb = fb;
+        
+        // struct gbm_fb* fb = gbm_fb_get_from_bo(bo);
+        // if (!fb) {
+        //     fprintf(stderr, "Failed to get a new framebuffer BO\n");
+        //     return;
+        // }
+
+        // int ret = drmModePageFlip(drm_device, drm_crtc_id, fb->fb_id, drm_flags, &drm_waiting_for_flip);
+        // if (!drm_async_page_flip) {
+        //  while (drm_waiting_for_flip) {
+        //      FD_ZERO(&drm_fds);
+        //      FD_SET(0, &drm_fds);
+        //      FD_SET(drm_device, &drm_fds);
+
+        //      ret = select(drm_device + 1, &drm_fds, NULL, NULL, NULL);
+        //      if (ret < 0) {
+        //          printf("select err: %s\n", strerror(errno));
+        //          return ret;
+        //      } else if (ret == 0) {
+        //          printf("select timeout!\n");
+        //          return -1;
+        //      } else if (FD_ISSET(0, &drm_fds)) {
+        //          printf("user interrupted!\n");
+        //          return 0;
+        //      }
+        //      drmHandleEvent(drm_device, &drm_evctx);
+        //  }
+        // }
+
+        // if (gbm.surface) {
+        //  gbm_surface_release_buffer(gbm.surface, bo);
+        // }
+
+        gbm_curr_bo = bo;
     }
 
 namespace vera {
@@ -1324,7 +1295,6 @@ int initGL(WindowProperties _prop) {
             }
         }
 
-
         /* connect the context to the surface */
         eglMakeCurrent(egl.display, egl.surface, egl.surface, egl.context);
 
@@ -1350,18 +1320,27 @@ int initGL(WindowProperties _prop) {
         get_proc_gl(GL_AMD_performance_monitor, glEndPerfMonitorAMD);
         get_proc_gl(GL_AMD_performance_monitor, glGetPerfMonitorCounterDataAMD);
 
-        // if (!gbm.surface) {
-        //     for (unsigned i = 0; i < ARRAY_SIZE(gbm.bos); i++) {
-        //         if (!create_framebuffer(gbm.bos[i], &egl.fbs[i])) {
-        //             printf("failed to create framebuffer\n");
-        //             return EXIT_FAILURE;
-        //         }
-        //     }
-        // }
-            
-    #endif
+        eglSwapBuffers(egl.display, egl.surface);
+        gbm_curr_bo = gbm_surface_lock_front_buffer(gbm.surface);
+        struct gbm_fb *fb = gbm_fb_get_from_bo(gbm_curr_bo);
+        if (!fb) {
+            fprintf(stderr, "Failed to get a new framebuffer BO\n");
+            return EXIT_FAILURE;
+        }
+        int ret = drmModeSetCrtc(drm_device, drm_crtc_id, fb->fb_id, 0, 0, &drm_connector_id, 1, drm_mode);
+        if (ret) {
+            printf("failed to set mode: %s\n", strerror(errno));
+            // return ret;
+        }
 
-    
+        if (drm_async_page_flip)
+            drm_flags = DRM_MODE_PAGE_FLIP_EVENT;
+        else
+            drm_flags = DRM_MODE_PAGE_FLIP_EVENT;
+
+        glViewport(0, 0, screen_width, screen_height);
+        
+    #endif
 
 // GLFW
 #else
@@ -1783,6 +1762,7 @@ void renderGL(){
     glfwSwapBuffers(window);
 
 #else
+    glFinish();
     eglSwapBuffers(egl.display, egl.surface);
     #if defined(DRIVER_DRM)
     gbm_swap_buffers();
