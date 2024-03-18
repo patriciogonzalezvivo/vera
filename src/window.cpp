@@ -1206,6 +1206,18 @@ int initGL(WindowProperties _prop) {
         return EXIT_FAILURE;
     }
 
+    // // get an appropriate EGL frame buffer configuration
+    // EGLConfig* configs;
+    // EGLint matched = 0;
+    // if (eglChooseConfig(egl.display, config_attribs, configs, 1, &matched) == EGL_FALSE) {
+    //     std::cerr << "Failed to get EGL configs! Error: " << egl_get_error_str() << std::endl;
+    //     eglTerminate(egl.display);
+    //     #if defined(DRIVER_GBM)
+    //     gbmClean();
+    //     #endif
+    //     return EXIT_FAILURE;
+    // }
+
     egl.context = eglCreateContext(egl.display, egl.config, EGL_NO_CONTEXT, context_attribs);
     if (egl.context == EGL_NO_CONTEXT) {
         printf("failed to create context\n");
