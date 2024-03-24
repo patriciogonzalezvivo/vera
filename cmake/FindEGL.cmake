@@ -29,8 +29,8 @@ set(EGL_VERSION ${PC_EGL_VERSION})
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(EGL
-                                REQUIRED_VARS EGL_LIBRARIES EGL_INCLUDE_DIR
-                                VERSION_VAR EGL_VERSION)
+                                    REQUIRED_VARS EGL_LIBRARIES EGL_INCLUDE_DIR
+                                    VERSION_VAR EGL_VERSION)
 
 if (EGL_FOUND)
     set(EGL_LIBRARIES ${EGL_LIBRARIES})
