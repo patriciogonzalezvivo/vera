@@ -33,7 +33,7 @@ struct WindowProperties {
 
     #if defined(DRIVER_DRM) 
     std::string display = "";
-    char        mode[DRM_DISPLAY_MODE_LEN] = "";
+    char        mode[DRM_DISPLAY_MODE_LEN] = "\0";
     #endif
 
     #if !defined(DRIVER_GLFW)

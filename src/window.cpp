@@ -349,6 +349,7 @@ static bool                     bControl        = false;
 
             // Find user requested mode
             if (*properties.mode) {
+                printf("request mode");
                 for (i = 0; i < connector->count_modes; i++) {
                     drmModeModeInfo *current_mode = &connector->modes[i];
 
@@ -394,32 +395,33 @@ static bool                     bControl        = false;
             }
             drm_connector_id = connector->connector_id;
 
-            // Find encoder
-            drmModeEncoder *encoder = NULL;
-            if (connector->encoder_id)
-                encoder = drmModeGetEncoder(drm_device, connector->encoder_id);
-            drm_crtc_id = encoder->crtc_id;
+            // // Find encoder
             // drmModeEncoder *encoder = NULL;
-            // for (i = 0; i < resources->count_encoders; i++) {
-            //     encoder = drmModeGetEncoder(drm_device, resources->encoders[i]);
-            //     if (encoder->encoder_id == drm_connector_id)
-            //         break;
-            //     drmModeFreeEncoder(encoder);
-            //     encoder = NULL;
-            // }
+            // if (connector->encoder_id)
+            //     encoder = drmModeGetEncoder(drm_device, connector->encoder_id);
+            // drm_crtc_id = encoder->crtc_id;
 
-            // if (encoder) {
-            //     drm_crtc_id = encoder->crtc_id;
-            // } else {
-            //     printf("No encoder. in the search for a connector.\n");
-            //     int32_t crtc_id = find_crtc_for_connector(resources, connector);
-            //     if (crtc_id == -1) {
-            //         printf("no crtc found!\n");
-            //         return EXIT_FAILURE;
-            //     }
+            drmModeEncoder *encoder = NULL;
+            for (i = 0; i < resources->count_encoders; i++) {
+                encoder = drmModeGetEncoder(drm_device, resources->encoders[i]);
+                if (encoder->encoder_id == drm_connector_id)
+                    break;
+                drmModeFreeEncoder(encoder);
+                encoder = NULL;
+            }
 
-            //     drm_crtc_id = crtc_id;
-            // }
+            if (encoder) {
+                drm_crtc_id = encoder->crtc_id;
+            } else {
+                printf("No encoder. in the search for a connector.\n");
+                int32_t crtc_id = find_crtc_for_connector(resources, connector);
+                if (crtc_id == -1) {
+                    printf("no crtc found!\n");
+                    return EXIT_FAILURE;
+                }
+
+                drm_crtc_id = crtc_id;
+            }
 
             // drm_crtc = drmModeGetCrtc(device, encoder->crtc_id);
             drm_crtc = drmModeGetCrtc(drm_device, drm_crtc_id);
@@ -1275,7 +1277,7 @@ int initGL(WindowProperties _prop) {
         vc_dispmanx_update_submit_sync( dispman_update );
         egl_check();
 
-        surface = eglCreateWindowSurface(egl.display, config, &nativeviewport, NULL );
+        surface = eglCreateWindowSurface(egl.display, egl.config, &nativeviewport, NULL );
         assert(surface != EGL_NO_SURFACE);
         egl_check();
 
@@ -1295,7 +1297,7 @@ int initGL(WindowProperties _prop) {
         // }
 
         if (!gbm.surface) {
-                egl.surface = EGL_NO_SURFACE;
+            egl.surface = EGL_NO_SURFACE;
         } else {
             egl.surface = eglCreateWindowSurface(egl.display, egl.config, (EGLNativeWindowType)gbm.surface, NULL);
             if (egl.surface == EGL_NO_SURFACE) {
