@@ -84,9 +84,9 @@ unsigned char* loadPixelsDepth(const std::string& _path, int *_width, int *_heig
                         &dm, &dm_size, &dm_type) == 1) {
 
         if (dm_type == TYPE_JPEG) {
-            unsigned char* result = loadPixels(dm, dm_size, _width, _height, RGB, _vFlip);
+            unsigned char* pixels_depth = loadPixels(dm, dm_size, _width, _height, RGB, _vFlip);
             free(reinterpret_cast<void*>(const_cast<unsigned char*>(dm)));
-            return result;
+            return pixels_depth;
         }
     }
 
