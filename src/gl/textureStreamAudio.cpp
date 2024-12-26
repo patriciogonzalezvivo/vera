@@ -83,6 +83,8 @@ bool TextureStreamAudio::load(const std::string &_device_id_str, bool _vFlip, ve
     }
 
     std::cout << "Capture devices available\n";
+    if (captureDeviceCount > 0)
+        default_device_id = 0;
     for (ma_uint32 iDevice = 0; iDevice < captureDeviceCount; ++iDevice) {
         if (pCaptureDeviceInfos[iDevice].isDefault == true)
             default_device_id = iDevice;
