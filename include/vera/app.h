@@ -52,6 +52,8 @@ public:
     virtual void background( const glm::vec4& _color );
     virtual void orbitControl();
 
+    void    exit()  { bShouldExit = true; }
+
     int     year()  const { return getDate().x; }
     int     month() const { return getDate().y; }
     int     day()   const { return getDate().z; }
@@ -82,6 +84,7 @@ protected:
     bool        auto_background_enabled = false;
 
     bool        post_setup = false;
+    bool        bShouldExit = false;
 
     #if defined(__EMSCRIPTEN__)
     static EM_BOOL loop (double time, void* userData);

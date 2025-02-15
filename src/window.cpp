@@ -1250,13 +1250,6 @@ void setDepthTest(bool _value) {
         glDisable(GL_DEPTH_TEST);
 }
 
-void setCullFace(bool _value) {
-    if (_value)
-        glEnable(GL_CULL_FACE);
-    else
-        glDisable(GL_CULL_FACE);
-}
-
 void setViewport(float _width, float _height) {
     viewport.z = _width;
     viewport.w = _height;

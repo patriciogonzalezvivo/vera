@@ -115,6 +115,7 @@ void points(const Triangle& _triangle, Shader* _program = nullptr);
 void points(const BoundingBox& _bbox, Shader* _program = nullptr);
 void pointsBoundingBox(const glm::vec4& _bbox, Shader* _program = nullptr);
 
+// Linex
 void line(float _x1, float _y1, float _x2, float _y2, Shader* _program = nullptr);
 void line(const glm::vec2& _a, const glm::vec2& _b, Shader* _program = nullptr);
 void line(const std::vector<glm::vec2>& _positions, Shader* _program = nullptr);
@@ -126,6 +127,10 @@ void line(const Triangle& _triangle, Shader* _program = nullptr);
 void line(const BoundingBox& _bbox, Shader* _program = nullptr);
 void lineBoundingBox(const glm::vec4& _bbox, Shader* _program = nullptr);
 
+// arc()
+
+// 2D Primitives
+// triangle()
 void triangles(const std::vector<glm::vec2>& _positions, Shader* _program = nullptr);
 void triangles(const std::vector<glm::vec3>& _positions, Shader* _program = nullptr);
 
@@ -134,19 +139,34 @@ void rectAlign(VerticalAlign _align);
 void rect(float _x, float _y, float _w, float _h, Shader* _program = nullptr);
 void rect(const glm::vec2& _pos, const glm::vec2& _size, Shader* _program = nullptr);
 
-// arc()
+// quad()
+// square()s
+
 // ellipse()
-// circle()
 void circleResolution(int _res = CIRCLE_RESOLUTION);
 void circle(float _x, float _y, float _r, Shader* _program = nullptr);
 void circle(const glm::vec2& _pos, float _r, Shader* _program = nullptr);
 
-// quad()
-// square()
-// triangle()
-
 HorizontalAlign getRectHorizontalAlign();
 VerticalAlign   getRectVerticalAlign();
+
+// 3D Primitives
+// plane()
+
+void box(Shader* _program = nullptr);
+void box(float _size, Shader* _program = nullptr);
+void box(float _width, float _height, Shader* _program = nullptr);
+void box(float _width, float _height, float _depth, Shader* _program = nullptr);
+
+void sphere(Shader* _program = nullptr);
+void sphere(float _radius, Shader* _program = nullptr);
+void sphere(float _radius, int _res, Shader* _program = nullptr);
+
+// cylinder()
+// cone()
+// ellipsoid()
+// torus()
+// p5.Geometry
 
 // IMAGES
 // -----------------------------
@@ -224,19 +244,12 @@ void textAlign(HorizontalAlign _align, Font* _font = nullptr);
 void textAlign(VerticalAlign _align, Font* _font = nullptr);
 void textAngle(float _angle, Font* _font = nullptr);
 void textSize(float _size, Font* _font = nullptr);
+void text(const std::string& _text, const glm::vec3& _pos, Font* _font = nullptr);
 void text(const std::string& _text, const glm::vec2& _pos, Font* _font = nullptr );
 void text(const std::string& _text, float _x, float _y, Font* _font = nullptr);
 void textHighlight(const std::string& _text, const glm::vec2& _pos, const glm::vec4& _bg = glm::vec4(0.0, 0.0, 0.0, 1.0), Font* _font = nullptr);
 void textHighlight(const std::string& _text, float _x, float _y, const glm::vec4& _bg = glm::vec4(0.0, 0.0, 0.0, 1.0), Font* _font = nullptr);
 
-// plane()
-// box()
-// sphere()
-// cylinder()
-// cone()
-// ellipsoid()
-// torus()
-// p5.Geometry
 
 // SHADERS
 // -----------------------------

@@ -91,21 +91,17 @@ void blendMode( BlendMode _mode ) {
     }
 }
 
-void cullingMode( CullingMode _mode ) {
-    if (_mode == CULL_NONE) {
+void cullingMode(CullingMode _mode) {
+    if (_mode == CULL_NONE)
         glDisable(GL_CULL_FACE);
-    }
+        
     else {
         glEnable(GL_CULL_FACE);
-
-        if (_mode == CULL_FRONT) 
-            glCullFace(GL_FRONT);
-        
-        else if (_mode == CULL_BACK)
-            glCullFace(GL_BACK);
-        
-        else if (_mode == CULL_BOTH)
-            glCullFace(GL_FRONT_AND_BACK);
+        switch (_mode) {
+            case CULL_FRONT: glCullFace(GL_FRONT); break;
+            case CULL_BACK: glCullFace(GL_BACK); break;
+            case CULL_BOTH: glCullFace(GL_FRONT_AND_BACK); break;
+        }
     }
 }
 

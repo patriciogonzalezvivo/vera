@@ -28,16 +28,30 @@ glm::vec4   fill_color      = glm::vec4(1.0f);
 Shader*     fill_shader     = nullptr;
 bool        fill_enabled    = true;
 
+glm::vec4   stroke_color    = glm::vec4(1.0f);
+bool        stroke_enabled  = true;
+
+// POINTS
 float       points_size     = 10.0f;
 int         points_shape    = 0.0;
 Shader*     points_shader   = nullptr;
 
-glm::vec4   stroke_color    = glm::vec4(1.0f);
-bool        stroke_enabled  = true;
-
+// 2D PRIMITIVES
 Shader*     billboard_shader = nullptr;
 Vbo*        billboard_vbo    = new Vbo( rectMesh(0.0,0.0,1.0,1.0) );
 
+std::vector<glm::vec2> cached_circle_coorners;
+
+// 3D PRIMITIVES
+Vbo*        box_vbo          = nullptr;
+float       box_width        = 0.0f;
+float       box_height       = 0.0f;
+float       box_depth        = 0.0f;
+Vbo*        sphere_vbo       = nullptr;
+int         sphere_resolution = 0;
+float       sphere_radius    = 0.0f;
+
+// 3D Scene
 Scene*      scene           = new Scene();
 
 bool        lights_enabled  = false;
@@ -45,6 +59,8 @@ bool        lights_enabled  = false;
 glm::mat4   matrix_world    = glm::mat4(1.0f);
 std::stack<glm::mat4> matrix_stack;
 
+//   
+//
 void print(const std::string& _text) { std::cout << _text << std::endl; }
 void frameRate(int _fps) { setFps(_fps); }
 
@@ -413,6 +429,158 @@ void lineBoundingBox(const glm::vec4& _bbox, Shader* _program) {
     line(positions, _program);
 }
 
+// 2D PRIMITIVES
+void triangles(const std::vector<glm::vec2>& _positions, Shader* _program) {
+    if (_program == nullptr)
+        _program = getFillShader();;
+
+    shader(_program);
+
+#if defined(__EMSCRIPTEN__)
+    Vbo vbo = _positions;
+    vbo.setDrawMode(TRIANGLES);
+    vbo.render(_program);
+#else
+    const GLint location = _program->getAttribLocation("a_position");
+    if (location != -1) {
+        glEnableVertexAttribArray(location);
+        glVertexAttribPointer(location, 2, GL_FLOAT, false, 0,  &_positions[0].x);
+        glDrawArrays(GL_TRIANGLES, 0, _positions.size());
+        glDisableVertexAttribArray(location);
+    }
+#endif
+}
+
+void triangles(const std::vector<glm::vec3>& _positions, Shader* _program) {
+    if (_program == nullptr)
+        _program = getFillShader();;
+
+    shader(_program);
+
+#if defined(__EMSCRIPTEN__)
+    Vbo vbo = _positions;
+    vbo.setDrawMode(TRIANGLES);
+    vbo.render(_program);
+#else
+    const GLint location = _program->getAttribLocation("a_position");
+    if (location != -1) {
+        glEnableVertexAttribArray(location);
+        glVertexAttribPointer(location, 3, GL_FLOAT, false, 0,  &_positions[0].x);
+        glDrawArrays(GL_TRIANGLES, 0, _positions.size());
+        glDisableVertexAttribArray(location);
+    }
+#endif
+}
+
+void rectAlign(VerticalAlign _align) { shapeVAlign = _align; }
+void rectAlign(HorizontalAlign _align) { shapeHAlign = _align; }
+VerticalAlign getRectVerticalAlign() { return shapeVAlign; }
+HorizontalAlign getRectHorizontalAlign() { return shapeHAlign; }
+
+void rect(const glm::vec2& _pos, const glm::vec2& _size, Shader* _program) { rect(_pos.x, _pos.y, _size.x, _size.y, _program); }
+void rect(float _x, float _y, float _w, float _h, Shader* _program) {
+    if (shapeHAlign == ALIGN_CENTER)
+        _x -= _w * 0.5f;
+    else if (shapeHAlign == ALIGN_RIGHT)
+        _x -= _w;
+    
+    if (shapeVAlign == ALIGN_MIDDLE)
+        _y -= _h * 0.5f;
+    else if (shapeVAlign == ALIGN_BOTTOM)
+        _y -= _h;
+
+    std::vector<glm::vec2> coorners = { glm::vec2(_x, _y),     glm::vec2(_x + _w, _y), 
+                                        glm::vec2(_x + _w, _y + _h), glm::vec2(_x, _y + _h),
+                                        glm::vec2(_x, _y) };
+
+    std::vector<glm::vec2> tris = {     coorners[0], coorners[1], coorners[2],
+                                        coorners[2], coorners[3], coorners[0] };
+
+    if (_program == nullptr) {
+        if (fill_enabled) triangles(tris);
+        if (stroke_enabled) line(coorners);
+    }
+    else
+        triangles(tris, _program);
+}
+
+// CIRCLES
+void circleResolution(int _resolution) { 
+    cached_circle_coorners.clear();
+    const float angleStep = TWO_PI / (float)_resolution;
+    for (int i = 0; i < _resolution; i++) {
+        float angle = angleStep * i;
+        cached_circle_coorners.push_back( glm::vec2( cos(angle), sin(angle) ) );
+    }
+}
+
+void circle(const glm::vec2& _pos, float _radius, Shader* _program) { circle(_pos.x, _pos.y, _radius, _program); }
+void circle(float _x, float _y, float _radius, Shader* _program) {
+    if (_program == nullptr)
+        _program = getFillShader();
+
+    if (cached_circle_coorners.size() == 0)
+        circleResolution();
+    
+    const int numSegments = cached_circle_coorners.size();
+    const float angleStep = TWO_PI / (float)numSegments;
+
+    if (fill_enabled) {
+        std::vector<glm::vec2> tris;
+        for (int i = 0; i < numSegments; i++) {
+            tris.push_back( glm::vec2(_x, _y) );
+            tris.push_back( cached_circle_coorners[i] * _radius + glm::vec2(_x, _y) );
+            tris.push_back( cached_circle_coorners[(i + 1) % numSegments] * _radius + glm::vec2(_x, _y) );
+        }
+        triangles(tris, _program);
+    }
+
+    if (stroke_enabled) {
+        std::vector<glm::vec2> lines;
+        for (int i = 0; i < numSegments; i++) {
+            lines.push_back( cached_circle_coorners[i] * _radius + glm::vec2(_x, _y) );
+        }
+        line(lines, _program);
+    }
+}
+
+// 3D PRIMITIVES
+void box(Shader* _program) { box(1.0f, _program); }
+void box(float _size, Shader* _program) { box(_size, _size, _size, _program); }
+void box(float _width, float _height, Shader* _program) { box(_width, _height, 1.0f, _program); }
+void box(float _width, float _height, float _depth, Shader* _program) {
+    if (box_vbo != nullptr && (box_width != _width || box_height != _height || box_depth != _depth)) {
+        delete box_vbo;
+        box_vbo = nullptr;
+    }
+
+    if (box_vbo == nullptr) {
+        box_width = _width;
+        box_height = _height;
+        box_depth = _depth;
+        box_vbo = new Vbo( boxMesh(_width, _height, _depth) );
+    }
+
+    model(box_vbo, _program);
+}
+
+void sphere(Shader* _program) { sphere(1.0f, _program); }
+void sphere(float _radius, Shader* _program) { sphere(_radius, 36, _program); }
+void sphere(float _radius, int _res, Shader* _program) {
+    if (sphere_vbo != nullptr && (sphere_radius != _radius || sphere_resolution != _res)) {
+        delete sphere_vbo;
+        sphere_vbo = nullptr;
+    }
+
+    if (sphere_vbo == nullptr) {
+        sphere_radius = _radius;
+        sphere_resolution = _res;
+        sphere_vbo = new Vbo( sphereMesh(_res, _radius) );
+    }
+
+    model(sphere_vbo, _program);
+}
+
 // IMAGE
 // 
 Vbo* getBillboard() { return billboard_vbo; }
@@ -691,6 +859,25 @@ void textSize(float _size, Font* _font) {
         _font->setSize(_size );
 }
 
+void text(const std::string& _text, const glm::vec3& _pos, Font* _font) { 
+    if (_font == nullptr)
+        _font = getFont();
+
+    Camera* cam = getCamera();
+
+    glm::vec3 screenPos = cam->worldToScreen(_pos, getWorldMatrixPtr());
+    screenPos.x *= vera::getWindowWidth();
+    screenPos.y *= vera::getWindowHeight();
+
+    // Is in view? (depth and in viewport)
+    if (screenPos.z >= 1.0) {
+        return;
+    }
+
+    _font->setColor( fill_color );
+    _font->render(_text, screenPos.x, screenPos.y);
+}
+
 void text(const std::string& _text, const glm::vec2& _pos, Font* _font) { text(_text, _pos.x, _pos.y, _font); }
 void text(const std::string& _text, float _x, float _y, Font* _font) {
     if (_font == nullptr)
@@ -733,124 +920,6 @@ void textHighlight(const std::string& _text, float _x , float _y, const glm::vec
     _font->setAlign(style_valign);
     style_rect_halign = shapeHAlign;
     style_rect_valign = shapeVAlign;
-}
-
-// SHAPES
-// 
-void triangles(const std::vector<glm::vec2>& _positions, Shader* _program) {
-    if (_program == nullptr)
-        _program = getFillShader();;
-
-    shader(_program);
-
-#if defined(__EMSCRIPTEN__)
-    Vbo vbo = _positions;
-    vbo.setDrawMode(TRIANGLES);
-    vbo.render(_program);
-#else
-    const GLint location = _program->getAttribLocation("a_position");
-    if (location != -1) {
-        glEnableVertexAttribArray(location);
-        glVertexAttribPointer(location, 2, GL_FLOAT, false, 0,  &_positions[0].x);
-        glDrawArrays(GL_TRIANGLES, 0, _positions.size());
-        glDisableVertexAttribArray(location);
-    }
-#endif
-}
-
-void triangles(const std::vector<glm::vec3>& _positions, Shader* _program) {
-    if (_program == nullptr)
-        _program = getFillShader();;
-
-    shader(_program);
-
-#if defined(__EMSCRIPTEN__)
-    Vbo vbo = _positions;
-    vbo.setDrawMode(TRIANGLES);
-    vbo.render(_program);
-#else
-    const GLint location = _program->getAttribLocation("a_position");
-    if (location != -1) {
-        glEnableVertexAttribArray(location);
-        glVertexAttribPointer(location, 3, GL_FLOAT, false, 0,  &_positions[0].x);
-        glDrawArrays(GL_TRIANGLES, 0, _positions.size());
-        glDisableVertexAttribArray(location);
-    }
-#endif
-}
-
-void rectAlign(VerticalAlign _align) { shapeVAlign = _align; }
-void rectAlign(HorizontalAlign _align) { shapeHAlign = _align; }
-VerticalAlign getRectVerticalAlign() { return shapeVAlign; }
-HorizontalAlign getRectHorizontalAlign() { return shapeHAlign; }
-
-void rect(const glm::vec2& _pos, const glm::vec2& _size, Shader* _program) { rect(_pos.x, _pos.y, _size.x, _size.y, _program); }
-void rect(float _x, float _y, float _w, float _h, Shader* _program) {
-    if (shapeHAlign == ALIGN_CENTER)
-        _x -= _w * 0.5f;
-    else if (shapeHAlign == ALIGN_RIGHT)
-        _x -= _w;
-    
-    if (shapeVAlign == ALIGN_MIDDLE)
-        _y -= _h * 0.5f;
-    else if (shapeVAlign == ALIGN_BOTTOM)
-        _y -= _h;
-
-    std::vector<glm::vec2> coorners = { glm::vec2(_x, _y),     glm::vec2(_x + _w, _y), 
-                                        glm::vec2(_x + _w, _y + _h), glm::vec2(_x, _y + _h),
-                                        glm::vec2(_x, _y) };
-
-    std::vector<glm::vec2> tris = {     coorners[0], coorners[1], coorners[2],
-                                        coorners[2], coorners[3], coorners[0] };
-
-    if (_program == nullptr) {
-        if (fill_enabled) triangles(tris);
-        if (stroke_enabled) line(coorners);
-    }
-    else
-        triangles(tris, _program);
-}
-
-// CIRCLES
-
-std::vector<glm::vec2> cached_circle_coorners;
-void circleResolution(int _resolution) { 
-    cached_circle_coorners.clear();
-    const float angleStep = TWO_PI / (float)_resolution;
-    for (int i = 0; i < _resolution; i++) {
-        float angle = angleStep * i;
-        cached_circle_coorners.push_back( glm::vec2( cos(angle), sin(angle) ) );
-    }
-}
-
-void circle(const glm::vec2& _pos, float _radius, Shader* _program) { circle(_pos.x, _pos.y, _radius, _program); }
-void circle(float _x, float _y, float _radius, Shader* _program) {
-    if (_program == nullptr)
-        _program = getFillShader();
-
-    if (cached_circle_coorners.size() == 0)
-        circleResolution();
-    
-    const int numSegments = cached_circle_coorners.size();
-    const float angleStep = TWO_PI / (float)numSegments;
-
-    if (fill_enabled) {
-        std::vector<glm::vec2> tris;
-        for (int i = 0; i < numSegments; i++) {
-            tris.push_back( glm::vec2(_x, _y) );
-            tris.push_back( cached_circle_coorners[i] * _radius + glm::vec2(_x, _y) );
-            tris.push_back( cached_circle_coorners[(i + 1) % numSegments] * _radius + glm::vec2(_x, _y) );
-        }
-        triangles(tris, _program);
-    }
-
-    if (stroke_enabled) {
-        std::vector<glm::vec2> lines;
-        for (int i = 0; i < numSegments; i++) {
-            lines.push_back( cached_circle_coorners[i] * _radius + glm::vec2(_x, _y) );
-        }
-        line(lines, _program);
-    }
 }
 
 // SHADER

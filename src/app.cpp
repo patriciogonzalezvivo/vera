@@ -237,7 +237,7 @@ void App::run(WindowProperties _properties) {
 #else
     
     // Render Loop
-    while ( isGL() )
+    while ( isGL() && !bShouldExit)
         loop(getTime(), this);
 
     closeGL();
