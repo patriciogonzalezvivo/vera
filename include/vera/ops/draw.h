@@ -23,6 +23,10 @@
 
 namespace vera {
 
+#ifndef CIRCLE_RESOLUTION
+#define CIRCLE_RESOLUTION 36
+#endif
+
 enum PointShape {
     SQUARE_SHAPE = 0,
     SQUARE_OUTLINE_SHAPE,
@@ -111,13 +115,6 @@ void points(const Triangle& _triangle, Shader* _program = nullptr);
 void points(const BoundingBox& _bbox, Shader* _program = nullptr);
 void pointsBoundingBox(const glm::vec4& _bbox, Shader* _program = nullptr);
 
-// arc()
-// ellipse()
-// circle()
-// quad()
-// square()
-// triangle()
-
 void line(float _x1, float _y1, float _x2, float _y2, Shader* _program = nullptr);
 void line(const glm::vec2& _a, const glm::vec2& _b, Shader* _program = nullptr);
 void line(const std::vector<glm::vec2>& _positions, Shader* _program = nullptr);
@@ -136,6 +133,20 @@ void rectAlign(HorizontalAlign _align);
 void rectAlign(VerticalAlign _align);
 void rect(float _x, float _y, float _w, float _h, Shader* _program = nullptr);
 void rect(const glm::vec2& _pos, const glm::vec2& _size, Shader* _program = nullptr);
+
+// arc()
+// ellipse()
+// circle()
+void circleResolution(int _res = CIRCLE_RESOLUTION);
+void circle(float _x, float _y, float _r, Shader* _program = nullptr);
+void circle(const glm::vec2& _pos, float _r, Shader* _program = nullptr);
+
+// quad()
+// square()
+// triangle()
+
+HorizontalAlign getRectHorizontalAlign();
+VerticalAlign   getRectVerticalAlign();
 
 // IMAGES
 // -----------------------------
@@ -215,6 +226,8 @@ void textAngle(float _angle, Font* _font = nullptr);
 void textSize(float _size, Font* _font = nullptr);
 void text(const std::string& _text, const glm::vec2& _pos, Font* _font = nullptr );
 void text(const std::string& _text, float _x, float _y, Font* _font = nullptr);
+void textHighlight(const std::string& _text, const glm::vec2& _pos, const glm::vec4& _bg = glm::vec4(0.0, 0.0, 0.0, 1.0), Font* _font = nullptr);
+void textHighlight(const std::string& _text, float _x, float _y, const glm::vec4& _bg = glm::vec4(0.0, 0.0, 0.0, 1.0), Font* _font = nullptr);
 
 // plane()
 // box()

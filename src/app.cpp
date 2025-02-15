@@ -257,7 +257,7 @@ void App::background( const glm::vec4& _color ) {
 }
 
 void App::orbitControl() {
-    glEnable(GL_DEPTH_TEST);
+    setDepthTest(true);
 
     if (getXR() > 0)
         return;

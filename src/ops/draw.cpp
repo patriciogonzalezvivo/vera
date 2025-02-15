@@ -12,6 +12,10 @@
 
 #include <stack>
 
+#ifndef TWO_PI
+#define TWO_PI   6.28318530717958647693
+#endif
+
 namespace vera {
 
 Shader*     shaderPtr       = nullptr;
@@ -87,19 +91,19 @@ Camera* createCamera(const std::string& _name) {
         cam = it->second;
 
     cam->setViewport(getWindowWidth(), getWindowHeight());
-    glEnable(GL_DEPTH_TEST);
+    setDepthTest(true);
     return cam;
 }
 
 void setCamera(Camera& _camera) { setCamera(&_camera); }
 void setCamera(Camera* _camera) {
     scene->activeCamera = _camera;
-    glEnable(GL_DEPTH_TEST);
+    setDepthTest(true);
 };
 
 void resetCamera() {  
     scene->activeCamera = nullptr;
-    glDisable(GL_DEPTH_TEST);
+    setDepthTest(false);
 };
 
 void addCamera(Camera& _camera, const std::string& _name) { addCamera(&_camera, _name); }
@@ -695,6 +699,42 @@ void text(const std::string& _text, float _x, float _y, Font* _font) {
     _font->render(_text, _x, _y);
 }
 
+void textHighlight(const std::string& _text, const glm::vec2& _pos, const glm::vec4& _bg, Font* _font) { textHighlight(_text, _pos.x, _pos.y, _bg, _font); }
+void textHighlight(const std::string& _text, float _x , float _y, const glm::vec4& _bg, Font* _font) {
+    if (_font == nullptr)
+        _font = getFont();
+
+    // record sty
+    glm::vec4       style_fg = fill_color;
+    bool            style_stroke = stroke_enabled;
+    bool            style_fill = fill_enabled;
+    HorizontalAlign style_halign = _font->getHorizontalAlign();
+    VerticalAlign   style_valign = _font->getVerticalAlign();
+    HorizontalAlign style_rect_halign = shapeHAlign;
+    VerticalAlign   style_rect_valign = shapeVAlign;
+
+    BoundingBox bbox = BoundingBox(_font->getBoundingBox(_text, _x, _y));
+    bbox.expand(4.0f);
+        
+    fill(_bg);
+    noStroke();
+
+    shapeHAlign = ALIGN_CENTER;
+    shapeVAlign = ALIGN_MIDDLE;
+    rect(bbox.getCenter().x, bbox.getCenter().y, bbox.getWidth(), bbox.getHeight());
+
+    fill(style_fg);
+    text(_text, _x, _y, _font);
+    
+    // restore style
+    fill_enabled = style_fill;
+    stroke_enabled = style_stroke;
+    _font->setAlign(style_halign);
+    _font->setAlign(style_valign);
+    style_rect_halign = shapeHAlign;
+    style_rect_valign = shapeVAlign;
+}
+
 // SHAPES
 // 
 void triangles(const std::vector<glm::vec2>& _positions, Shader* _program) {
@@ -741,6 +781,9 @@ void triangles(const std::vector<glm::vec3>& _positions, Shader* _program) {
 
 void rectAlign(VerticalAlign _align) { shapeVAlign = _align; }
 void rectAlign(HorizontalAlign _align) { shapeHAlign = _align; }
+VerticalAlign getRectVerticalAlign() { return shapeVAlign; }
+HorizontalAlign getRectHorizontalAlign() { return shapeHAlign; }
+
 void rect(const glm::vec2& _pos, const glm::vec2& _size, Shader* _program) { rect(_pos.x, _pos.y, _size.x, _size.y, _program); }
 void rect(float _x, float _y, float _w, float _h, Shader* _program) {
     if (shapeHAlign == ALIGN_CENTER)
@@ -766,6 +809,48 @@ void rect(float _x, float _y, float _w, float _h, Shader* _program) {
     }
     else
         triangles(tris, _program);
+}
+
+// CIRCLES
+
+std::vector<glm::vec2> cached_circle_coorners;
+void circleResolution(int _resolution) { 
+    cached_circle_coorners.clear();
+    const float angleStep = TWO_PI / (float)_resolution;
+    for (int i = 0; i < _resolution; i++) {
+        float angle = angleStep * i;
+        cached_circle_coorners.push_back( glm::vec2( cos(angle), sin(angle) ) );
+    }
+}
+
+void circle(const glm::vec2& _pos, float _radius, Shader* _program) { circle(_pos.x, _pos.y, _radius, _program); }
+void circle(float _x, float _y, float _radius, Shader* _program) {
+    if (_program == nullptr)
+        _program = getFillShader();
+
+    if (cached_circle_coorners.size() == 0)
+        circleResolution();
+    
+    const int numSegments = cached_circle_coorners.size();
+    const float angleStep = TWO_PI / (float)numSegments;
+
+    if (fill_enabled) {
+        std::vector<glm::vec2> tris;
+        for (int i = 0; i < numSegments; i++) {
+            tris.push_back( glm::vec2(_x, _y) );
+            tris.push_back( cached_circle_coorners[i] * _radius + glm::vec2(_x, _y) );
+            tris.push_back( cached_circle_coorners[(i + 1) % numSegments] * _radius + glm::vec2(_x, _y) );
+        }
+        triangles(tris, _program);
+    }
+
+    if (stroke_enabled) {
+        std::vector<glm::vec2> lines;
+        for (int i = 0; i < numSegments; i++) {
+            lines.push_back( cached_circle_coorners[i] * _radius + glm::vec2(_x, _y) );
+        }
+        line(lines, _program);
+    }
 }
 
 // SHADER
