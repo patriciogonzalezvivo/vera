@@ -153,6 +153,12 @@ VerticalAlign   getRectVerticalAlign();
 // 3D Primitives
 // plane()
 
+void plane(Shader* _program = nullptr);
+void plane(float _size, Shader* _program = nullptr);
+void plane(float _width, float _height, Shader* _program = nullptr);
+void plane(float _width, float _height, int _res, Shader* _program = nullptr);
+void plane(float _width, float _height, int _resX, int _resY, Shader* _program = nullptr);
+
 void box(Shader* _program = nullptr);
 void box(float _size, Shader* _program = nullptr);
 void box(float _width, float _height, Shader* _program = nullptr);

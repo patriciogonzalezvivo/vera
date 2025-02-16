@@ -43,6 +43,11 @@ Vbo*        billboard_vbo    = new Vbo( rectMesh(0.0,0.0,1.0,1.0) );
 std::vector<glm::vec2> cached_circle_coorners;
 
 // 3D PRIMITIVES
+Vbo*        plane_vbo        = nullptr;
+float       plane_width      = 0.0f;
+float       plane_height     = 0.0f;
+int         plane_resX       = 0;
+int         plane_resY       = 0;
 Vbo*        box_vbo          = nullptr;
 float       box_width        = 0.0f;
 float       box_height       = 0.0f;
@@ -545,6 +550,27 @@ void circle(float _x, float _y, float _radius, Shader* _program) {
 }
 
 // 3D PRIMITIVES
+void plane(Shader* _program) { plane(1.0f, _program); }
+void plane(float _size, Shader* _program) { plane(_size, _size, _program); }
+void plane(float _width, float _height, Shader* _program) { plane(_width, _height, 1, _program); }
+void plane(float _width, float _height, int _res, Shader* _program) { plane(_width, _height, _res, _res, _program); }
+void plane(float _width, float _height, int _resX, int _resY, Shader* _program) {
+    if (plane_vbo != nullptr && (plane_width != _width || plane_height != _height || plane_resX != _resX || plane_resY != _resY)) {
+        delete plane_vbo;
+        plane_vbo = nullptr;
+    }
+
+    if (plane_vbo == nullptr) {
+        plane_width = _width;
+        plane_height = _height;
+        plane_resX = _resX;
+        plane_resY = _resY;
+        plane_vbo = new Vbo( planeMesh(_width, _height, _resX, _resY) );
+    }
+
+    model(plane_vbo, _program);
+}
+
 void box(Shader* _program) { box(1.0f, _program); }
 void box(float _size, Shader* _program) { box(_size, _size, _size, _program); }
 void box(float _width, float _height, Shader* _program) { box(_width, _height, 1.0f, _program); }

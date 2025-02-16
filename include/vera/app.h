@@ -11,6 +11,9 @@
 
 #include <math.h>
 
+using namespace vera;
+using namespace glm;
+
 namespace vera {
 
 class App {
