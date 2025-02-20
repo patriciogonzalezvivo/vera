@@ -34,6 +34,10 @@ void Camera::setViewport(int _width, int _height){
     updateCameraSettings();
 }
 
+void Camera::setViewport(glm::vec4 _viewport) {
+    setViewport(_viewport.z - _viewport.x, _viewport.w - _viewport.y);
+}
+
 //Setting Functions
 void Camera::setProjection(ProjectionType _type) {
     m_projectionType = _type;

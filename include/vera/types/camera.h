@@ -32,6 +32,7 @@ public:
     virtual void        setFOV(double _fov);
     virtual void        setAspect(float _aspect) { m_aspect = _aspect; }
     virtual void        setViewport(int _width, int _height);
+    virtual void        setViewport(glm::vec4 _viewport);
     virtual void        setClipping(double _near_clip_distance, double _far_clip_distance);
     virtual void        setDistance(float _distance);
     virtual void        setTarget(glm::vec3 _target);

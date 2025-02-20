@@ -287,7 +287,7 @@ void App::orbitControl() {
         else if (mouseButton == 2) {
 
             // Right-button drag is used to zoom geometry.
-            dist += (-.008f * movedY);
+            dist += (-.05f * movedY);
             if (dist > 0.0f) {
                 cam->orbit(cameraLat, cameraLon, dist);
                 cam->lookAt(glm::vec3(0.0));
