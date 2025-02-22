@@ -430,14 +430,14 @@ void setDropCallback(std::function<void(int, const char**)>_callback) { onDrop =
         return EM_TRUE;
     }
 
-    static EM_BOOL key_callback(int eventType, const EmscriptenKeyboardEvent *e, void* userData) {
-        if (eventType == EMSCRIPTEN_EVENT_KEYDOWN) {
-            if (onKeyPress)
-                onKeyPress(e->keyCode);
-        }
+    // static EM_BOOL key_callback(int eventType, const EmscriptenKeyboardEvent *e, void* userData) {
+    //     if (eventType == EMSCRIPTEN_EVENT_KEYDOWN) {
+    //         if (onKeyPress)
+    //             onKeyPress(e->keyCode);
+    //     }
         
-        return EM_TRUE;
-    }
+    //     return EM_TRUE;
+    // }
 
     static EM_BOOL mouse_callback(int eventType, const EmscriptenMouseEvent *e, void* userData) {
         float x = (float)e->targetX;
@@ -928,7 +928,7 @@ int initGL(WindowProperties _prop) {
 
     emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, resize_callback);
 
-    emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, key_callback);
+    // emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, key_callback);
 
     emscripten_set_mousedown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
     emscripten_set_mouseup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
