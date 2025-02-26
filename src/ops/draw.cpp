@@ -29,7 +29,9 @@ Shader*     fill_shader     = nullptr;
 bool        fill_enabled    = true;
 
 glm::vec4   stroke_color    = glm::vec4(1.0f);
+float       stroke_weight   = 1.0f;
 bool        stroke_enabled  = true;
+Shader*     stroke_shader   = nullptr;
 
 // POINTS
 float       points_size     = 10.0f;
@@ -187,6 +189,16 @@ Shader* getPointShader() {
     return points_shader;
 }
 
+Shader* getStrokeShader() {
+    if (stroke_shader == nullptr) {
+        stroke_shader = new Shader();
+        stroke_shader->setSource( getDefaultSrc(FRAG_STROKE), getDefaultSrc(VERT_STROKE) );
+    }
+    
+    return stroke_shader;
+}
+
+
 Shader* getFillShader() {
     if (fill_shader == nullptr) {
         fill_shader = new Shader();
@@ -233,7 +245,10 @@ void stroke( const glm::vec4& _color ) {
     if (shaderPtr == nullptr || shaderPtr != fill_shader)
         shaderPtr = fill_shader;
 }
-void strokeWeight( float _weight) { glLineWidth(_weight); }
+void strokeWeight( float _weight) { 
+    // glLineWidth(_weight);
+    stroke_weight = _weight;
+}
 
 void pointSize( float _size ) { points_size = _size; }
 void pointShape( PointShape _shape) { points_shape = _shape; }
@@ -348,25 +363,61 @@ void line(const glm::vec2& _a, const glm::vec2& _b, Shader* _program) {
 }
 
 void line(const std::vector<glm::vec2>& _positions, Shader* _program) {
-    if (_program == nullptr)
-        _program = getFillShader();
-   
-    shader(_program);
-    _program->setUniform("u_color", stroke_color);
+    
+    if (stroke_weight > 0.0f && stroke_weight <= 1.0f) {
+        if (_program == nullptr)
+            _program = getFillShader();
+       
+        shader(_program);
+        _program->setUniform("u_color", stroke_color);
+        _program->setUniform("u_strokeWeight", stroke_weight);
 
-#if defined(__EMSCRIPTEN__)
-    Vbo vbo = _positions;
-    vbo.setDrawMode(LINE_STRIP);
-    vbo.render(_program);
-#else
-    const GLint location = _program->getAttribLocation("a_position");
-    if (location != -1) {
-        glEnableVertexAttribArray(location);
-        glVertexAttribPointer(location, 2, GL_FLOAT, false, 0,  _positions.data());
-        glDrawArrays(GL_LINE_STRIP, 0, _positions.size());
-        glDisableVertexAttribArray(location);
+    #if defined(__EMSCRIPTEN__)
+        Vbo vbo = _positions;
+        vbo.setDrawMode(LINE_STRIP);
+        vbo.render(_program);
+    #else
+        glLineWidth(stroke_weight);
+        const GLint location = _program->getAttribLocation("a_position");
+        if (location != -1) {
+            glEnableVertexAttribArray(location);
+            glVertexAttribPointer(location, 2, GL_FLOAT, false, 0,  _positions.data());
+            glDrawArrays(GL_LINE_STRIP, 0, _positions.size());
+            glDisableVertexAttribArray(location);
+        }
+    #endif
     }
-#endif
+    else {
+        Mesh mesh;
+        mesh.setDrawMode(TRIANGLE_STRIP);
+
+        glm::vec3 normal = glm::normalize( glm::vec3(_positions[1], 0.0f) - glm::vec3(_positions[0], 0.0f) );
+        normal = glm::vec3( normal.y, -normal.x, 0.0f );
+        normal *= stroke_weight * 0.5;
+
+        mesh.addVertex( glm::vec3(_positions[0], 0.0f) + normal );
+        mesh.addVertex( glm::vec3(_positions[0], 0.0f) - normal );
+        mesh.addTexCoord( glm::vec2(0.0f, 0.0f) );
+        mesh.addTexCoord( glm::vec2(1.0f, 0.0f) );
+    
+        for (int i = 1; i < _positions.size(); i++) {
+            glm::vec3 normal = glm::normalize( glm::vec3(_positions[i], 0.0f) - glm::vec3(_positions[i-1], 0.0f) );
+            normal = glm::vec3( normal.y, -normal.x, 0.0f );
+            normal *= stroke_weight * 0.5;
+            mesh.addVertex( glm::vec3(_positions[i], 0.0f) + normal );
+            mesh.addVertex( glm::vec3(_positions[i], 0.0f) - normal );
+
+            float pct = (float)i/(float)_positions.size();
+            mesh.addTexCoord( glm::vec2(0.0f, pct) );
+            mesh.addTexCoord( glm::vec2(1.0f, pct) );
+        }
+
+        Vbo vbo = Vbo(mesh);
+        if (_program == nullptr)
+            _program = getStrokeShader();
+
+        model(vbo, _program);
+    }
 };
 
 void line(const glm::vec3& _a, const glm::vec3& _b, Shader* _program) {
@@ -375,26 +426,64 @@ void line(const glm::vec3& _a, const glm::vec3& _b, Shader* _program) {
 }
 
 void line(const std::vector<glm::vec3>& _positions, Shader* _program) {
-    if (_program == nullptr)
-        _program = getFillShader();
+    if (stroke_enabled == false || _positions.size() < 2)
+        return;
 
-    shader(_program);
-    _program->setUniform("u_color", stroke_color);
+    if (stroke_weight > 0.0f && stroke_weight <= 1.0f) {
+        if (_program == nullptr)
+            _program = getFillShader();
 
-#if defined(__EMSCRIPTEN__)
-    Vbo vbo = _positions;
-    vbo.setDrawMode(LINE_STRIP);
-    vbo.render(_program);
-#else
-    const GLint location = _program->getAttribLocation("a_position");
-    if (location != -1) {
-        glEnableVertexAttribArray(location);
-        glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, 0, (const void*)_positions.data());
-        glDrawArrays(GL_LINE_STRIP, 0, _positions.size());
-        glDisableVertexAttribArray(location);
+        shader(_program);
+        _program->setUniform("u_color", stroke_color);
+        
+        #if defined(__EMSCRIPTEN__)
+        Vbo vbo = _positions;
+        vbo.setDrawMode(LINE_STRIP);
+        vbo.render(_program);
+        #else
+        glLineWidth(stroke_weight);
+        const GLint location = _program->getAttribLocation("a_position");
+        if (location != -1) {
+            glEnableVertexAttribArray(location);
+            glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, 0, (const void*)_positions.data());
+            glDrawArrays(GL_LINE_STRIP, 0, _positions.size());
+            glDisableVertexAttribArray(location);
+        }
+        #endif
     }
+    else {
+        Mesh mesh;
+        mesh.setDrawMode(TRIANGLE_STRIP);
 
-#endif
+        glm::vec3 normal = glm::normalize( _positions[1] - _positions[0] );
+        normal = glm::vec3( normal.y, -normal.x, 0.0f );
+
+        mesh.addVertex( _positions[0] );
+        mesh.addVertex( _positions[0] );
+        mesh.addNormal( normal );
+        mesh.addNormal( -normal );
+        mesh.addTexCoord( glm::vec2(0.0f, 0.0f) );
+        mesh.addTexCoord( glm::vec2(1.0f, 0.0f) );
+    
+        for (int i = 1; i < _positions.size(); i++) {
+            glm::vec3 normal = glm::normalize(_positions[i] - _positions[i-1]);
+            normal = glm::vec3( normal.y, -normal.x, 0.0f );
+            mesh.addVertex( _positions[i] );
+            mesh.addVertex( _positions[i] );
+            mesh.addNormal( normal );
+            mesh.addNormal( -normal );
+
+            float pct = (float)i/(float)_positions.size();
+            mesh.addTexCoord( glm::vec2(0.0f, pct) );
+            mesh.addTexCoord( glm::vec2(1.0f, pct) );
+        }
+
+        Vbo vbo = Vbo(mesh);
+        if (_program == nullptr)
+            _program = getStrokeShader();
+
+        model(vbo, _program);
+    }
 };
 
 void line(const Line& _line, Shader* _program) {
@@ -1013,7 +1102,7 @@ void shader(const std::string& _name) {
 
 void shader(Shader& _program) { shader(&_program); }
 void shader(Shader* _program) {
-    if (shaderPtr != fill_shader || shaderPtr != points_shader) {
+    if (shaderPtr != fill_shader || shaderPtr != stroke_shader || shaderPtr != points_shader) {
         shaderPtr = _program; 
         shaderChange = true;
     }
@@ -1029,6 +1118,10 @@ void shader(Shader* _program) {
 
     if (_program == fill_shader)
         _program->setUniform("u_color", fill_color);
+    else if (_program == stroke_shader) {
+        _program->setUniform("u_color", stroke_color);
+        _program->setUniform("u_strokeWeight", stroke_weight);
+    }
     else if (_program == points_shader) {
         _program->setUniform("u_size", points_size);
         _program->setUniform("u_shape", points_shape);
@@ -1151,9 +1244,15 @@ void texture(Texture* _texture, const std::string _uniform_name) {
     shaderPtr->textureIndex++;
 }
 
-void loadModel( const std::string& _filename ) {
-    // TODO:
-    // 
+// void loadModel( const std::string& _filename ) {
+//     // TODO:
+//     // 
+// }
+
+void model(const Mesh& _mesh, Shader* _program) { 
+    Vbo* vbo = new Vbo( _mesh );
+    model(vbo, _program);
+    delete vbo;
 }
 
 void model(Vbo& _vbo, Shader* _program) { model(&_vbo, _program); }
@@ -1165,9 +1264,10 @@ void model(Vbo* _vbo, Shader* _program) {
             _program = getFillShader();
     }
 
-    if (shaderChange && 
-        shaderPtr != fill_shader && 
-        shaderPtr != points_shader) {
+    // if (shaderChange && 
+    //     shaderPtr != fill_shader && 
+    //     shaderPtr != points_shader) 
+    {
         VertexLayout* vl = _vbo->getVertexLayout();
         if (vl->haveAttrib("color"))
             _program->addDefine("MODEL_VERTEX_COLOR", "v_color");

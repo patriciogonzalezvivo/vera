@@ -127,6 +127,19 @@ std::string getDefaultSrc( DefaultShaders _type ) {
             rta += fill_frag_300;
     }
 
+    else if (_type == VERT_STROKE) {
+        if (versionNumber < 130)
+            rta += stroke_vert;
+        else if (versionNumber >= 130) 
+            rta += stroke_vert_300;
+    }
+    else if (_type == FRAG_STROKE) {
+        if (versionNumber < 130)
+            rta += stroke_frag;
+        else if (versionNumber >= 130) 
+            rta += stroke_frag_300;
+    }
+
     else if (_type == VERT_POINTS) {
         if (versionNumber < 130)
             rta += points_vert;

@@ -336,9 +336,10 @@ void addLight(Light* _light, const std::string& _name = "default");
 
 // MODEL
 // -----------------------------
-void loadModel( const std::string& _filename );
+// void loadModel( const std::string& _filename );
 void model(Vbo& _vbo, Shader* _program = nullptr);
 void model(Vbo* _vbo, Shader* _program = nullptr);
+void model(const Mesh& _mesh, Shader* _program = nullptr);
 
 // LABELS
 // -----------------------------
