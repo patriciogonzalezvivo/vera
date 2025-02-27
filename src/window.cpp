@@ -888,10 +888,16 @@ int initGL(WindowProperties _prop) {
         else if (_action == GLFW_RELEASE && (_key == GLFW_KEY_LEFT_CONTROL || GLFW_KEY_RIGHT_CONTROL) )
             bControl = false;
 
-        if (_action == GLFW_PRESS) {
+        if (_key == GLFW_KEY_ESCAPE ||
+            _key == GLFW_KEY_RIGHT || _key == GLFW_KEY_LEFT || _key == GLFW_KEY_UP || _key == GLFW_KEY_DOWN) {
             if (onKeyPress)
                 onKeyPress(_key);
         }
+    });
+
+    glfwSetCharCallback(window, [](GLFWwindow* _window, unsigned int _key) {
+        if (onKeyPress)
+            onKeyPress(_key);
     });
 
     // callback when a mouse button is pressed or released
