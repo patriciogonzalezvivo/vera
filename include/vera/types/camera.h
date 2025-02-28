@@ -71,6 +71,8 @@ public:
     virtual const glm::mat4&    getProjectionViewMatrix() const { return m_projectionViewMatrix; }
     virtual const glm::mat4&    getInverseProjectionMatrix() const { return m_inverseProjectionMatrix; }
 
+    virtual void begin();
+    virtual void end();
 protected:
 
     virtual void        onPositionChanged();
@@ -89,6 +91,9 @@ private:
     glm::mat4   m_projectionMatrix;
     glm::mat4   m_projectionViewMatrix;
     glm::mat4   m_inverseProjectionMatrix;
+
+    glm::vec4   m_viewport;
+    glm::vec4   m_viewport_old;
     
     glm::vec3   m_target;
     glm::vec3   m_position_offset;

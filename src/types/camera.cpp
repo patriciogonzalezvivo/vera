@@ -35,6 +35,7 @@ void Camera::setViewport(int _width, int _height){
 }
 
 void Camera::setViewport(glm::vec4 _viewport) {
+    m_viewport = _viewport;
     setViewport(_viewport.z - _viewport.x, _viewport.w - _viewport.y);
 }
 
@@ -126,6 +127,39 @@ const glm::vec3& Camera::getPosition() const {
 const float Camera::getDistance() const { 
     return glm::length(m_position);
 }
+
+void Camera::begin() {
+    if (m_viewport == glm::vec4(0.0f))
+        return;
+    
+    if (bChange) {
+        updateCameraSettings();
+        bChange = false;
+    }
+
+    // extract current viewport
+    int viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    m_viewport_old = glm::vec4(viewport[0], viewport[1], viewport[2], viewport[3]);
+
+    // set new viewport
+    glViewport(m_viewport.x, m_viewport.y, m_viewport.z, m_viewport.w);
+    glScissor(m_viewport.x, m_viewport.y, m_viewport.z, m_viewport.w);
+    glEnable(GL_SCISSOR_TEST);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void Camera::end() {
+    if (m_viewport == glm::vec4(0.0f))
+        return;
+
+    glDisable(GL_SCISSOR_TEST);
+    glViewport(m_viewport_old.x, m_viewport_old.y, m_viewport_old.z, m_viewport_old.w);
+}
+
 
 /** Sets this camera's exposure (default is 16, 1/125s, 100 ISO)
  * from https://github.com/google/filament/blob/master/filament/src/Exposure.cpp
