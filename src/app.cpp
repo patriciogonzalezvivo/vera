@@ -257,8 +257,6 @@ void App::background( const glm::vec4& _color ) {
 }
 
 void App::orbitControl() {
-    setDepthTest(true);
-
     if (getXR() > 0)
         return;
 
@@ -267,9 +265,13 @@ void App::orbitControl() {
     if (cam == nullptr)
         return;
 
-    double aspect = width/height;
-    if (cam->getAspect() != aspect)
-        cam->setViewport(width, height);
+    if (cam->getViewport() == glm::ivec4(0.0)) {
+        double aspect = width/height;
+        // double aspect = getWindowWidth()/getWindowHeight();
+        if (cam->getAspect() != aspect)
+            cam->setViewport(width, height);
+            // cam->setViewport(getWindowWidth(), getWindowHeight());
+    }
 
     if (mouseIsPressed && getQuiltCurrentViewIndex() == 0) {
         float dist = cam->getDistance();
@@ -297,6 +299,8 @@ void App::orbitControl() {
 
     if (vera::getWindowStyle() == vera::LENTICULAR)
         cam->setVirtualOffset(1.5, getQuiltCurrentViewIndex(), getQuiltTotalViews());
+
+    setDepthTest(true);
 }
 
 }

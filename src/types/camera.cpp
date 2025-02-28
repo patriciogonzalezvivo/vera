@@ -17,7 +17,11 @@
 namespace vera {
 
 Camera::Camera(): 
-    m_target(0.0), 
+    m_viewMatrix(1.0f), m_inverseViewMatrix(1.0f),
+    m_normalMatrix(1.0f), 
+    m_projectionMatrix(1.0f), m_projectionViewMatrix(1.0f), m_inverseProjectionMatrix(1.0f),
+    m_viewport(0), m_viewport_old(0),
+    m_target(0.0), m_position_offset(0.0),
     m_aspect(4.0f/3.0f), m_fov(45.), m_nearClip(0.01f), m_farClip(1000.0f), 
     m_exposure(2.60417e-05), m_ev100(14.9658), m_aperture(16), m_shutterSpeed(1.0f/125.0f), m_sensitivity(100.0f), 
     m_projectionType(ProjectionType::PERSPECTIVE) {
@@ -129,7 +133,7 @@ const float Camera::getDistance() const {
 }
 
 void Camera::begin() {
-    if (m_viewport == glm::vec4(0.0f))
+    if (m_viewport == glm::ivec4(0)) 
         return;
     
     if (bChange) {
@@ -138,25 +142,19 @@ void Camera::begin() {
     }
 
     // extract current viewport
-    int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    m_viewport_old = glm::vec4(viewport[0], viewport[1], viewport[2], viewport[3]);
+    int vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
+    m_viewport_old = glm::ivec4(vp[0], vp[1], vp[2], vp[3]);
 
     // set new viewport
     glViewport(m_viewport.x, m_viewport.y, m_viewport.z, m_viewport.w);
-    glScissor(m_viewport.x, m_viewport.y, m_viewport.z, m_viewport.w);
-    glEnable(GL_SCISSOR_TEST);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    setDepthTest(true);
 }
 
 void Camera::end() {
-    if (m_viewport == glm::vec4(0.0f))
+    if (m_viewport == glm::ivec4(0))
         return;
 
-    glDisable(GL_SCISSOR_TEST);
     glViewport(m_viewport_old.x, m_viewport_old.y, m_viewport_old.z, m_viewport_old.w);
 }
 

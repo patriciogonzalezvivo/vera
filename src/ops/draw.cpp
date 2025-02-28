@@ -121,10 +121,16 @@ Camera* createCamera(const std::string& _name) {
 void setCamera(Camera& _camera) { setCamera(&_camera); }
 void setCamera(Camera* _camera) {
     scene->activeCamera = _camera;
+
     setDepthTest(true);
+    if (scene->activeCamera)
+        scene->activeCamera->begin();
 };
 
-void resetCamera() {  
+void resetCamera() {
+    if (scene->activeCamera)
+        scene->activeCamera->end();
+
     scene->activeCamera = nullptr;
     setDepthTest(false);
 };

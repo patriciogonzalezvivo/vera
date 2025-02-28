@@ -1263,6 +1263,15 @@ void setViewport(float _width, float _height) {
     updateViewport();
 }
 
+void setViewport(int _x, int _y, int _width, int _height){
+    viewport.x = _x;
+    viewport.y = _y;
+    viewport.z = _width;
+    viewport.w = _height;
+
+    updateViewport();
+}
+
 void updateViewport() {
     fPixelDensity = getPixelDensity(true);
     float width = getWindowWidth();
@@ -1399,7 +1408,13 @@ void setWindowIcon(unsigned char* _data, size_t _width, size_t _height) {
 #endif
 }
 
-const glm::ivec4& getViewport() { return viewport; }
+const glm::ivec4& getViewport() { 
+    // int vp[4];
+    // glGetIntegerv(GL_VIEWPORT, vp);
+    // return glm::ivec4(vp[0], vp[1], vp[2], vp[3]);
+    return viewport;
+}
+
 const glm::mat4& getOrthoMatrix() { return orthoMatrix; }
 const glm::mat4& getFlippedOrthoMatrix() { return orthoFlippedMatrix; }
 int getWindowWidth() { return viewport.z * fPixelDensity; }
