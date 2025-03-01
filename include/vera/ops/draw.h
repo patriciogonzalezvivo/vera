@@ -130,7 +130,14 @@ void lineBoundingBox(const glm::vec4& _bbox, Shader* _program = nullptr);
 // arc()
 
 // 2D Primitives
-// triangle()
+void triangle(const glm::vec2& _center, float angle = 0.0, float _radius = 1.0,  Shader* _program = nullptr);
+void triangle(const glm::vec3& _center, float angle = 0.0, float _radius = 1.0,  Shader* _program = nullptr);
+void triangle(const glm::vec3& _center, glm::vec3 _up, float _radius = 1.0f, Shader* _program = nullptr);
+void triangle(float _x1, float _y1, float _x2, float _y2, float _x3, float _y3, Shader* _program = nullptr);
+void triangle(const glm::vec2& _a, const glm::vec2& _b, const glm::vec2& _c, Shader* _program = nullptr);
+void triangle(float _x1, float _y1, float _z1, float _x2, float _y2, float _z2, float _x3, float _y3, float _z3, Shader* _program = nullptr);
+void triangle(const glm::vec3& _a, const glm::vec3& _b, const glm::vec3& _c, Shader* _program = nullptr);
+
 void triangles(const std::vector<glm::vec2>& _positions, Shader* _program = nullptr);
 void triangles(const std::vector<glm::vec3>& _positions, Shader* _program = nullptr);
 
@@ -141,18 +148,15 @@ void rect(const glm::vec2& _pos, const glm::vec2& _size, Shader* _program = null
 
 // quad()
 // square()s
-
-// ellipse()
 void circleResolution(int _res = CIRCLE_RESOLUTION);
 void circle(float _x, float _y, float _r, Shader* _program = nullptr);
 void circle(const glm::vec2& _pos, float _r, Shader* _program = nullptr);
+// ellipse()
 
 HorizontalAlign getRectHorizontalAlign();
 VerticalAlign   getRectVerticalAlign();
 
 // 3D Primitives
-// plane()
-
 void plane(Shader* _program = nullptr);
 void plane(float _size, Shader* _program = nullptr);
 void plane(float _width, float _height, Shader* _program = nullptr);

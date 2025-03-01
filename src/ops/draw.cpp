@@ -530,6 +530,48 @@ void lineBoundingBox(const glm::vec4& _bbox, Shader* _program) {
 }
 
 // 2D PRIMITIVES
+void triangle(float _x1, float _y1, float _x2, float _y2, float _x3, float _y3, Shader* _program) {
+    triangle(glm::vec2(_x1,_y1), glm::vec2(_x2, _y2), glm::vec2(_x3, _y3), _program);
+}
+void triangle(const glm::vec2& _a, const glm::vec2& _b, const glm::vec2& _c, Shader* _program) {
+    std::vector<glm::vec2> pts = {_a, _b, _c};
+    triangles(pts, _program);
+}
+void triangle(float _x1, float _y1, float _z1, float _x2, float _y2, float _z2, float _x3, float _y3, float _z3, Shader* _program) {
+    triangle(glm::vec3(_x1,_y1, _z1), glm::vec3(_x2, _y2, _z2), glm::vec3(_x3, _y3, _z3), _program);
+}
+
+void triangle(const glm::vec3& _a, const glm::vec3& _b, const glm::vec3& _c, Shader* _program) {
+    std::vector<glm::vec3> pts = {_a, _b, _c};
+    triangles(pts, _program);
+}
+
+void triangle(const glm::vec2& _center, float angle, float _radius,  Shader* _program) {
+    std::vector<glm::vec2> pts;
+    for (int i = 0; i < 3; i++) {
+        float a = angle + TWO_PI / 3.0f * i;
+        pts.push_back( glm::vec2( _center.x + cos(a) * _radius, _center.y + sin(a) * _radius) );
+    }
+    triangles(pts, _program);
+}
+
+void triangle(const glm::vec3& _center, float angle, float _radius,  Shader* _program) {
+    std::vector<glm::vec3> pts;
+    for (int i = 0; i < 3; i++) {
+        float a = angle + TWO_PI / 3.0f * i;
+        pts.push_back( glm::vec3( _center.x + cos(a) * _radius, _center.y + sin(a) * _radius, 0.0f ) );
+    }
+    triangles(pts, _program);
+}
+
+void triangle(const glm::vec3& _center, glm::vec3 _up, float _radius, Shader* _program) {
+    glm::vec3 a = _center + _up * _radius;
+    glm::vec3 b = _center + glm::normalize( glm::cross(_up, glm::vec3(0.0f, 0.0f, 1.0f)) ) * _radius * 0.5f;
+    glm::vec3 c = _center + glm::normalize( glm::cross(_up, glm::vec3(0.0f, 0.0f, -1.0f)) ) * _radius * 0.5f;
+    std::vector<glm::vec3> pts = {a, b, c};
+    triangles(pts, _program);
+}
+
 void triangles(const std::vector<glm::vec2>& _positions, Shader* _program) {
     if (_program == nullptr)
         _program = getFillShader();;
