@@ -40,7 +40,7 @@ void Camera::setViewport(int _width, int _height){
 
 void Camera::setViewport(glm::vec4 _viewport) {
     m_viewport = _viewport;
-    setViewport(_viewport.z - _viewport.x, _viewport.w - _viewport.y);
+    setViewport(_viewport.z, _viewport.w);
 }
 
 //Setting Functions
