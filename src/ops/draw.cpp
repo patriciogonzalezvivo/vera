@@ -1046,7 +1046,18 @@ void text(const std::string& _text, float _x, float _y, Font* _font) {
     if (_font == nullptr)
         _font = getFont();
     _font->setColor( fill_color );
-    _font->render(_text, _x, _y);
+
+    glm::mat4 m = getProjectionViewWorldMatrix();
+    glm::vec4 pos = glm::vec4(_x, _y, 0.0f, 1.0f);
+    pos = m * pos;
+    pos.x /= pos.w;
+    pos.y /= pos.w;
+    pos.x = (pos.x + 1.0f) * 0.5f * vera::getWindowWidth();
+    pos.y = (1.0f-pos.y) * 0.5f * vera::getWindowHeight();
+    // pos.z = 0.0f;
+    // pos.w = 1.0f;
+    glm::vec3 screenPos = glm::vec3(pos.x, pos.y, pos.z);
+    _font->render(_text, screenPos.x, screenPos.y);
 }
 
 void textHighlight(const std::string& _text, const glm::vec2& _pos, const glm::vec4& _bg, Font* _font) { textHighlight(_text, _pos.x, _pos.y, _bg, _font); }
