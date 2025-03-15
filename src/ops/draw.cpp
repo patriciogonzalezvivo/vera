@@ -78,8 +78,8 @@ bool fullscreen() { return isFullscreen(); }
 void fullscreen(bool _fullscreen) { setFullscreen(_fullscreen); }
 
 void resetMatrix() { matrix_world = glm::mat4(1.0f); }
-void applyMatrix(const glm::mat3& _mat ) { matrix_world = _mat; }
-void applyMatrix(const glm::mat4& _mat ) { matrix_world = glm::mat4(_mat); };
+void applyMatrix(const glm::mat3& _mat ) { matrix_world *= glm::mat4(_mat); }
+void applyMatrix(const glm::mat4& _mat ) { matrix_world *= glm::mat4(_mat); };
 
 void rotate(float _rad) { matrix_world = glm::rotate(matrix_world, _rad, glm::vec3(0.0f, 0.0f, 1.0f) ); }
 void rotateX(float _rad) { matrix_world = glm::rotate(matrix_world, _rad, glm::vec3(1.0f, 0.0f, 0.0f) ); }
