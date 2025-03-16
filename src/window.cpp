@@ -924,6 +924,14 @@ int initGL(WindowProperties _prop) {
             onDrop(count, paths);
     });
 
+    glfwSetWindowContentScaleCallback(window, [](GLFWwindow* _window, float xscale, float yscale) {
+        fPixelDensity = (xscale > yscale ? xscale : yscale);
+
+        if (onViewportResize)
+            onViewportResize(properties.screen_width, properties.screen_height);
+    });
+
+
 #if defined(__EMSCRIPTEN__)
     enable_extension("OES_texture_float");
     enable_extension("OES_texture_half_float");

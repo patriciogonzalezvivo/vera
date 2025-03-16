@@ -1076,13 +1076,15 @@ void textHighlight(const std::string& _text, float _x , float _y, const glm::vec
 
     BoundingBox bbox = BoundingBox(_font->getBoundingBox(_text, _x, _y));
     bbox.expand(4.0f);
+
+    float s = getPixelDensity();
         
     fill(_bg);
     noStroke();
 
     shapeHAlign = ALIGN_CENTER;
     shapeVAlign = ALIGN_MIDDLE;
-    rect(bbox.getCenter().x, bbox.getCenter().y, bbox.getWidth(), bbox.getHeight());
+    rect(bbox.getCenter().x, bbox.getCenter().y, bbox.getWidth() * s, bbox.getHeight() * s);
 
     fill(style_fg);
     text(_text, _x, _y, _font);

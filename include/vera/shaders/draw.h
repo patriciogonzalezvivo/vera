@@ -150,131 +150,131 @@ void main(void) {
 // --- STROKE
 
 const std::string stroke_vert = R"(
-    #ifdef GL_ES
-    precision mediump float;
-    #endif
-    
-    uniform mat4    u_modelViewProjectionMatrix;
-    
-    uniform vec2    u_resolution;
-    uniform float   u_strokeWeight;
+#ifdef GL_ES
+precision mediump float;
+#endif
 
-    attribute vec4  a_position;
-    varying vec4    v_position;
-    
-    #ifdef MODEL_VERTEX_COLOR
-    attribute vec4  a_color;
-    varying vec4    v_color;
-    #endif
-    
-    #ifdef MODEL_VERTEX_NORMAL
-    attribute vec3  a_normal;
-    varying vec3    v_normal;
-    #endif
+uniform mat4    u_modelViewProjectionMatrix;
+
+uniform vec2    u_resolution;
+uniform float   u_strokeWeight;
+
+attribute vec4  a_position;
+varying vec4    v_position;
+
+#ifdef MODEL_VERTEX_COLOR
+attribute vec4  a_color;
+varying vec4    v_color;
+#endif
+
+#ifdef MODEL_VERTEX_NORMAL
+attribute vec3  a_normal;
+varying vec3    v_normal;
+#endif
+
+#ifdef MODEL_VERTEX_TEXCOORD
+attribute vec2  a_texcoord;
+#endif
+varying vec2    v_texcoord;
+
+void main(void) {
+    v_position = a_position;
+    v_texcoord = a_position.xy * 0.5 + 0.5;
     
     #ifdef MODEL_VERTEX_TEXCOORD
-    attribute vec2  a_texcoord;
+        v_texcoord = a_texcoord;
     #endif
-    varying vec2    v_texcoord;
-    
-    void main(void) {
-        v_position = a_position;
-        v_texcoord = a_position.xy * 0.5 + 0.5;
-        
-        #ifdef MODEL_VERTEX_TEXCOORD
-            v_texcoord = a_texcoord;
-        #endif
 
-        #ifdef MODEL_VERTEX_COLOR
-            v_color = a_color;
-        #endif
-        
-        #ifdef MODEL_VERTEX_NORMAL
-        v_normal = a_normal;
-        #endif
-        
-        gl_Position = u_modelViewProjectionMatrix * v_position;
-
-        #ifdef MODEL_VERTEX_NORMAL
-        vec2 pixel = 1.0/u_resolution;
-        gl_Position.xy += v_normal.xy * u_strokeWeight  * pixel * 100.0;
-        #endif 
-    }
-    )";
-    
-    const std::string stroke_frag = R"(
-    #ifdef GL_ES
-    precision mediump float;
-    #endif
-    
-    #ifdef HAVE_TEXTURE
-    uniform sampler2D u_tex0;
-    #endif
-    
-    uniform vec4    u_color;
-    
     #ifdef MODEL_VERTEX_COLOR
-    varying vec4    v_color;
+        v_color = a_color;
     #endif
     
     #ifdef MODEL_VERTEX_NORMAL
-    varying vec3    v_normal;
+    v_normal = a_normal;
     #endif
     
-    #ifdef MODEL_VERTEX_TEXCOORD
-    varying vec2    v_texcoord;
-    #endif
-    
-    void main(void) {
-        vec4 color = u_color;
-    
-        #ifdef MODEL_VERTEX_COLOR
-        color = v_color;
-        #endif
-
-        gl_FragColor = color;
-    }
-    )";
-    
-    const std::string stroke_vert_300 = R"(
-    #ifdef GL_ES
-    precision mediump float;
-    #endif
-    
-    uniform mat4    u_modelViewProjectionMatrix;
-    in      vec4    a_position;
-    out     vec2    v_texcoord;
+    gl_Position = u_modelViewProjectionMatrix * v_position;
 
     #ifdef MODEL_VERTEX_NORMAL
-    in      vec3    a_normal;
-    out     vec3    v_normal;
-    #endif
-    
-    void main(void) {
-        v_texcoord = a_position.xy;
-        v_position = a_position;
+    vec2 pixel = 1.0/u_resolution;
+    gl_Position.xy += v_normal.xy * u_strokeWeight  * pixel * 100.0;
+    #endif 
+}
+)";
 
-    #ifdef MODEL_VERTEX_NORMAL
-        v_normal = a_normal;
+const std::string stroke_frag = R"(
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+#ifdef HAVE_TEXTURE
+uniform sampler2D u_tex0;
+#endif
+
+uniform vec4    u_color;
+
+#ifdef MODEL_VERTEX_COLOR
+varying vec4    v_color;
+#endif
+
+#ifdef MODEL_VERTEX_NORMAL
+varying vec3    v_normal;
+#endif
+
+#ifdef MODEL_VERTEX_TEXCOORD
+varying vec2    v_texcoord;
+#endif
+
+void main(void) {
+    vec4 color = u_color;
+
+    #ifdef MODEL_VERTEX_COLOR
+    color = v_color;
     #endif
 
-        gl_Position = u_modelViewProjectionMatrix * v_position;
-    }
-    )";
-    
-    const std::string stroke_frag_300 = R"(
-    #ifdef GL_ES
-    precision mediump float;
-    #endif
-    
-    uniform vec4    u_color;
-    out     vec4    fragColor;
+    gl_FragColor = color;
+}
+)";
 
-    void main(void) {
-        fragColor = u_color;
-    }
-    )";
-    
+const std::string stroke_vert_300 = R"(
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform mat4    u_modelViewProjectionMatrix;
+in      vec4    a_position;
+out     vec2    v_texcoord;
+
+#ifdef MODEL_VERTEX_NORMAL
+in      vec3    a_normal;
+out     vec3    v_normal;
+#endif
+
+void main(void) {
+    v_texcoord = a_position.xy;
+    v_position = a_position;
+
+#ifdef MODEL_VERTEX_NORMAL
+    v_normal = a_normal;
+#endif
+
+    gl_Position = u_modelViewProjectionMatrix * v_position;
+}
+)";
+
+const std::string stroke_frag_300 = R"(
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec4    u_color;
+out     vec4    fragColor;
+
+void main(void) {
+    fragColor = u_color;
+}
+)";
+
 
 // --- FILL
 
