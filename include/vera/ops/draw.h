@@ -244,7 +244,6 @@ void  addFont(Font* _font, const std::string _name);
 // -----------------------------
 // textLeading()
 // textStyle()
-// textWidth()
 // textAscent()
 // textDescent()
 // textWrap()
@@ -254,6 +253,7 @@ void textAlign(HorizontalAlign _align, Font* _font = nullptr);
 void textAlign(VerticalAlign _align, Font* _font = nullptr);
 void textAngle(float _angle, Font* _font = nullptr);
 void textSize(float _size, Font* _font = nullptr);
+float textWidth(const std::string& _text, Font* _font = nullptr);
 void text(const std::string& _text, const glm::vec3& _pos, Font* _font = nullptr);
 void text(const std::string& _text, const glm::vec2& _pos, Font* _font = nullptr );
 void text(const std::string& _text, float _x, float _y, Font* _font = nullptr);

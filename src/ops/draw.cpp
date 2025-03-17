@@ -1022,6 +1022,12 @@ void textSize(float _size, Font* _font) {
         _font->setSize(_size );
 }
 
+float textWidth(const std::string& _text, Font* _font) {
+    if (_font == nullptr)
+        _font = getFont();
+    return _font->getBoundingBox(_text).z;
+}
+
 void text(const std::string& _text, const glm::vec3& _pos, Font* _font) { 
     if (_font == nullptr)
         _font = getFont();
