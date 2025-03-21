@@ -58,6 +58,7 @@ set(VERA_SOURCES
     ${SOURCE_FOLDER}/io/obj.cpp
     ${SOURCE_FOLDER}/io/ply.cpp
     ${SOURCE_FOLDER}/io/stl.cpp
+    ${SOURCE_FOLDER}/ops/color.cpp
     ${SOURCE_FOLDER}/ops/draw.cpp
     ${SOURCE_FOLDER}/ops/env.cpp
     ${SOURCE_FOLDER}/ops/fs.cpp 
