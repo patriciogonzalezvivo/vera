@@ -682,6 +682,7 @@ void circle(float _x, float _y, float _radius, Shader* _program) {
         for (int i = 0; i < numSegments; i++) {
             lines.push_back( cached_circle_coorners[i] * _radius + glm::vec2(_x, _y) );
         }
+        lines.push_back( lines[0] ); // close the circle
         line(lines, _program);
     }
 }
