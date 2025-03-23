@@ -5,6 +5,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <algorithm>
 
 #if defined(_WIN32)
     #define NOMINMAX
@@ -1388,22 +1389,22 @@ void setFullscreen(bool _fullscreen) {
 #endif
 }
 
-void setPixelDensity(float _density) { fPixelDensity = _density; }
+void setPixelDensity(float _density) { fPixelDensity = std::max(1.0f,_density); }
 float getPixelDensity(bool _compute) {
     if (_compute && properties.style != EMBEDDED) {
 #if defined(__EMSCRIPTEN__)
-        return emscripten_get_device_pixel_ratio();
+        return std::max(1.0f, float(emscripten_get_device_pixel_ratio()));
 #elif defined(DRIVER_GLFW)
         int window_width, window_height, framebuffer_width, framebuffer_height;
         glfwGetWindowSize(window, &window_width, &window_height);
         glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
-        return float(framebuffer_width)/float(window_width);
+        return std::max(1.0f, float(framebuffer_width))/std::max(1.0f, float(window_width));
 #else
-        return fPixelDensity;
+        return std::max(1.0f, fPixelDensity);
 #endif
     }
     else
-        return fPixelDensity;
+        return std::max(1.0f, fPixelDensity);
 }
 
 void setWindowIcon(unsigned char* _data, size_t _width, size_t _height) {
