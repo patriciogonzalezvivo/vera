@@ -68,7 +68,7 @@ void blendMode( BlendMode _mode ) {
         case BLEND_MULTIPLY:
             glEnable(GL_BLEND);
             glBlendEquation(GL_FUNC_ADD);
-            glBlendFunc(GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA /* GL_ZERO or GL_ONE_MINUS_SRC_ALPHA */);
+            glBlendFunc(GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA );
             break;
 
         case BLEND_SCREEN:
