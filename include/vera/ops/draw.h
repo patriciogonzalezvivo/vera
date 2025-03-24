@@ -49,7 +49,6 @@ void frameRate(int _fps);
 float pixelDensity();
 void  pixelDensity(float _density);
 
-void clear();
 void clear( float _brightness );
 void clear( const glm::vec3& _color );
 void clear( const glm::vec4& _color );
@@ -311,6 +310,7 @@ void ortho(float _left, float _right, float _bottom, float _top,  float _near, f
 Camera* createCamera(const std::string& _name = "unnamed");
 void addCamera(Camera& _camera, const std::string& _name = "unnamed");
 void addCamera(Camera* _camera, const std::string& _name = "unnamed");
+void setCamera(const std::string& _name);
 void setCamera(Camera& _camera);
 void setCamera(Camera* _camera);
 void resetCamera();

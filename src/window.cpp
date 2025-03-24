@@ -932,7 +932,6 @@ int initGL(WindowProperties _prop) {
             onViewportResize(properties.screen_width, properties.screen_height);
     });
 
-
 #if defined(__EMSCRIPTEN__)
     enable_extension("OES_texture_float");
     enable_extension("OES_texture_half_float");
@@ -1110,9 +1109,7 @@ void updateGL() {
 
     // EVENTS
     // --------------------------------------------------------------------
-#if defined(DRIVER_GLFW)
-    glfwPollEvents();
-#else
+#if !defined(DRIVER_GLFW)
     if ( onMouseMove || onMousePress || onMouseDrag || onMouseRelease ) {
         const int XSIGN = 1<<4, YSIGN = 1<<5;
         static int fd = -1;
@@ -1190,8 +1187,11 @@ void updateGL() {
 
 void renderGL(){
 // NON GLFW
+    // glFinish();
+
 #if defined(DRIVER_GLFW)
     glfwSwapBuffers(window);
+    glfwPollEvents();
 
 #else
     eglSwapBuffers(display, surface);

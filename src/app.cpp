@@ -19,6 +19,7 @@ EM_BOOL App::loop (double _time, void* _userData) {
 #else
 void App::loop(double _time, App* _app) {
 #endif
+    
 
     _app->time = _time;
     _app->width = getWindowWidth();
@@ -41,7 +42,7 @@ void App::loop(double _time, App* _app) {
     }
     else
         _app->draw();
-
+        
     renderGL();
 
     #if defined(__EMSCRIPTEN__)

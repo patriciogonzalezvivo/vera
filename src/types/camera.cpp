@@ -140,6 +140,8 @@ void Camera::begin() {
         updateCameraSettings();
         bChange = false;
     }
+    
+    setDepthTest(true);
 
     // extract current viewport
     int vp[4];
@@ -148,7 +150,6 @@ void Camera::begin() {
 
     // set new viewport
     glViewport(m_viewport.x, m_viewport.y, m_viewport.z, m_viewport.w);
-    setDepthTest(true);
 }
 
 void Camera::end() {
@@ -156,6 +157,7 @@ void Camera::end() {
         return;
 
     glViewport(m_viewport_old.x, m_viewport_old.y, m_viewport_old.z, m_viewport_old.w);
+    // glViewport(0, 0, vera::getWindowWidth(), vera::getWindowHeight()); // reset to full window
 }
 
 

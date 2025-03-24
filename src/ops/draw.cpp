@@ -118,6 +118,16 @@ Camera* createCamera(const std::string& _name) {
     return cam;
 }
 
+void setCamera(const std::string& _name) {
+    CamerasMap::iterator it = scene->cameras.find(_name);
+    if (it != scene->cameras.end()) {
+        setCamera(it->second);
+    }
+    else {
+        std::cerr << "Camera '" << _name << "' not found!" << std::endl;
+    }
+}
+
 void setCamera(Camera& _camera) { setCamera(&_camera); }
 void setCamera(Camera* _camera) {
     scene->activeCamera = _camera;
@@ -214,7 +224,6 @@ Shader* getFillShader() {
     return fill_shader;
 }
 
-void clear() { clear( glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) ); }
 void clear( float _brightness ) { clear( glm::vec4(_brightness, _brightness, _brightness, 1.0f) ); }
 void clear( const glm::vec3& _color ) { clear( glm::vec4(_color, 1.0f) ); }
 void clear( const glm::vec4& _color ) {
@@ -1176,7 +1185,9 @@ void shader(Shader* _program) {
     }
 
     _program->textureIndex = 0;
-    _program->use();
+
+    if (!_program->inUse())
+        _program->use();
 
     _program->setUniform("u_date", getDate() );
     _program->setUniform("u_resolution", (float)getWindowWidth(), (float)getWindowHeight() );
