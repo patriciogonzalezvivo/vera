@@ -133,17 +133,18 @@ const float Camera::getDistance() const {
 }
 
 void Camera::begin() {
-    if (m_viewport == glm::ivec4(0)) 
-        return;
+    setDepthTest(true);
     
     if (bChange) {
         updateCameraSettings();
         bChange = false;
     }
-    
-    setDepthTest(true);
 
-    // extract current viewport
+    // If the viewport is set to zero, we don't want to change it
+    if (m_viewport == glm::ivec4(0)) 
+        return;
+    
+    // extract current viewport so we can restore it later
     int vp[4];
     glGetIntegerv(GL_VIEWPORT, vp);
     m_viewport_old = glm::ivec4(vp[0], vp[1], vp[2], vp[3]);
@@ -153,11 +154,12 @@ void Camera::begin() {
 }
 
 void Camera::end() {
+    // If the viewport is set to zero, it was never changed so we don't want to change it back
     if (m_viewport == glm::ivec4(0))
         return;
 
+    // restore previous viewport
     glViewport(m_viewport_old.x, m_viewport_old.y, m_viewport_old.z, m_viewport_old.w);
-    // glViewport(0, 0, vera::getWindowWidth(), vera::getWindowHeight()); // reset to full window
 }
 
 

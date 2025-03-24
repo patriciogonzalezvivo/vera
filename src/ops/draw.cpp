@@ -148,6 +148,13 @@ void resetCamera() {
 void addCamera(Camera& _camera, const std::string& _name) { addCamera(&_camera, _name); }
 void addCamera(Camera* _camera, const std::string& _name) { scene->cameras[_name] = _camera; }
 Camera* getCamera() { return scene->activeCamera; }
+Camera* getCamera(const std::string& _name) {
+    CamerasMap::iterator it = scene->cameras.find(_name);
+    if (it != scene->cameras.end())
+        return it->second;
+    else
+        return nullptr;
+}
 
 void perspective(float _fovy, float _aspect, float _near, float _far) {
     Camera* cam = createCamera("perspective");
@@ -1343,30 +1350,31 @@ void model(Vbo* _vbo, Shader* _program) {
             _program = getFillShader();
     }
 
-    // if (shaderChange && 
-    //     shaderPtr != fill_shader && 
-    //     shaderPtr != points_shader) 
+    if (shaderChange ) //&& 
+        // shaderPtr != fill_shader && 
+        // shaderPtr != stroke_shader &&
+        // shaderPtr != points_shader) 
     {
         VertexLayout* vl = _vbo->getVertexLayout();
         if (vl->haveAttrib("color"))
             _program->addDefine("MODEL_VERTEX_COLOR", "v_color");
-        // else
-            // _program->delDefine("MODEL_VERTEX_COLOR");
+        else
+            _program->delDefine("MODEL_VERTEX_COLOR");
 
         if (vl->haveAttrib("normal"))
             _program->addDefine("MODEL_VERTEX_NORMAL", "v_normal");
-        // else
-            // _program->delDefine("MODEL_VERTEX_COLOR");
+        else
+            _program->delDefine("MODEL_VERTEX_COLOR");
 
         if (vl->haveAttrib("texcoord"))
             _program->addDefine("MODEL_VERTEX_TEXCOORD", "v_texcoord");
-        // else
-            // _program->delDefine("MODEL_VERTEX_TEXCOORD");
+        else
+            _program->delDefine("MODEL_VERTEX_TEXCOORD");
 
         if (vl->haveAttrib("tangent"))
             _program->addDefine("MODEL_VERTEX_TANGENT", "v_tangent");
-        // else
-            // _program->delDefine("MODEL_VERTEX_TEXCOORD");
+        else
+            _program->delDefine("MODEL_VERTEX_TEXCOORD");
 
         shaderChange = false;
     }

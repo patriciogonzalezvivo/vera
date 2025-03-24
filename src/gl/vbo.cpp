@@ -313,7 +313,8 @@ void Vbo::render(Shader* _shader) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_glIndexBuffer);
 
     // Enable shader program
-    _shader->use();
+    if (!_shader->inUse())
+        _shader->use();
 
     // Enable vertex attribs via vertex layout object
     m_vertexLayout->enable(_shader);

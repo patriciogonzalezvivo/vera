@@ -315,6 +315,7 @@ void setCamera(Camera& _camera);
 void setCamera(Camera* _camera);
 void resetCamera();
 Camera* getCamera();
+Camera* getCamera(const std::string& _name);
 
 // LIGHT
 // -----------------------------
