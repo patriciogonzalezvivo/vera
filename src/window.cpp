@@ -878,10 +878,10 @@ int initGL(WindowProperties _prop) {
         glewInit();
     #endif
 
-    // glfwSetCharCallback(window, [](GLFWwindow* _window, unsigned int _key) {
-    //     if (onKeyPress)
-    //         onKeyPress(_key);
-    // });
+    glfwSetCharCallback(window, [](GLFWwindow* _window, unsigned int _key) {
+        if (onKeyPress)
+            onKeyPress(_key);
+    });
 
     glfwSetKeyCallback(window, [](GLFWwindow* _window, int _key, int _scancode, int _action, int _mods) {
         if (_action == GLFW_PRESS && (_key == GLFW_KEY_LEFT_SHIFT || GLFW_KEY_RIGHT_SHIFT) )
