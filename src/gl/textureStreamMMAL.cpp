@@ -8,7 +8,7 @@
 #include "vera/ops/meshes.h"
 #include "vera/ops/string.h"
 
-#if defined(DRIVER_GBM)
+#if defined(DRIVER_DRM)
 #include "libdrm/drm_fourcc.h"
 #endif
 
