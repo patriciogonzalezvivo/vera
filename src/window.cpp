@@ -927,18 +927,10 @@ int initGL(WindowProperties _prop) {
 
     glfwSetWindowContentScaleCallback(window, [](GLFWwindow* _window, float xscale, float yscale) {
         fPixelDensity = (xscale > yscale ? xscale : yscale);
+        std::cout << "Pixel Density: " << fPixelDensity << std::endl;
 
         if (onViewportResize)
             onViewportResize(properties.screen_width, properties.screen_height);
-    });
-
-    glfwSetWindowPosCallback(window, [](GLFWwindow* _window, int x, int y) {
-        if (fPixelDensity != getPixelDensity(true))
-            updateViewport();
-    });
-
-    glfwSetWindowSizeCallback(window, [](GLFWwindow* _window, int _w, int _h) {
-        setViewport(_w,_h);
     });
 
     // callback when the mouse cursor enters/leaves
@@ -1026,7 +1018,7 @@ int initGL(WindowProperties _prop) {
     enable_extension("OES_texture_half_float_linear");
     enable_extension("EXT_color_buffer_float");
 
-    // emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, resize_callback);
+    emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, resize_callback);
 
     // emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, key_callback);
 
@@ -1040,10 +1032,14 @@ int initGL(WindowProperties _prop) {
     // emscripten_set_touchcancel_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
 
 #else
+    glfwSetWindowPosCallback(window, [](GLFWwindow* _window, int x, int y) {
+        if (fPixelDensity != getPixelDensity(true))
+            updateViewport();
+    });
 
-   
-    
-
+    glfwSetWindowSizeCallback(window, [](GLFWwindow* _window, int _w, int _h) {
+        setViewport(_w,_h);
+    });
 #endif 
         
 #endif
