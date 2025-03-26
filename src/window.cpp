@@ -431,14 +431,14 @@ void setDropCallback(std::function<void(int, const char**)>_callback) { onDrop =
         return EM_TRUE;
     }
 
-    // static EM_BOOL key_callback(int eventType, const EmscriptenKeyboardEvent *e, void* userData) {
-    //     if (eventType == EMSCRIPTEN_EVENT_KEYDOWN) {
-    //         if (onKeyPress)
-    //             onKeyPress(e->keyCode);
-    //     }
+    static EM_BOOL key_callback(int eventType, const EmscriptenKeyboardEvent *e, void* userData) {
+        if (eventType == EMSCRIPTEN_EVENT_KEYDOWN) {
+            if (onKeyPress)
+                onKeyPress(e->keyCode);
+        }
         
-    //     return EM_TRUE;
-    // }
+        return EM_TRUE;
+    }
 
     static EM_BOOL mouse_callback(int eventType, const EmscriptenMouseEvent *e, void* userData) {
         float x = (float)e->targetX;
@@ -878,6 +878,11 @@ int initGL(WindowProperties _prop) {
         glewInit();
     #endif
 
+    // glfwSetCharCallback(window, [](GLFWwindow* _window, unsigned int _key) {
+    //     if (onKeyPress)
+    //         onKeyPress(_key);
+    // });
+
     glfwSetKeyCallback(window, [](GLFWwindow* _window, int _key, int _scancode, int _action, int _mods) {
         if (_action == GLFW_PRESS && (_key == GLFW_KEY_LEFT_SHIFT || GLFW_KEY_RIGHT_SHIFT) )
             bShift = true;
@@ -896,13 +901,8 @@ int initGL(WindowProperties _prop) {
         }
     });
 
-    glfwSetCharCallback(window, [](GLFWwindow* _window, unsigned int _key) {
-        if (onKeyPress)
-            onKeyPress(_key);
-    });
-
-    // callback when a mouse button is pressed or released
-    glfwSetMouseButtonCallback(window, [](GLFWwindow* _window, int button, int action, int mods) {
+     // callback when a mouse button is pressed or released
+     glfwSetMouseButtonCallback(window, [](GLFWwindow* _window, int button, int action, int mods) {
         if (button == GLFW_MOUSE_BUTTON_1) {
             if (action == GLFW_PRESS && !left_mouse_button_down)
                 left_mouse_button_down = true;
@@ -932,28 +932,6 @@ int initGL(WindowProperties _prop) {
             onViewportResize(properties.screen_width, properties.screen_height);
     });
 
-#if defined(__EMSCRIPTEN__)
-    enable_extension("OES_texture_float");
-    enable_extension("OES_texture_half_float");
-    enable_extension("OES_standard_derivatives");
-    enable_extension("OES_texture_float_linear");
-    enable_extension("OES_texture_half_float_linear");
-    enable_extension("EXT_color_buffer_float");
-
-    emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, resize_callback);
-
-    // emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, key_callback);
-
-    emscripten_set_mousedown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
-    emscripten_set_mouseup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
-    emscripten_set_mousemove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
-
-    emscripten_set_touchstart_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-    emscripten_set_touchend_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-    emscripten_set_touchmove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-    emscripten_set_touchcancel_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-
-#else
     glfwSetWindowPosCallback(window, [](GLFWwindow* _window, int x, int y) {
         if (fPixelDensity != getPixelDensity(true))
             updateViewport();
@@ -1039,6 +1017,32 @@ int initGL(WindowProperties _prop) {
             }
         }
     });
+
+#if defined(__EMSCRIPTEN__)
+    enable_extension("OES_texture_float");
+    enable_extension("OES_texture_half_float");
+    enable_extension("OES_standard_derivatives");
+    enable_extension("OES_texture_float_linear");
+    enable_extension("OES_texture_half_float_linear");
+    enable_extension("EXT_color_buffer_float");
+
+    // emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, resize_callback);
+
+    // emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, key_callback);
+
+    // emscripten_set_mousedown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
+    // emscripten_set_mouseup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
+    // emscripten_set_mousemove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
+
+    // emscripten_set_touchstart_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
+    // emscripten_set_touchend_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
+    // emscripten_set_touchmove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
+    // emscripten_set_touchcancel_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
+
+#else
+
+   
+    
 
 #endif 
         
