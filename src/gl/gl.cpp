@@ -61,8 +61,8 @@ void blendMode( BlendMode _mode ) {
         case BLEND_ADD:
             glEnable(GL_BLEND);
             glBlendEquation(GL_FUNC_ADD);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-            // glBlendFunc(GL_ONE, GL_ONE);
+            // glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+            glBlendFunc(GL_ONE, GL_ONE);
             break;
 
         case BLEND_MULTIPLY:
