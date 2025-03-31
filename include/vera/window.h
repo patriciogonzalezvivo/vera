@@ -209,6 +209,7 @@ void        setWindowVSync(bool _value);
 void        setWindowIcon(unsigned char* _data, size_t _width, size_t _height);
 
 void        setDepthTest(bool _value);
+bool        getDepthTest();
 
 bool        isFullscreen();
 void        setFullscreen(bool _fullscreen);
