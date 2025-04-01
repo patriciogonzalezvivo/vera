@@ -273,6 +273,7 @@ void    addShader(const std::string& _name, const std::string& _fragSrc = "", co
 Shader* getShader();
 Shader* getShader(const std::string& _name);
 Shader* getFillShader();
+Shader* getStrokeShader();
 Shader* getPointShader();
 void    resetShader();
 void    shader(Shader& _shader);
