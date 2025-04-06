@@ -454,13 +454,14 @@ void setDropCallback(std::function<void(int, const char**)>_callback) { onDrop =
             mouse.drag.x = mouse.x;
             mouse.drag.y = mouse.y;
             mouse.entered = true;
-            mouse.button = 0;
+            mouse.button = e->button;
+            
             if (onMousePress)
                 onMousePress(mouse.x, mouse.y, mouse.button);
         } 
         else if (eventType == EMSCRIPTEN_EVENT_MOUSEUP) {
             mouse.entered = false;
-            mouse.button = 0;
+            mouse.button = -1;
             if (onMouseRelease)
                 onMouseRelease(mouse.x, mouse.y, mouse.button);
         } 
@@ -469,36 +470,16 @@ void setDropCallback(std::function<void(int, const char**)>_callback) { onDrop =
             mouse.velY = y - mouse.drag.y;
             mouse.drag.x = x;
             mouse.drag.y = y;
-
             mouse.x = x;
             mouse.y = y;
 
-            int action1 = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1);
-            int action2 = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_2);
-            int button = 0;
-
-            if (action1 == GLFW_PRESS) button = 1;
-            else if (action2 == GLFW_PRESS) button = 2;
-
-            // Lunch events
-            if (mouse.button == 0 && button != mouse.button) {
-                mouse.button = button;
-                if (onMousePress)
-                    onMousePress(mouse.x, mouse.y, mouse.button);
+            if (mouse.entered) {
+                if (onMouseDrag)
+                    onMouseDrag(mouse.x, mouse.y, mouse.button);
             }
             else {
-                mouse.button = button;
-            }
-
-            if (mouse.velX != 0.0 || mouse.velY != 0.0) {
-                if (button != 0) {
-                    if (onMouseDrag)
-                        onMouseDrag(mouse.x, mouse.y, mouse.button);
-                }
-                else {
-                    if (onMouseMove)
-                        onMouseMove(mouse.x, mouse.y);
-                }
+                if (onMouseMove)
+                    onMouseMove(mouse.x, mouse.y);
             }
         } 
         else {
@@ -902,20 +883,6 @@ int initGL(WindowProperties _prop) {
         }
     });
 
-     // callback when a mouse button is pressed or released
-     glfwSetMouseButtonCallback(window, [](GLFWwindow* _window, int button, int action, int mods) {
-        if (button == GLFW_MOUSE_BUTTON_1) {
-            if (action == GLFW_PRESS && !left_mouse_button_down)
-                left_mouse_button_down = true;
-            else if (action == GLFW_RELEASE && left_mouse_button_down)
-                left_mouse_button_down = false;
-        }
-        if (action == GLFW_PRESS) {
-            mouse.drag.x = mouse.x;
-            mouse.drag.y = mouse.y;
-        }
-    });
-
     glfwSetScrollCallback(window, [](GLFWwindow* _window, double xoffset, double yoffset) {
         if (onScroll)
             onScroll(-yoffset * fPixelDensity);
@@ -939,9 +906,34 @@ int initGL(WindowProperties _prop) {
         mouse.entered = (bool)entered;
     });
 
+    //  // callback when a mouse button is pressed or released
+    //  glfwSetMouseButtonCallback(window, [](GLFWwindow* _window, int button, int action, int mods) {
+    //     if (button == GLFW_MOUSE_BUTTON_1) {
+    //         if (action == GLFW_PRESS && !left_mouse_button_down)
+    //             left_mouse_button_down = true;
+    //         else if (action == GLFW_RELEASE && left_mouse_button_down)
+    //             left_mouse_button_down = false;
+    //     }
+    //     if (action == GLFW_PRESS) {
+    //         mouse.drag.x = mouse.x;
+    //         mouse.drag.y = mouse.y;
+    //     }
+    // });
+
     glfwSetMouseButtonCallback(window, [](GLFWwindow* _window, int _button, int _action, int _mods) {
         mouse.button = _button;
+
+        if (_button == GLFW_MOUSE_BUTTON_1) {
+            if (_action == GLFW_PRESS && !left_mouse_button_down)
+                left_mouse_button_down = true;
+            else if (_action == GLFW_RELEASE && left_mouse_button_down)
+                left_mouse_button_down = false;
+        }
+
         if (_action == GLFW_PRESS) {
+            mouse.drag.x = mouse.x;
+            mouse.drag.y = mouse.y;
+
             if (onMousePress)
                 onMousePress(mouse.x, mouse.y, mouse.button);
         }
@@ -1023,14 +1015,14 @@ int initGL(WindowProperties _prop) {
 
     // emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, key_callback);
 
-    // emscripten_set_mousedown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
-    // emscripten_set_mouseup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
-    // emscripten_set_mousemove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
+    emscripten_set_mousedown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
+    emscripten_set_mouseup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
+    emscripten_set_mousemove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
 
-    // emscripten_set_touchstart_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-    // emscripten_set_touchend_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-    // emscripten_set_touchmove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-    // emscripten_set_touchcancel_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
+    emscripten_set_touchstart_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
+    emscripten_set_touchend_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
+    emscripten_set_touchmove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
+    emscripten_set_touchcancel_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
 
 #else
     glfwSetWindowPosCallback(window, [](GLFWwindow* _window, int x, int y) {
