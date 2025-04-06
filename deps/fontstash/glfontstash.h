@@ -476,11 +476,12 @@ int glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned int
 
     stash->length = length - 6;
 
-    if(ctx->shaping != NULL && fons__getState(ctx)->useShaping) {
+    if (ctx->shaping != NULL && fons__getState(ctx)->useShaping) {
         FONSshapingRes* res = ctx->shaping->result;
         stash->nbGlyph = res->glyphCount;
         fons__clearShaping(ctx);
-    } else {
+    } 
+    else {
         const char* str = s;
         const char* end = s + strlen(s);
         int i = 0;
@@ -775,10 +776,10 @@ void glfonsTranslate(FONScontext* ctx, fsuint id, float tx, float ty) {
 
 void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a) {
     GLFONS_LOAD_STASH
-    
-    size_t len = buffer->interleavedArray.size();
-    if (len == 0) {
-        std::cout << "Error: Invalid layout index for transform." << std::endl;
+
+    if (buffer->interleavedArray.size() == 0) {
+        std::cout << "Error: Invalid layout index for transform.interleavedArray = 0; offset = " << stash->offset << 
+        "; nbGLyph = " << stash->nbGlyph << std::endl;
         return;
     }
     

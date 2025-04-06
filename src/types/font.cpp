@@ -12,6 +12,7 @@
 
 namespace vera { 
 
+#define FONS_ATLAS_SIZE 512
 static FONScontext* fs = nullptr;
 
 // Monserrat by Julieta Ulanovsky
@@ -121,7 +122,7 @@ bool Font::load(const std::string &_filepath, std::string _name) {
     if (fs == nullptr) {
         GLFONSparams params;
         params.useGLBackend = true; // if not set to true, you must provide your own gl backend
-        fs = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT | FONS_NORMALIZE_TEX_COORDS, params, nullptr);
+        fs = glfonsCreate(FONS_ATLAS_SIZE, FONS_ATLAS_SIZE, FONS_ZERO_TOPLEFT | FONS_NORMALIZE_TEX_COORDS, params, nullptr);
     }
 
     m_id = fonsAddFont(fs, _name.c_str(), _filepath.c_str());
@@ -135,7 +136,7 @@ bool Font::load(unsigned char* _data, size_t _size, std::string _name) {
     if (fs == nullptr) {
         GLFONSparams params;
         params.useGLBackend = true; // if not set to true, you must provide your own gl backend
-        fs = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT | FONS_NORMALIZE_TEX_COORDS, params, nullptr);
+        fs = glfonsCreate(FONS_ATLAS_SIZE, FONS_ATLAS_SIZE, FONS_ZERO_TOPLEFT | FONS_NORMALIZE_TEX_COORDS, params, nullptr);
     }
 
     m_id = fonsAddFontMem(fs, _name.c_str(), _data, _size, 1);
@@ -192,20 +193,23 @@ void Font::render(const std::string &_text, float _x, float _y) {
         fonsSetBlur(fs, m_blur);
     }
 
-    glfonsScreenSize(fs, vera::getWindowWidth(), vera::getWindowHeight());
+    int pd = vera::getPixelDensity();
+    int width = vera::getViewport().z;
+    int height = vera::getViewport().w;
+    glfonsScreenSize(fs, width, height);
 
     fsuint textID = 0;
     fsuint buffer;
     glfonsBufferCreate(fs, &buffer);
     glfonsBindBuffer(fs, buffer);
-
     glfonsGenText(fs, 1, &textID);
     glfonsSetColor(fs, m_color);
 
     glfonsRasterize(fs, textID, _text.c_str());
-    glfonsTransform(fs, textID, _x, _y, 0.0, 1.0);
+    glfonsTransform(fs, textID, _x/pd, _y/pd, 0.0, 1.0);
     if (m_angle != 0.0)
         glfonsRotate(fs, textID, m_angle);
+
     glfonsUpdateBuffer(fs);
     glfonsDraw(fs);
     glfonsBufferDelete(fs, buffer);
