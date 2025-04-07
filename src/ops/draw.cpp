@@ -1052,8 +1052,8 @@ void text(const std::string& _text, const glm::vec3& _pos, Font* _font) {
     Camera* cam = getCamera();
 
     glm::vec3 screenPos = cam->worldToScreen(_pos, getWorldMatrixPtr());
-    screenPos.x *= vera::getWindowWidth();
-    screenPos.y *= vera::getWindowHeight();
+    screenPos.x *= vera::getViewport().z;
+    screenPos.y *= vera::getViewport().w;
 
     // Is in view? (depth and in viewport)
     if (screenPos.z >= 1.0) {
@@ -1070,17 +1070,13 @@ void text(const std::string& _text, float _x, float _y, Font* _font) {
         _font = getFont();
     _font->setColor( fill_color );
 
-    glm::mat4 m = getProjectionViewWorldMatrix();
-    glm::vec4 pos = glm::vec4(_x, _y, 0.0f, 1.0f);
-    pos = m * pos;
+    glm::vec4 pos = getProjectionViewWorldMatrix() * glm::vec4(_x, _y, 0.0f, 1.0f);
     pos.x /= pos.w;
     pos.y /= pos.w;
-    pos.x = (pos.x + 1.0f) * 0.5f * vera::getWindowWidth();
-    pos.y = (1.0f-pos.y) * 0.5f * vera::getWindowHeight();
-    // pos.z = 0.0f;
-    // pos.w = 1.0f;
-    glm::vec3 screenPos = glm::vec3(pos.x, pos.y, pos.z);
-    _font->render(_text, screenPos.x, screenPos.y);
+    pos.x = (pos.x + 1.0f) * 0.5f * vera::getViewport().z;
+    pos.y = (1.0f-pos.y) * 0.5f * vera::getViewport().w;
+
+    _font->render(_text, pos.x, pos.y);
 }
 
 void textHighlight(const std::string& _text, const glm::vec2& _pos, const glm::vec4& _bg, Font* _font) { textHighlight(_text, _pos.x, _pos.y, _bg, _font); }

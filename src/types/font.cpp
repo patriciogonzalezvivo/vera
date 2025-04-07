@@ -193,10 +193,7 @@ void Font::render(const std::string &_text, float _x, float _y) {
         fonsSetBlur(fs, m_blur);
     }
 
-    int pd = vera::getPixelDensity();
-    int width = vera::getViewport().z;
-    int height = vera::getViewport().w;
-    glfonsScreenSize(fs, width, height);
+    glfonsScreenSize(fs, vera::getViewport().z, vera::getViewport().w);
 
     fsuint textID = 0;
     fsuint buffer;
@@ -206,7 +203,7 @@ void Font::render(const std::string &_text, float _x, float _y) {
     glfonsSetColor(fs, m_color);
 
     glfonsRasterize(fs, textID, _text.c_str());
-    glfonsTransform(fs, textID, _x/pd, _y/pd, 0.0, 1.0);
+    glfonsTransform(fs, textID, _x, _y, 0.0, 1.0);
     if (m_angle != 0.0)
         glfonsRotate(fs, textID, m_angle);
 
