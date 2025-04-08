@@ -920,7 +920,7 @@ int initGL(WindowProperties _prop) {
     //     }
     // });
 
-    glfwSetMouseButtonCallback(window, [](GLFWwindow* _window, int _button, int _action, int _mods) {
+    glfwSetMouseButtonCallback(window, [](GLFWwindow* _window, int _button, int _action, int _mods) {        
         mouse.button = _button;
 
         if (_button == GLFW_MOUSE_BUTTON_1) {
@@ -947,9 +947,18 @@ int initGL(WindowProperties _prop) {
     glfwSetCursorPosCallback(window, [](GLFWwindow* _window, double x, double y) {
         // Convert x,y to pixel coordinates relative to viewport.
         // (0,0) is lower left corner.
-        y = viewport.w - y;
-        x *= fPixelDensity;
-        y *= fPixelDensity;
+        // y = viewport.w - y;
+        
+        // #if defined(__EMSCRIPTEN__)
+        // x /= fPixelDensity;
+        // y /= fPixelDensity;
+        // #else
+        // x *= fPixelDensity;
+        // y *= fPixelDensity;
+        // #endif
+        // std::cout << "Mouse Position: " << x << " " << y << std::endl;
+
+         // mouse.x,mouse.y is the current cursor position, constrained
         // mouse.velX,mouse.velY is the distance the mouse cursor has moved
         // since the last callback, during a drag gesture.
         // mouse.drag is the previous mouse position, during a drag gesture.
@@ -1015,14 +1024,14 @@ int initGL(WindowProperties _prop) {
 
     // emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, key_callback);
 
-    emscripten_set_mousedown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
-    emscripten_set_mouseup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
-    emscripten_set_mousemove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
+    // emscripten_set_mousedown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
+    // emscripten_set_mouseup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
+    // emscripten_set_mousemove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
 
-    emscripten_set_touchstart_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-    emscripten_set_touchend_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-    emscripten_set_touchmove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-    emscripten_set_touchcancel_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
+    // emscripten_set_touchstart_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
+    // emscripten_set_touchend_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
+    // emscripten_set_touchmove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
+    // emscripten_set_touchcancel_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
 
 #else
     glfwSetWindowPosCallback(window, [](GLFWwindow* _window, int x, int y) {
