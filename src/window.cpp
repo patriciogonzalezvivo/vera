@@ -431,150 +431,6 @@ void setDropCallback(std::function<void(int, const char**)>_callback) { onDrop =
         update_canvas_size();
         return EM_TRUE;
     }
-
-    static EM_BOOL key_callback(int eventType, const EmscriptenKeyboardEvent *e, void* userData) {
-        if (eventType == EMSCRIPTEN_EVENT_KEYDOWN) {
-            if (onKeyPress)
-                onKeyPress(e->keyCode);
-        }
-        
-        return EM_TRUE;
-    }
-
-    static EM_BOOL mouse_callback(int eventType, const EmscriptenMouseEvent *e, void* userData) {
-        float x = (float)e->targetX;
-        float y = viewport.w - (float)e->targetY;
-
-        x *= getPixelDensity(false);
-        y *= getPixelDensity(false);
-
-        if (eventType == EMSCRIPTEN_EVENT_MOUSEDOWN) {
-            mouse.x = x;
-            mouse.y = y;
-            mouse.drag.x = mouse.x;
-            mouse.drag.y = mouse.y;
-            mouse.entered = true;
-            mouse.button = e->button;
-            
-            if (onMousePress)
-                onMousePress(mouse.x, mouse.y, mouse.button);
-        } 
-        else if (eventType == EMSCRIPTEN_EVENT_MOUSEUP) {
-            mouse.entered = false;
-            mouse.button = -1;
-            if (onMouseRelease)
-                onMouseRelease(mouse.x, mouse.y, mouse.button);
-        } 
-        else if (eventType == EMSCRIPTEN_EVENT_MOUSEMOVE) {
-            mouse.velX = x - mouse.drag.x;
-            mouse.velY = y - mouse.drag.y;
-            mouse.drag.x = x;
-            mouse.drag.y = y;
-            mouse.x = x;
-            mouse.y = y;
-
-            if (mouse.entered) {
-                if (onMouseDrag)
-                    onMouseDrag(mouse.x, mouse.y, mouse.button);
-            }
-            else {
-                if (onMouseMove)
-                    onMouseMove(mouse.x, mouse.y);
-            }
-        } 
-        else {
-            printf("eventType is invalid. (%d)\n", eventType);
-            return false;
-        }
-
-        return EM_TRUE;
-    }
-
-    static EM_BOOL touch_callback(int eventType, const EmscriptenTouchEvent *e, void *userData) {
-        float pd = getPixelDensity(true);
-        bool preventDefault = false;
-
-        if (e->numTouches == 1) {
-            float x = e->touches[0].targetX;
-            float y = viewport.w - e->touches[0].targetY;
-
-            y *= pd;
-            x *= pd;
-
-            if (eventType == EMSCRIPTEN_EVENT_TOUCHSTART) {
-                mouse.x = x;
-                mouse.y = y;
-                mouse.drag.x = mouse.x;
-                mouse.drag.y = mouse.y;
-                mouse.entered = true;
-                mouse.button = 1;
-                if (onMousePress)
-                    onMousePress(mouse.x, mouse.y, mouse.button);
-            } 
-            else if (eventType == EMSCRIPTEN_EVENT_TOUCHEND) {
-                mouse.entered = false;
-                mouse.button = 0;
-                if (onMouseRelease)
-                    onMouseRelease(mouse.x, mouse.y, mouse.button);
-            } 
-            else if (eventType == EMSCRIPTEN_EVENT_TOUCHMOVE) {
-                mouse.velX = x - mouse.drag.x;
-                mouse.velY = y - mouse.drag.y;
-                mouse.drag.x = x;
-                mouse.drag.y = y;
-
-                mouse.x = x;
-                mouse.y = y;
-
-                if (mouse.velX != 0.0 || mouse.velY != 0.0) {
-                    if (mouse.button != 0) {
-                        if (onMouseDrag)
-                            onMouseDrag(mouse.x, mouse.y, mouse.button);
-                    }
-                    else {
-                        if (onMouseMove)
-                            onMouseMove(mouse.x, mouse.y);
-                    }
-                }
-            } 
-            else if (eventType == EMSCRIPTEN_EVENT_TOUCHCANCEL) {
-                mouse.entered = false;
-                mouse.button = 0;
-                if (onMouseRelease)
-                    onMouseRelease(mouse.x, mouse.y, mouse.button);
-
-            } 
-            else {
-                printf("eventType is invalid. (%d)\n", eventType);
-                return false;
-            }
-            preventDefault = true;
-        }
-        else if (e->numTouches > 1) {
-            // float x0 = e->touches[0].targetX;
-            // float x1 = e->touches[1].targetX;
-            // float xAverage = (x0 + x1) * 0.5f;
-
-            float y0 = viewport.w - e->touches[0].targetY;
-            float y1 = viewport.w - e->touches[1].targetY;
-            float yAverage = (y0 + y1) * 0.5f;
-
-            if (eventType == EMSCRIPTEN_EVENT_TOUCHSTART) {
-                yScroll = yAverage; 
-                preventDefault = true;
-            }
-            else if (eventType == EMSCRIPTEN_EVENT_TOUCHMOVE) {
-                if (onScroll)
-                    onScroll( (yAverage - yScroll) * pd );
-            }
-            else {
-                yScroll = 0.0f;
-                preventDefault = true;
-            }
-        }
-
-        return preventDefault;
-    }
 #endif
 
 #if defined(PLATFORM_WINDOWS)
@@ -945,20 +801,7 @@ int initGL(WindowProperties _prop) {
 
     // callback when the mouse cursor moves
     glfwSetCursorPosCallback(window, [](GLFWwindow* _window, double x, double y) {
-        // Convert x,y to pixel coordinates relative to viewport.
-        // (0,0) is lower left corner.
-        // y = viewport.w - y;
-        
-        // #if defined(__EMSCRIPTEN__)
-        // x /= fPixelDensity;
-        // y /= fPixelDensity;
-        // #else
-        // x *= fPixelDensity;
-        // y *= fPixelDensity;
-        // #endif
-        // std::cout << "Mouse Position: " << x << " " << y << std::endl;
-
-         // mouse.x,mouse.y is the current cursor position, constrained
+        // mouse.x,mouse.y is the current cursor position, constrained
         // mouse.velX,mouse.velY is the distance the mouse cursor has moved
         // since the last callback, during a drag gesture.
         // mouse.drag is the previous mouse position, during a drag gesture.
@@ -1021,19 +864,8 @@ int initGL(WindowProperties _prop) {
     enable_extension("EXT_color_buffer_float");
 
     emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, resize_callback);
-
-    // emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, key_callback);
-
-    // emscripten_set_mousedown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
-    // emscripten_set_mouseup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
-    // emscripten_set_mousemove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, mouse_callback);
-
-    // emscripten_set_touchstart_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-    // emscripten_set_touchend_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-    // emscripten_set_touchmove_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-    // emscripten_set_touchcancel_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, touch_callback);
-
 #else
+
     glfwSetWindowPosCallback(window, [](GLFWwindow* _window, int x, int y) {
         if (fPixelDensity != getPixelDensity(true))
             updateViewport();
@@ -1042,6 +874,7 @@ int initGL(WindowProperties _prop) {
     glfwSetWindowSizeCallback(window, [](GLFWwindow* _window, int _w, int _h) {
         setViewport(_w,_h);
     });
+    
 #endif 
         
 #endif
