@@ -462,10 +462,10 @@ int initGL(WindowProperties _prop) {
     if (properties.screen_y == -1)
         properties.screen_y = 0;
 
-    if (properties.screen_width == -1)
+    if (properties.screen_width == -1 || properties.style == FULLSCREEN)
         properties.screen_width = getScreenWidth();
 
-    if (properties.screen_height == -1)
+    if (properties.screen_height == -1 || properties.style == FULLSCREEN)
         properties.screen_height = getScreenHeight();
 
     // Clear application state
