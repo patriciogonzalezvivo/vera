@@ -207,8 +207,8 @@ EGLDisplay display;
 EGLContext context;
 EGLSurface surface;
 
-EGLDisplay getEGLDisplay() { return display; }
-EGLContext getEGLContext() { return context; }
+const EGLDisplay getEGLDisplay() { return display; }
+const EGLContext getEGLContext() { return context; }
 
 // Get the EGL error back as a string. Useful for debugging.
 static const char *eglGetErrorStr() {
@@ -889,7 +889,7 @@ int initGL(WindowProperties _prop) {
 }
 
 // get Time Function
-double getTimeSec() {
+const double getTimeSec() {
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     timespec temp;
@@ -903,7 +903,7 @@ double getTimeSec() {
     return double(temp.tv_sec) + double(temp.tv_nsec/1000000000.);
 }
 
-bool isGL() {
+const bool isGL() {
  
 #if defined(DRIVER_GLFW)
     return !glfwWindowShouldClose(window);
@@ -1101,9 +1101,7 @@ void setDepthTest(bool _value) {
         glDisable(GL_DEPTH_TEST);
 }
 
-bool getDepthTest() {
-    return bDepthTest;
-}
+const bool getDepthTest() { return bDepthTest; }
 
 void setViewport(float _width, float _height) {
     viewport.z = _width;
@@ -1162,19 +1160,19 @@ void getScreenSize() {
 #endif
 }
 
-int getScreenWidth() {
+const int getScreenWidth() {
     if (screen_width <= 0.0)
         getScreenSize();
     return screen_width;
 }
 
-int getScreenHeight() {
+const int getScreenHeight() {
     if (screen_height <= 0.0)
         getScreenSize();
     return screen_height;
 }
 
-bool isFullscreen() {
+const bool isFullscreen() {
 #if defined(__EMSCRIPTEN__)
     return properties.style == FULLSCREEN;
 #elif defined(DRIVER_GLFW)
@@ -1230,7 +1228,7 @@ void setFullscreen(bool _fullscreen) {
 }
 
 void setPixelDensity(float _density) { fPixelDensity = std::max(1.0f,_density); }
-float getPixelDensity(bool _compute) {
+const float getPixelDensity(bool _compute) {
     if (_compute && properties.style != EMBEDDED) {
 #if defined(__EMSCRIPTEN__)
         return std::max(1.0f, float(emscripten_get_device_pixel_ratio()));
@@ -1266,37 +1264,37 @@ const glm::ivec4& getViewport() {
 
 const glm::mat4& getOrthoMatrix() { return orthoMatrix; }
 const glm::mat4& getFlippedOrthoMatrix() { return orthoFlippedMatrix; }
-int getWindowWidth() { return viewport.z * fPixelDensity; }
-int getWindowHeight() { return viewport.w * fPixelDensity; }
-int getWindowMSAA() { return properties.msaa; }
-WindowStyle getWindowStyle() { return properties.style; }
+const int getWindowWidth() { return viewport.z * fPixelDensity; }
+const int getWindowHeight() { return viewport.w * fPixelDensity; }
+const int getWindowMSAA() { return properties.msaa; }
+const WindowStyle getWindowStyle() { return properties.style; }
 
-std::string getVendor() {
+const std::string& getVendor() {
     if (properties.vendor == "") properties.vendor = std::string((const char*)glGetString(GL_VENDOR));
     return properties.vendor;
 }
 
-std::string getRenderer() {
+const std::string& getRenderer() {
     if (properties.renderer == "") properties.renderer = std::string((const char*)glGetString(GL_RENDERER));
     return properties.renderer;
 }
 
-std::string getGLVersion() {
+const std::string& getGLVersion() {
     if (properties.version == "") properties.version = std::string((const char*)glGetString(GL_VERSION));
     return properties.version;
 }
 
-std::string getGLSLVersion() {
+const std::string& getGLSLVersion() {
     if (properties.glsl == "") properties.glsl = std::string((const char *)glGetString(GL_SHADING_LANGUAGE_VERSION));
     return properties.glsl;
 }
 
-std::string getExtensions() { 
+const std::string& getExtensions() { 
     if (properties.extensions == "") properties.extensions = std::string((const char*)glGetString(GL_EXTENSIONS));
     return properties.extensions; 
 }
 
-bool haveExtension(std::string _name) { 
+const bool haveExtension(const std::string& _name) { 
     std::string gl_version = getGLVersion();
     if (gl_version[0] == '4')
         return true;
@@ -1306,7 +1304,7 @@ bool haveExtension(std::string _name) {
 }
 
 #if defined(__EMSCRIPTEN__)
-size_t getWebGLVersionNumber() {
+const size_t getWebGLVersionNumber() {
     if (properties.webgl == 0) properties.webgl = (beginsWith( getGLVersion(), "OpenGL ES 2.0"))? 1 : 2 ;
     return properties.webgl;
 }
@@ -1339,8 +1337,8 @@ glm::vec4 getDate() {
 #endif 
 }
 
-double  getTime() { return elapseTime;}
-double  getDelta() { return delta; }
+const double  getTime() { return elapseTime;}
+const double  getDelta() { return delta; }
 
 void    setFps(int _fps) { 
     if (_fps == 0)
@@ -1348,11 +1346,11 @@ void    setFps(int _fps) {
     else
         restSec = 1.0f/(float)_fps; 
 }
-double  getFps() { return 1.0/restSec; }
+const double  getFps() { return 1.0/restSec; }
 
-float   getRestSec() { return restSec; }
-int     getRestMs() { return restSec * 1000; }
-int     getRestUs() { return restSec * 1000000; }
+const float   getRestSec() { return restSec; }
+const int     getRestMs() { return restSec * 1000; }
+const int     getRestUs() { return restSec * 1000000; }
 
 void    setMousePosition( float _x, float _y ) {
     mouse.x = _x;
@@ -1378,14 +1376,14 @@ void    setMouseVisibility(bool _visible) {
     #endif
 }
 
-float   getMouseX(){ return mouse.x; }
-float   getMouseY(){ return mouse.y; }
-float   getMouseVelX(){ return mouse.velX; }
-float   getMouseVelY(){ return mouse.velY;}
-int     getMouseButton(){ return mouse.button;}
-bool    getMouseEntered() { return mouse.entered; }
+const float   getMouseX(){ return mouse.x; }
+const float   getMouseY(){ return mouse.y; }
+const float   getMouseVelX(){ return mouse.velX; }
+const float   getMouseVelY(){ return mouse.velY;}
+const int     getMouseButton(){ return mouse.button;}
+const bool    getMouseEntered() { return mouse.entered; }
 
-bool    isShiftPressed() { return bShift; }
-bool    isControlPressed() { return bControl; }
+const bool    isShiftPressed() { return bShift; }
+const bool    isControlPressed() { return bControl; }
 
 }

@@ -71,7 +71,7 @@ public:
     virtual const glm::mat4&    getProjectionViewMatrix() const { return m_projectionViewMatrix; }
     virtual const glm::mat4&    getInverseProjectionMatrix() const { return m_inverseProjectionMatrix; }
 
-    virtual const glm::ivec4&   getViewport() const { return m_viewport; }
+    virtual glm::ivec4          getViewport() const;
     virtual void begin();
     virtual void end();
 protected:

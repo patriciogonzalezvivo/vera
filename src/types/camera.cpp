@@ -121,6 +121,13 @@ const glm::mat4& Camera::getViewMatrix() const {
         return getTransformMatrix(); 
 }
 
+glm::ivec4 Camera::getViewport() const {
+    if (m_viewport == glm::ivec4(0))
+        return glm::ivec4(0, 0, vera::getWindowWidth(), vera::getWindowHeight());
+    else
+        return m_viewport;
+}
+
 const glm::vec3& Camera::getPosition() const {
     if (m_projectionType == ProjectionType::PERSPECTIVE_VIRTUAL_OFFSET )
         return m_position_offset;

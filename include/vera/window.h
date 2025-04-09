@@ -176,84 +176,83 @@ struct WindowProperties {
 
 //	GL Context
 //----------------------------------------------
-int         initGL(WindowProperties _properties = WindowProperties());
-bool        isGL();
-void        updateGL();
-void        renderGL();
-void        closeGL();
+int                 initGL(WindowProperties _properties = WindowProperties());
+const bool          isGL();
+void                updateGL();
+void                renderGL();
+void                closeGL();
 
-std::string getVendor();
-std::string getRenderer();
-std::string getGLVersion();
-std::string getGLSLVersion();
-std::string getExtensions();
-bool        haveExtension(std::string _name);
+const std::string&  getVendor();
+const std::string&  getRenderer();
+const std::string&  getGLVersion();
+const std::string&  getGLSLVersion();
+const std::string&  getExtensions();
+const bool          haveExtension(const std::string& _name);
 
 #if defined(__EMSCRIPTEN__)
-size_t      getWebGLVersionNumber();
+const size_t        getWebGLVersionNumber();
 #elif defined(PLATFORM_RPI)
-EGLDisplay  getEGLDisplay();
-EGLContext  getEGLContext();
+const EGLDisplay    getEGLDisplay();
+const EGLContext    getEGLContext();
 #endif
 
 //	Windows/Viewport
 //----------------------------------------------
-void        updateViewport();
+void                updateViewport();
 
-void        setFps(int _fps);
-void        setPixelDensity(float _density);
-void        setViewport(float _width, float _height);
-void        setWindowSize(int _width, int _height);
-void        setWindowTitle(const char* _title);
-void        setWindowVSync(bool _value);
-void        setWindowIcon(unsigned char* _data, size_t _width, size_t _height);
+void                setFps(int _fps);
+void                setPixelDensity(float _density);
+void                setViewport(float _width, float _height);
+void                setWindowSize(int _width, int _height);
+void                setWindowTitle(const char* _title);
+void                setWindowVSync(bool _value);
+void                setWindowIcon(unsigned char* _data, size_t _width, size_t _height);
 
-void        setDepthTest(bool _value);
-bool        getDepthTest();
+void                setDepthTest(bool _value);
+const bool          getDepthTest();
 
-bool        isFullscreen();
-void        setFullscreen(bool _fullscreen);
+const bool          isFullscreen();
+void                setFullscreen(bool _fullscreen);
 
-int         getScreenWidth();
-int         getScreenHeight();
-float       getPixelDensity(bool _compute = false);
+const int           getScreenWidth();
+const int           getScreenHeight();
+const float         getPixelDensity(bool _compute = false);
 
-const glm::ivec4& getViewport();
-const glm::mat4&  getOrthoMatrix();
-const glm::mat4&  getFlippedOrthoMatrix();
+const glm::ivec4&   getViewport();
+const glm::mat4&    getOrthoMatrix();
+const glm::mat4&    getFlippedOrthoMatrix();
 
-int         getWindowWidth();
-int         getWindowHeight();
-int         getWindowMSAA();
-WindowStyle getWindowStyle();
+const int           getWindowWidth();
+const int           getWindowHeight();
+const int           getWindowMSAA();
+const WindowStyle   getWindowStyle();
 
 
 // TIME
 // ---------------------------------------
-glm::vec4   getDate();
-double      getTimeSec();
-double      getTime();
-double      getDelta();
-double      getFps();
-float       getRestSec();
-int         getRestMs();
-int         getRestUs();
+glm::vec4           getDate();
+const double        getTimeSec();
+const double        getTime();
+const double        getDelta();
+const double        getFps();
+const float         getRestSec();
+const int           getRestMs();
+const int           getRestUs();
 
-// Mouse Keyboards
+// Mouse / Keyboards
 // ---------------------------------------
-void        setMousePosition(float _x, float _y);
-void        setMouseVisibility(bool _visible);
+void                setMousePosition(float _x, float _y);
+void                setMouseVisibility(bool _visible);
 
-float       getMouseX();
-float       getMouseY();
+const float         getMouseX();
+const float         getMouseY();
+const float         getMouseVelX();
+const float         getMouseVelY();
+const int           getMouseButton();
+const bool          getMouseEntered();
 
-float       getMouseVelX();
-float       getMouseVelY();
-int         getMouseButton();
-bool        getMouseEntered();
-
-bool        isShiftPressed();
-bool        isControlPressed();
+const bool          isShiftPressed();
+const bool          isControlPressed();
 
 // EVENTS CALLBACKS
 //----------------------------------------------
