@@ -1094,31 +1094,35 @@ void textHighlight(const std::string& _text, float _x , float _y, const glm::vec
     bool            style_fill = fill_enabled;
     HorizontalAlign style_halign = _font->getHorizontalAlign();
     VerticalAlign   style_valign = _font->getVerticalAlign();
+
     HorizontalAlign style_rect_halign = shapeHAlign;
     VerticalAlign   style_rect_valign = shapeVAlign;
 
     BoundingBox bbox = BoundingBox(_font->getBoundingBox(_text, _x, _y));
     bbox.expand(4.0f);
 
-    float s = getPixelDensity();
+    float s = getPixelDensity() == 1.0f ? 1.0f : getPixelDensity() * 2.0f;
         
     fill(_bg);
     noStroke();
 
     shapeHAlign = ALIGN_CENTER;
     shapeVAlign = ALIGN_MIDDLE;
-    rect(bbox.getCenter().x, bbox.getCenter().y, bbox.getWidth() * s, bbox.getHeight() * s);
+    rect(bbox.getCenter().x, bbox.getCenter().y, bbox.getWidth() * s * 1.1, bbox.getHeight() * s * 1.1);
 
-    fill(style_fg);
-    text(_text, _x, _y, _font);
     
     // restore style
     fill_enabled = style_fill;
     stroke_enabled = style_stroke;
     _font->setAlign(style_halign);
     _font->setAlign(style_valign);
-    style_rect_halign = shapeHAlign;
-    style_rect_valign = shapeVAlign;
+    // style_rect_halign = shapeHAlign;
+    // style_rect_valign = shapeVAlign;
+    shapeHAlign = style_rect_halign;
+    shapeVAlign = style_rect_valign;
+
+    fill(style_fg);
+    text(_text, _x, _y, _font);
 }
 
 // SHADER
