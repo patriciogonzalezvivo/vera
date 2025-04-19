@@ -100,16 +100,12 @@ const BlendMode blendMode() { return sBlendMode; }
 
 void cullingMode(CullingMode _mode) {
     sCullingMode = _mode;
-    if (_mode == CULL_NONE)
-        glDisable(GL_CULL_FACE);
-        
-    else {
-        glEnable(GL_CULL_FACE);
-        switch (_mode) {
-            case CULL_FRONT: glCullFace(GL_FRONT); break;
-            case CULL_BACK: glCullFace(GL_BACK); break;
-            case CULL_BOTH: glCullFace(GL_FRONT_AND_BACK); break;
-        }
+    switch (_mode) {
+        case CULL_FRONT:glDisable(GL_CULL_FACE); glCullFace(GL_FRONT); break;
+        case CULL_BACK: glDisable(GL_CULL_FACE); glCullFace(GL_BACK); break;
+        case CULL_BOTH: glDisable(GL_CULL_FACE); glCullFace(GL_FRONT_AND_BACK); break;
+        case CULL_NONE: glDisable(GL_CULL_FACE); break;
+        default: break;
     }
 }
 const CullingMode cullingMode() { return sCullingMode; }
