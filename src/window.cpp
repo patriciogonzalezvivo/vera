@@ -205,16 +205,14 @@ static bool                     bControl        = false;
         drmModeCrtc*            drm_crtc;
         uint32_t                drm_connector_id;
         uint32_t                drm_crtc_id;
+        uint32_t                drm_crtc_index;
 
         uint32_t                drm_format = DRM_FORMAT_XRGB8888;
-        uint64_t                drm_modifier = DRM_FORMAT_MOD_LINEAR;
+        uint64_t                modifier = DRM_FORMAT_MOD_LINEAR;
         uint32_t                drm_vrefresh;
         bool                    drm_async_page_flip = false;
         uint32_t                drm_flags;
         int                     drm_waiting_for_flip = 1;
-
-        const EGLDisplay getEGLDisplay() { return display; }
-        const EGLContext getEGLContext() { return context; }
 
         static void page_flip_handler(int fd, unsigned int frame, unsigned int sec, unsigned int usec, void *data) {
             /* suppress 'unused parameter' warnings */
@@ -236,18 +234,18 @@ static bool                     bControl        = false;
             return 0;
         }
 
-        int find_drm_device() {
+        static int find_drm_device(drmModeRes **resources) {
             drmDevicePtr devices[MAX_DRM_DEVICES] = { NULL };
             int num_devices, fd = -1;
 
             num_devices = drmGetDevices2(0, devices, MAX_DRM_DEVICES);
+            printf("Number of devices %d\n", num_devices);
             if (num_devices < 0) {
                 printf("drmGetDevices2 failed: %s\n", strerror(-num_devices));
-                return EXIT_FAILURE;
+                return -1;
             }
 
             for (int i = 0; i < num_devices; i++) {
-                drmModeRes *resources;
                 drmDevicePtr device = devices[i];
                 int ret;
 
@@ -260,8 +258,7 @@ static bool                     bControl        = false;
                 fd = open(device->nodes[DRM_NODE_PRIMARY], O_RDWR);
                 if (fd < 0)
                     continue;
-                ret = get_resources(fd, &resources);
-                drmModeFreeResources(resources);
+                ret = get_resources(fd, resources);
                 if (!ret)
                     break;
                 close(fd);
@@ -271,7 +268,6 @@ static bool                     bControl        = false;
 
             if (fd < 0)
                 printf("no drm device found!\n");
-
             return fd;
         }
 
@@ -311,29 +307,33 @@ static bool                     bControl        = false;
             return EXIT_FAILURE;
         }
 
-        int drm_host_init() {
-            int i, area;
+        int init_drm(const char *device, const char *mode_str, unsigned int vrefresh) {
+            drmModeRes *resources;
+            drmModeConnector *connector = NULL;
+            drmModeEncoder *encoder = NULL;
+            int i, ret, area;
 
-            // Open Device
-            if (vera::urlExists(properties.display))
-                drm_device = open(properties.display.c_str(), O_RDWR | O_CLOEXEC);
-            else {
-                drm_device = find_drm_device();
+            if (vera::urlExists(std::string(device))) {
+                drm_device = open(device, O_RDWR);
+                ret = get_resources(drm_device, &resources);
+                if (ret < 0 && errno == EOPNOTSUPP)
+                    printf("%s does not look like a modeset device\n", device);
+            } else {
+                drm_device = find_drm_device(&resources);
             }
             
-            if (drm_device == 0)
-                std::cout << "Can't open display" << std::endl;
-                
-            // Load Resources
-            drmModeRes *resources;
-            get_resources(drm_device, &resources);
-            if (!resources) {
-                std::cerr << "Unable to get DRM resources" << std::endl;
-                return EXIT_FAILURE;
+
+            if (drm_device < 0) {
+                printf("could not open drm device\n");
+                return -1;
             }
 
-            // Get Connector 
-            drmModeConnector *connector = NULL;
+            if (!resources) {
+                printf("drmModeGetResources failed: %s\n", strerror(errno));
+                return -1;
+            }
+
+            /* find a connected connector: */
             for (i = 0; i < resources->count_connectors; i++) {
                 connector = drmModeGetConnector(drm_device, resources->connectors[i]);
                 if (connector->connection == DRM_MODE_CONNECTED) {
@@ -344,30 +344,32 @@ static bool                     bControl        = false;
                 connector = NULL;
             }
 
-            if (connector == NULL) {
-                std::cerr << "Unable to get connector" << std::endl;
-                drmModeFreeResources(resources);
-                return EXIT_FAILURE;
+            if (!connector) {
+                /* we could be fancy and listen for hotplug events and wait for
+                * a connector..
+                */
+                printf("no connected connector!\n");
+                return -1;
             }
 
-            // Find user requested mode
-            if (*properties.mode) {
-                printf("request mode");
+            /* find user requested mode: */
+            if (mode_str && *mode_str) {
                 for (i = 0; i < connector->count_modes; i++) {
                     drmModeModeInfo *current_mode = &connector->modes[i];
 
-                    if (strcmp(current_mode->name, properties.mode) == 0) {
-                        if (drm_vrefresh == 0 || current_mode->vrefresh == drm_vrefresh) {
+                    if (strcmp(current_mode->name, mode_str) == 0) {
+                        if (vrefresh == 0 || current_mode->vrefresh == vrefresh) {
                             drm_mode = current_mode;
                             break;
                         }
                     }
                 }
+
                 if (!drm_mode)
                     printf("requested mode not found, using default mode!\n");
             }
 
-            // find preferred mode or the highest resolution mode:
+            /* find preferred mode or the highest resolution mode: */
             if (!drm_mode) {
                 for (i = 0, area = 0; i < connector->count_modes; i++) {
                     drmModeModeInfo *current_mode = &connector->modes[i];
@@ -376,6 +378,8 @@ static bool                     bControl        = false;
                         drm_mode = current_mode;
                         break;
                     }
+
+                    std::cout << "current_mode: " << current_mode->hdisplay << "x" << current_mode->vdisplay << std::endl;
 
                     int current_area = current_mode->hdisplay * current_mode->vdisplay;
                     if (current_area > area) {
@@ -387,27 +391,13 @@ static bool                     bControl        = false;
 
             if (!drm_mode) {
                 printf("could not find mode!\n");
-                return EXIT_FAILURE;
+                return -1;
             }
 
-            if (connector == NULL) {
-                std::cerr << "Unable to get encoder" << std::endl;
-                drmModeFreeConnector(connector);
-                drmModeFreeResources(resources);
-                return EXIT_FAILURE;
-            }
-            drm_connector_id = connector->connector_id;
-
-            // // Find encoder
-            // drmModeEncoder *encoder = NULL;
-            // if (connector->encoder_id)
-            //     encoder = drmModeGetEncoder(drm_device, connector->encoder_id);
-            // drm_crtc_id = encoder->crtc_id;
-
-            drmModeEncoder *encoder = NULL;
+            /* find encoder: */
             for (i = 0; i < resources->count_encoders; i++) {
                 encoder = drmModeGetEncoder(drm_device, resources->encoders[i]);
-                if (encoder->encoder_id == drm_connector_id)
+                if (encoder->encoder_id == connector->encoder_id)
                     break;
                 drmModeFreeEncoder(encoder);
                 encoder = NULL;
@@ -415,25 +405,26 @@ static bool                     bControl        = false;
 
             if (encoder) {
                 drm_crtc_id = encoder->crtc_id;
-            } else {
-                printf("No encoder. in the search for a connector.\n");
-                int32_t crtc_id = find_crtc_for_connector(resources, connector);
-                if (crtc_id == -1) {
+            } 
+            else {
+                uint32_t crtc_id = find_crtc_for_connector(resources, connector);
+                if (crtc_id == 0) {
                     printf("no crtc found!\n");
-                    return EXIT_FAILURE;
+                    return -1;
                 }
-
                 drm_crtc_id = crtc_id;
             }
 
-            // drm_crtc = drmModeGetCrtc(device, encoder->crtc_id);
-            drm_crtc = drmModeGetCrtc(drm_device, drm_crtc_id);
-            screen_width = drm_mode->hdisplay;
-            screen_height = drm_mode->vdisplay;
+            for (i = 0; i < resources->count_crtcs; i++) {
+                if (resources->crtcs[i] == drm_crtc_id) {
+                    drm_crtc_index = i;
+                    break;
+                }
+            }
 
-            drmModeFreeEncoder(encoder);
-            drmModeFreeConnector(connector);
             drmModeFreeResources(resources);
+
+            drm_connector_id = connector->connector_id;
 
             return 0;
         }
@@ -447,11 +438,22 @@ static bool                     bControl        = false;
         struct gbm {
             struct gbm_device*  device;
             struct gbm_surface* surface;
+
+            uint32_t            format;
+            int                 width, height;
         };
 
         struct gbm_fb {
-            struct gbm_bo *bo;
-            uint32_t fb_id;
+            struct gbm_bo*      bo;
+            uint32_t            fb_id;
+        };
+
+        enum mode {
+            SMOOTH,        /* smooth-shaded */
+            RGBA,          /* single-plane RGBA */
+            NV12_2IMG,     /* NV12, handled as two textures and converted to RGB in shader */
+            NV12_1IMG,     /* NV12, imported as planar YUV eglimg */
+            VIDEO,         /* video textured cube */
         };
 
         static struct gbm       gbm;
@@ -532,23 +534,25 @@ static bool                     bControl        = false;
             return fb;
         }
 
-        int gbm_init() {
-            gbm.device = gbm_create_device(drm_device);
+        int gbm_init(int drm_fd, int w, int h, uint32_t format, uint64_t modifier) {
+            // static struct gbm gbm;
+
+            gbm.device = gbm_create_device(drm_fd);
             gbm.surface = NULL;
 
             if (!gbm.device)
                 return EXIT_FAILURE;
 
             if (gbm_surface_create_with_modifiers)
-                gbm.surface = gbm_surface_create_with_modifiers(gbm.device, screen_width, screen_height, drm_format, &drm_modifier, 1);
+                gbm.surface = gbm_surface_create_with_modifiers(gbm.device, w, h, format, &modifier, 1);
 
             if (!gbm.surface) {
-                if (drm_modifier != DRM_FORMAT_MOD_LINEAR) {
+                if (modifier != DRM_FORMAT_MOD_LINEAR) {
                     fprintf(stderr, "Modifiers requested but support isn't available\n");
                     return EXIT_FAILURE;
                 }
 
-                gbm.surface = gbm_surface_create(gbm.device, screen_width, screen_height, drm_format, GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
+                gbm.surface = gbm_surface_create(gbm.device, w, h, format, GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
             }
 
             if (!gbm.surface) {
@@ -556,7 +560,7 @@ static bool                     bControl        = false;
                 return EXIT_FAILURE;
             }
             else {
-                printf("GBM surface created at %dx%d\n", screen_width, screen_height);
+                printf("GBM surface created at %dx%d\n", w, h);
                 printf("===================================\n");
             }
 
@@ -576,6 +580,15 @@ static bool                     bControl        = false;
             gbm_surface_destroy(gbm.surface);
             gbm_device_destroy(gbm.device);
         }
+
+
+        int drm_host_init() {
+            init_drm(properties.display.c_str(), properties.mode, drm_vrefresh);
+            screen_width = drm_mode->hdisplay;
+            screen_height = drm_mode->vdisplay;
+            gbm_init(drm_device, screen_width, screen_height, drm_format, modifier);
+        }
+
 
     #endif
 
@@ -870,7 +883,6 @@ namespace vera {
 
         #elif defined(DRIVER_DRM)
             drm_host_init();
-            gbm_init();
         #endif
 
         bHostInited = true;
@@ -980,12 +992,17 @@ int initGL(WindowProperties _prop) {
     
     static const EGLint config_attribs[] = {
         EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+
         EGL_RED_SIZE, 8,
         EGL_GREEN_SIZE, 8,
         EGL_BLUE_SIZE, 8,
         EGL_ALPHA_SIZE, 8,
         EGL_SAMPLE_BUFFERS, 1, EGL_SAMPLES, 4,
+        #if defined(DRIVER_BROADCOM)
         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+        #elif defined(DRIVER_DRM)
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
+        #endif
         EGL_DEPTH_SIZE, 16,
         EGL_NONE
     };
@@ -1036,6 +1053,8 @@ int initGL(WindowProperties _prop) {
     printf("EGL information:\n");
     printf("  version: \"%s\"\n", eglQueryString(egl.display, EGL_VERSION));
     printf("  vendor: \"%s\"\n", eglQueryString(egl.display, EGL_VENDOR));
+    printf("  client extensions: \"%s\"\n", egl_exts_client);
+    printf("  display extensions: \"%s\"\n", egl_exts_dpy);
     printf("===================================\n");
 
     if (!eglBindAPI(EGL_OPENGL_ES_API)) {
@@ -1153,11 +1172,12 @@ int initGL(WindowProperties _prop) {
         eglMakeCurrent(egl.display, egl.surface, egl.surface, egl.context);
 
         gl_exts = (char *) glGetString(GL_EXTENSIONS);
-        printf("OpenGL ES 2.x information:\n");
+        printf("OpenGL ES:\n");
         printf("  version: \"%s\"\n", glGetString(GL_VERSION));
         printf("  shading language version: \"%s\"\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
         printf("  vendor: \"%s\"\n", glGetString(GL_VENDOR));
         printf("  renderer: \"%s\"\n", glGetString(GL_RENDERER));
+        printf("  extensions: \"%s\"\n", gl_exts);
         printf("===================================\n");
 
         get_proc_gl(GL_OES_EGL_image, glEGLImageTargetTexture2DOES);
@@ -1184,7 +1204,7 @@ int initGL(WindowProperties _prop) {
         int ret = drmModeSetCrtc(drm_device, drm_crtc_id, fb->fb_id, 0, 0, &drm_connector_id, 1, drm_mode);
         if (ret) {
             printf("failed to set mode: %s\n", strerror(errno));
-            // return ret;
+            return ret;
         }
 
         if (drm_async_page_flip)
