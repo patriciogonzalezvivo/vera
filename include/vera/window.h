@@ -208,9 +208,6 @@ void                setWindowTitle(const char* _title);
 void                setWindowVSync(bool _value);
 void                setWindowIcon(unsigned char* _data, size_t _width, size_t _height);
 
-void                setDepthTest(bool _value);
-const bool          getDepthTest();
-
 const bool          isFullscreen();
 void                setFullscreen(bool _fullscreen);
 
@@ -244,10 +241,18 @@ const int           getRestUs();
 void                setMousePosition(float _x, float _y);
 void                setMouseVisibility(bool _visible);
 
+const glm::vec2&    getMousePosition();
+const glm::vec2     getMousePositionFlipped();
 const float         getMouseX();
 const float         getMouseY();
+const float         getMouseYFlipped();
+
+const glm::vec2&    getMouseVel();
+const glm::vec2     getMouseVelFlipped();
 const float         getMouseVelX();
 const float         getMouseVelY();
+const float         getMouseVelYFlipped();
+
 const int           getMouseButton();
 const bool          getMouseEntered();
 

@@ -103,7 +103,7 @@ struct CubemapFace {
         data = newData;
     }
 
-    int     calculateSH(glm::vec3 *_sh) {
+    int calculateSH(glm::vec3 *_sh) {
 
         // Calculate SH coefficients:
         int step = 16;

@@ -71,6 +71,10 @@ std::stack<glm::mat4> matrix_stack;
 void print(const std::string& _text) { std::cout << _text << std::endl; }
 void frameRate(int _fps) { setFps(_fps); }
 
+void flagChange() { scene->flagChange(); }
+bool haveChanged()  { return scene->haveChange(); }
+void resetChange() { scene->resetChange(); }
+
 float pixelDensity() { return getPixelDensity(); }
 void pixelDensity(float _density) { setPixelDensity(_density); }
 
@@ -1202,7 +1206,7 @@ void shader(Shader* _program) {
 
     _program->setUniform("u_date", getDate() );
     _program->setUniform("u_resolution", (float)getWindowWidth(), (float)getWindowHeight() );
-    _program->setUniform("u_mouse", (float)getMouseX(), (float)getMouseY() );
+    _program->setUniform("u_mouse", getMousePosition() );
     _program->setUniform("u_time", (float)getTimeSec() );
     _program->setUniform("u_delta", (float)getDelta() );
 

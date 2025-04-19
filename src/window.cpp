@@ -29,11 +29,11 @@ static glm::mat4                orthoMatrix;
 static glm::mat4                orthoFlippedMatrix;
 
 typedef struct {
-    bool      entered;
-    float     x,y;
-    int       button;
-    float     velX,velY;
-    glm::vec2 drag;
+    glm::vec2   pos;
+    glm::vec2   vel;
+    glm::vec2   drag;
+    int         button;
+    bool        entered;
 } Mouse;
 static Mouse            mouse;
 
@@ -49,7 +49,6 @@ static float            yScroll = 0.0f;
 
 static bool             bShift = false;    
 static bool             bControl = false;
-static bool             bDepthTest = false;
 
 #if defined(DRIVER_GLFW)
 
@@ -771,8 +770,8 @@ int initGL(WindowProperties _prop) {
     //             left_mouse_button_down = false;
     //     }
     //     if (action == GLFW_PRESS) {
-    //         mouse.drag.x = mouse.x;
-    //         mouse.drag.y = mouse.y;
+    //         mouse.drag.x = mouse.pos.x;
+    //         mouse.drag.y = mouse.pos.y;
     //     }
     // });
 
@@ -787,38 +786,37 @@ int initGL(WindowProperties _prop) {
         }
 
         if (_action == GLFW_PRESS) {
-            mouse.drag.x = mouse.x;
-            mouse.drag.y = mouse.y;
+            mouse.drag = mouse.pos;
 
             if (onMousePress)
-                onMousePress(mouse.x, mouse.y, mouse.button);
+                onMousePress(mouse.pos.x, mouse.pos.y, mouse.button);
         }
         else {
             if (onMouseRelease)
-                onMouseRelease(mouse.x, mouse.y, mouse.button);
+                onMouseRelease(mouse.pos.x, mouse.pos.y, mouse.button);
         }
     });	
 
     // callback when the mouse cursor moves
     glfwSetCursorPosCallback(window, [](GLFWwindow* _window, double x, double y) {
-        // mouse.x,mouse.y is the current cursor position, constrained
-        // mouse.velX,mouse.velY is the distance the mouse cursor has moved
+        // mouse.pos.x,mouse.pos.y is the current cursor position, constrained
+        // mouse.vel.x,mouse.vel.y is the distance the mouse cursor has moved
         // since the last callback, during a drag gesture.
         // mouse.drag is the previous mouse position, during a drag gesture.
         // Note that mouse.drag is *not* constrained to the viewport.
-        mouse.velX = x - mouse.drag.x;
-        mouse.velY = y - mouse.drag.y;
+        mouse.vel.x = x - mouse.drag.x;
+        mouse.vel.y = y - mouse.drag.y;
         mouse.drag.x = x;
         mouse.drag.y = y;
 
-        // mouse.x,mouse.y is the current cursor position, constrained
+        // mouse.pos.x,mouse.pos.y is the current cursor position, constrained
         // to the viewport.
-        mouse.x = x;
-        mouse.y = y;
-        if (mouse.x < 0) mouse.x = 0;
-        if (mouse.y < 0) mouse.y = 0;
-        if (mouse.x > getWindowWidth()) mouse.x = getWindowWidth();
-        if (mouse.y > getWindowHeight()) mouse.y = getWindowHeight();
+        mouse.pos.x = x;
+        mouse.pos.y = y;
+        if (mouse.pos.x < 0) mouse.pos.x = 0;
+        if (mouse.pos.y < 0) mouse.pos.y = 0;
+        if (mouse.pos.x > getWindowWidth()) mouse.pos.x = getWindowWidth();
+        if (mouse.pos.y > getWindowHeight()) mouse.pos.y = getWindowHeight();
 
         /*
             * TODO: the following code would best be moved into the
@@ -837,20 +835,20 @@ int initGL(WindowProperties _prop) {
         if (mouse.button == 0 && button != mouse.button) {
             mouse.button = button;
             if (onMousePress)
-                onMousePress(mouse.x, mouse.y, mouse.button);
+                onMousePress(mouse.pos.x, mouse.pos.y, mouse.button);
         }
         else {
             mouse.button = button;
         }
 
-        if (mouse.velX != 0.0 || mouse.velY != 0.0) {
+        if (mouse.vel.x != 0.0 || mouse.vel.y != 0.0) {
             if (button != 0) {
                 if (onMouseDrag)
-                    onMouseDrag(mouse.x, mouse.y, mouse.button);
+                    onMouseDrag(mouse.pos.x, mouse.pos.y, mouse.button);
             }
             else {
                 if (onMouseMove) 
-                    onMouseMove(mouse.x, mouse.y);
+                    onMouseMove(mouse.pos.x, mouse.pos.y);
             }
         }
     });
@@ -944,7 +942,9 @@ void updateGL() {
 
     // EVENTS
     // --------------------------------------------------------------------
-#if !defined(DRIVER_GLFW)
+#if defined(DRIVER_GLFW)
+    glfwPollEvents();
+#else
     if ( onMouseMove || onMousePress || onMouseDrag || onMouseRelease ) {
         const int XSIGN = 1<<4, YSIGN = 1<<5;
         static int fd = -1;
@@ -954,8 +954,7 @@ void updateGL() {
 
         if (fd >= 0) {
             // Set values to 0
-            mouse.velX=0;
-            mouse.velY=0;
+            mouse.vel = glm::vec2(0.0, 0.0);
 
             // Extract values from driver
             struct {char buttons, dx, dy; } m;
@@ -976,43 +975,42 @@ void updateGL() {
             else mouse.button = 0;
 
             // Set deltas
-            mouse.velX=m.dx;
-            mouse.velY=m.dy;
-            if (m.buttons&XSIGN) mouse.velX-=256;
-            if (m.buttons&YSIGN) mouse.velY-=256;
+            mouse.vel.x=m.dx;
+            mouse.vel.y=m.dy;
+            if (m.buttons&XSIGN) mouse.vel.x-=256;
+            if (m.buttons&YSIGN) mouse.vel.y-=256;
 
             // Add movement
-            mouse.x += mouse.velX;
-            mouse.y += mouse.velY;
+            mouse.pos += mouse.vel;
 
             // Clamp values
-            if (mouse.x < 0) mouse.x=0;
-            if (mouse.y < 0) mouse.y=0;
-            if (mouse.x > viewport.z) mouse.x = viewport.z;
-            if (mouse.y > viewport.w) mouse.y = viewport.w;
+            if (mouse.pos.x < 0) mouse.pos.x=0;
+            if (mouse.pos.y < 0) mouse.pos.y=0;
+            if (mouse.pos.x > viewport.z) mouse.pos.x = viewport.z;
+            if (mouse.pos.y > viewport.w) mouse.pos.y = viewport.w;
 
             // Lunch events
             if (mouse.button == 0 && button != mouse.button) {
                 mouse.button = button;
                 if (onMousePress)
-                    onMousePress(mouse.x, mouse.y, mouse.button);
+                    onMousePress(mouse.pos.x, mouse.pos.y, mouse.button);
             }
             else if (mouse.button != 0 && button != mouse.button) {
                 mouse.button = button;
                 if (onMouseRelease)
-                    onMouseRelease(mouse.x, mouse.y, mouse.button);
+                    onMouseRelease(mouse.pos.x, mouse.pos.y, mouse.button);
             }
             else
                 mouse.button = button;
 
-            if (mouse.velX != 0.0 || mouse.velY != 0.0) {
+            if (mouse.vel.x != 0.0 || mouse.vel.y != 0.0) {
                 if (button != 0) {
                     if (onMouseDrag)
-                        onMouseDrag(mouse.x, mouse.y, mouse.button);
+                        onMouseDrag(mouse.pos.x, mouse.pos.y, mouse.button);
                 }
                 else {
                     if (onMouseMove)
-                        onMouseMove(mouse.x, mouse.y);
+                        onMouseMove(mouse.pos.x, mouse.pos.y);
                 }
             }
         }
@@ -1092,16 +1090,6 @@ void setWindowVSync(bool _value) {
     glfwSwapInterval(_value);
 #endif
 }
-
-void setDepthTest(bool _value) {
-    bDepthTest = _value;
-    if (_value)
-        glEnable(GL_DEPTH_TEST);
-    else
-        glDisable(GL_DEPTH_TEST);
-}
-
-const bool getDepthTest() { return bDepthTest; }
 
 void setViewport(float _width, float _height) {
     viewport.z = _width;
@@ -1353,15 +1341,12 @@ const int     getRestMs() { return restSec * 1000; }
 const int     getRestUs() { return restSec * 1000000; }
 
 void    setMousePosition( float _x, float _y ) {
-    mouse.x = _x;
-    mouse.y = _y;
-    mouse.velX = 0.0f;
-    mouse.velY = 0.0f;
-    mouse.drag.x = _x;
-    mouse.drag.y = _y;
+    mouse.pos = glm::vec2(_x, _y);
+    mouse.vel = glm::vec2(0.0f, 0.0f);
+    mouse.drag = glm::vec2(_x, _y);
     #if defined(DRIVER_GLFW)
     float h = getWindowHeight();
-    float y = h - glm::clamp(_y, 0.0f, h);
+    float y = _y;//h - glm::clamp(_y, 0.0f, h);
     glfwSetCursorPos(window, _x / fPixelDensity , y / fPixelDensity);
     #endif
 }
@@ -1376,10 +1361,18 @@ void    setMouseVisibility(bool _visible) {
     #endif
 }
 
-const float   getMouseX(){ return mouse.x; }
-const float   getMouseY(){ return mouse.y; }
-const float   getMouseVelX(){ return mouse.velX; }
-const float   getMouseVelY(){ return mouse.velY;}
+const glm::vec2& getMousePosition() { return mouse.pos; }
+const glm::vec2  getMousePositionFlipped(){ return glm::vec2(mouse.pos.x, getWindowHeight() - mouse.pos.y); }
+const float   getMouseX(){ return mouse.pos.x; }
+const float   getMouseY(){ return mouse.pos.y; }
+const float   getMouseYFlipped(){ return getWindowHeight() - mouse.pos.y; }
+
+const glm::vec2& getMouseVelocity() { return mouse.vel; }
+const glm::vec2  getMouseVelocityFlipped(){ return glm::vec2(mouse.vel.x, -mouse.vel.y); }
+const float   getMouseVelX(){ return mouse.vel.x; }
+const float   getMouseVelY(){ return mouse.vel.y;}
+const float   getMouseVelXFlipped(){ return -mouse.vel.y; }
+
 const int     getMouseButton(){ return mouse.button;}
 const bool    getMouseEntered() { return mouse.entered; }
 
