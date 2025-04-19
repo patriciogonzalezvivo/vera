@@ -25,6 +25,7 @@
 #include <string>
 #include <algorithm>
 #include <cfloat>
+#include <iostream>
 
 #include "fontstash.h"
 #include "shaders.h"
@@ -475,11 +476,12 @@ int glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned int
 
     stash->length = length - 6;
 
-    if(ctx->shaping != NULL && fons__getState(ctx)->useShaping) {
+    if (ctx->shaping != NULL && fons__getState(ctx)->useShaping) {
         FONSshapingRes* res = ctx->shaping->result;
         stash->nbGlyph = res->glyphCount;
         fons__clearShaping(ctx);
-    } else {
+    } 
+    else {
         const char* str = s;
         const char* end = s + strlen(s);
         int i = 0;
@@ -775,6 +777,12 @@ void glfonsTranslate(FONScontext* ctx, fsuint id, float tx, float ty) {
 void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a) {
     GLFONS_LOAD_STASH
 
+    if (buffer->interleavedArray.size() == 0) {
+        std::cout << "Error: Invalid layout index for transform.interleavedArray = 0; offset = " << stash->offset << 
+        "; nbGLyph = " << stash->nbGlyph << std::endl;
+        return;
+    }
+    
     if (stash->nbGlyph == 0) {
         return;
     }
@@ -784,6 +792,7 @@ void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, f
     static int i1 = glfons__layoutIndex(gl, "a_alpha");
     static int i2 = glfons__layoutIndex(gl, "a_rotation");
 
+
     float* start = &buffer->interleavedArray[0] + stash->offset;
     int stride = gl->layout.nbComponents;
     int min = std::min(i0, std::min(i1, i2));
@@ -791,7 +800,7 @@ void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, f
     // set the buffer dirty
     glfons__setDirty(buffer, stash->offset + min, stash->padding - stride + min);
 
-    for(int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i++) {
+    for (int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i++) {
         start[i * stride + i0] = tx;
         start[i * stride + i0 + 1] = ty;
         start[i * stride + i1] = a;

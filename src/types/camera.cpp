@@ -17,7 +17,11 @@
 namespace vera {
 
 Camera::Camera(): 
-    m_target(0.0), 
+    m_viewMatrix(1.0f), m_inverseViewMatrix(1.0f),
+    m_normalMatrix(1.0f), 
+    m_projectionMatrix(1.0f), m_projectionViewMatrix(1.0f), m_inverseProjectionMatrix(1.0f),
+    m_viewport(0), m_viewport_old(0),
+    m_target(0.0), m_position_offset(0.0),
     m_aspect(4.0f/3.0f), m_fov(45.), m_nearClip(0.01f), m_farClip(1000.0f), 
     m_exposure(2.60417e-05), m_ev100(14.9658), m_aperture(16), m_shutterSpeed(1.0f/125.0f), m_sensitivity(100.0f), 
     m_projectionType(ProjectionType::PERSPECTIVE) {
@@ -32,6 +36,11 @@ Camera::~Camera() {
 void Camera::setViewport(int _width, int _height){
     m_aspect = double(_width) / double(_height);
     updateCameraSettings();
+}
+
+void Camera::setViewport(glm::vec4 _viewport) {
+    m_viewport = _viewport;
+    setViewport(_viewport.z, _viewport.w);
 }
 
 //Setting Functions
@@ -112,6 +121,13 @@ const glm::mat4& Camera::getViewMatrix() const {
         return getTransformMatrix(); 
 }
 
+glm::ivec4 Camera::getViewport() const {
+    if (m_viewport == glm::ivec4(0))
+        return glm::ivec4(0, 0, vera::getWindowWidth(), vera::getWindowHeight());
+    else
+        return m_viewport;
+}
+
 const glm::vec3& Camera::getPosition() const {
     if (m_projectionType == ProjectionType::PERSPECTIVE_VIRTUAL_OFFSET )
         return m_position_offset;
@@ -122,6 +138,39 @@ const glm::vec3& Camera::getPosition() const {
 const float Camera::getDistance() const { 
     return glm::length(m_position);
 }
+
+void Camera::begin() {
+    setDepthTest(true);
+    
+    if (bChange) {
+        updateCameraSettings();
+        bChange = false;
+    }
+
+    // If the viewport is set to zero, we don't want to change it
+    if (m_viewport == glm::ivec4(0)) {
+        setViewport(vera::getWindowWidth(), vera::getWindowHeight());
+        return;
+    }
+    
+    // extract current viewport so we can restore it later
+    int vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
+    m_viewport_old = glm::ivec4(vp[0], vp[1], vp[2], vp[3]);
+
+    // set new viewport
+    glViewport(m_viewport.x, m_viewport.y, m_viewport.z, m_viewport.w);
+}
+
+void Camera::end() {
+    // If the viewport is set to zero, it was never changed so we don't want to change it back
+    if (m_viewport == glm::ivec4(0))
+        return;
+
+    // restore previous viewport
+    glViewport(m_viewport_old.x, m_viewport_old.y, m_viewport_old.z, m_viewport_old.w);
+}
+
 
 /** Sets this camera's exposure (default is 16, 1/125s, 100 ISO)
  * from https://github.com/google/filament/blob/master/filament/src/Exposure.cpp

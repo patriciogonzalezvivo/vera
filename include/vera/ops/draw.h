@@ -23,6 +23,10 @@
 
 namespace vera {
 
+#ifndef CIRCLE_RESOLUTION
+#define CIRCLE_RESOLUTION 36
+#endif
+
 enum PointShape {
     SQUARE_SHAPE = 0,
     SQUARE_OUTLINE_SHAPE,
@@ -42,10 +46,13 @@ void frameRate(int _fps);
 // cursor()
 // noCursor()
 
+void flagChange();
+bool haveChanged();
+void resetChange();
+
 float pixelDensity();
 void  pixelDensity(float _density);
 
-void clear();
 void clear( float _brightness );
 void clear( const glm::vec3& _color );
 void clear( const glm::vec4& _color );
@@ -111,13 +118,7 @@ void points(const Triangle& _triangle, Shader* _program = nullptr);
 void points(const BoundingBox& _bbox, Shader* _program = nullptr);
 void pointsBoundingBox(const glm::vec4& _bbox, Shader* _program = nullptr);
 
-// arc()
-// ellipse()
-// circle()
-// quad()
-// square()
-// triangle()
-
+// Linex
 void line(float _x1, float _y1, float _x2, float _y2, Shader* _program = nullptr);
 void line(const glm::vec2& _a, const glm::vec2& _b, Shader* _program = nullptr);
 void line(const std::vector<glm::vec2>& _positions, Shader* _program = nullptr);
@@ -129,6 +130,17 @@ void line(const Triangle& _triangle, Shader* _program = nullptr);
 void line(const BoundingBox& _bbox, Shader* _program = nullptr);
 void lineBoundingBox(const glm::vec4& _bbox, Shader* _program = nullptr);
 
+// arc()
+
+// 2D Primitives
+void triangle(const glm::vec2& _center, float angle = 0.0, float _radius = 1.0,  Shader* _program = nullptr);
+void triangle(const glm::vec3& _center, float angle = 0.0, float _radius = 1.0,  Shader* _program = nullptr);
+void triangle(const glm::vec3& _center, glm::vec3 _up, float _radius = 1.0f, Shader* _program = nullptr);
+void triangle(float _x1, float _y1, float _x2, float _y2, float _x3, float _y3, Shader* _program = nullptr);
+void triangle(const glm::vec2& _a, const glm::vec2& _b, const glm::vec2& _c, Shader* _program = nullptr);
+void triangle(float _x1, float _y1, float _z1, float _x2, float _y2, float _z2, float _x3, float _y3, float _z3, Shader* _program = nullptr);
+void triangle(const glm::vec3& _a, const glm::vec3& _b, const glm::vec3& _c, Shader* _program = nullptr);
+
 void triangles(const std::vector<glm::vec2>& _positions, Shader* _program = nullptr);
 void triangles(const std::vector<glm::vec3>& _positions, Shader* _program = nullptr);
 
@@ -136,6 +148,38 @@ void rectAlign(HorizontalAlign _align);
 void rectAlign(VerticalAlign _align);
 void rect(float _x, float _y, float _w, float _h, Shader* _program = nullptr);
 void rect(const glm::vec2& _pos, const glm::vec2& _size, Shader* _program = nullptr);
+
+// quad()
+// square()s
+void circleResolution(int _res = CIRCLE_RESOLUTION);
+void circle(float _x, float _y, float _r, Shader* _program = nullptr);
+void circle(const glm::vec2& _pos, float _r, Shader* _program = nullptr);
+// ellipse()
+
+HorizontalAlign getRectHorizontalAlign();
+VerticalAlign   getRectVerticalAlign();
+
+// 3D Primitives
+void plane(Shader* _program = nullptr);
+void plane(float _size, Shader* _program = nullptr);
+void plane(float _width, float _height, Shader* _program = nullptr);
+void plane(float _width, float _height, int _res, Shader* _program = nullptr);
+void plane(float _width, float _height, int _resX, int _resY, Shader* _program = nullptr);
+
+void box(Shader* _program = nullptr);
+void box(float _size, Shader* _program = nullptr);
+void box(float _width, float _height, Shader* _program = nullptr);
+void box(float _width, float _height, float _depth, Shader* _program = nullptr);
+
+void sphere(Shader* _program = nullptr);
+void sphere(float _radius, Shader* _program = nullptr);
+void sphere(float _radius, int _res, Shader* _program = nullptr);
+
+// cylinder()
+// cone()
+// ellipsoid()
+// torus()
+// p5.Geometry
 
 // IMAGES
 // -----------------------------
@@ -203,7 +247,6 @@ void  addFont(Font* _font, const std::string _name);
 // -----------------------------
 // textLeading()
 // textStyle()
-// textWidth()
 // textAscent()
 // textDescent()
 // textWrap()
@@ -213,17 +256,13 @@ void textAlign(HorizontalAlign _align, Font* _font = nullptr);
 void textAlign(VerticalAlign _align, Font* _font = nullptr);
 void textAngle(float _angle, Font* _font = nullptr);
 void textSize(float _size, Font* _font = nullptr);
+float textWidth(const std::string& _text, Font* _font = nullptr);
+void text(const std::string& _text, const glm::vec3& _pos, Font* _font = nullptr);
 void text(const std::string& _text, const glm::vec2& _pos, Font* _font = nullptr );
 void text(const std::string& _text, float _x, float _y, Font* _font = nullptr);
+void textHighlight(const std::string& _text, const glm::vec2& _pos, const glm::vec4& _bg = glm::vec4(0.0, 0.0, 0.0, 1.0), Font* _font = nullptr);
+void textHighlight(const std::string& _text, float _x, float _y, const glm::vec4& _bg = glm::vec4(0.0, 0.0, 0.0, 1.0), Font* _font = nullptr);
 
-// plane()
-// box()
-// sphere()
-// cylinder()
-// cone()
-// ellipsoid()
-// torus()
-// p5.Geometry
 
 // SHADERS
 // -----------------------------
@@ -238,6 +277,7 @@ void    addShader(const std::string& _name, const std::string& _fragSrc = "", co
 Shader* getShader();
 Shader* getShader(const std::string& _name);
 Shader* getFillShader();
+Shader* getStrokeShader();
 Shader* getPointShader();
 void    resetShader();
 void    shader(Shader& _shader);
@@ -275,10 +315,13 @@ void ortho(float _left, float _right, float _bottom, float _top,  float _near, f
 Camera* createCamera(const std::string& _name = "unnamed");
 void addCamera(Camera& _camera, const std::string& _name = "unnamed");
 void addCamera(Camera* _camera, const std::string& _name = "unnamed");
+void setCamera(const std::string& _name);
 void setCamera(Camera& _camera);
 void setCamera(Camera* _camera);
 void resetCamera();
 Camera* getCamera();
+Camera* getLastCamera();
+Camera* getCamera(const std::string& _name);
 
 // LIGHT
 // -----------------------------
@@ -304,9 +347,10 @@ void addLight(Light* _light, const std::string& _name = "default");
 
 // MODEL
 // -----------------------------
-void loadModel( const std::string& _filename );
+// void loadModel( const std::string& _filename );
 void model(Vbo& _vbo, Shader* _program = nullptr);
 void model(Vbo* _vbo, Shader* _program = nullptr);
+void model(const Mesh& _mesh, Shader* _program = nullptr);
 
 // LABELS
 // -----------------------------

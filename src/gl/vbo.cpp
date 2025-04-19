@@ -199,23 +199,6 @@ void Vbo::setDrawType(GLenum _drawType) {
     }
 }
 
-// void Vbo::setDrawMode(GLenum _drawMode) {
-//     switch (_drawMode) {
-//         case GL_POINTS:
-//         case GL_LINE_STRIP:
-//         case GL_LINE_LOOP:
-//         case GL_LINES:
-//         case GL_TRIANGLE_STRIP:
-//         case GL_TRIANGLE_FAN:
-//         case GL_TRIANGLES:
-//             m_drawMode = _drawMode;
-//             break;
-//         default:
-//             std::cout << "Invalid draw mode for mesh! Defaulting to GL_TRIANGLES" << std::endl;
-//             m_drawMode = GL_TRIANGLES;
-//     }
-// }
-
 void Vbo::setDrawMode(DrawMode _drawMode) {
     if (_drawMode == POINTS)
         m_drawMode = GL_POINTS;
@@ -330,7 +313,8 @@ void Vbo::render(Shader* _shader) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_glIndexBuffer);
 
     // Enable shader program
-    _shader->use();
+    if (!_shader->inUse())
+        _shader->use();
 
     // Enable vertex attribs via vertex layout object
     m_vertexLayout->enable(_shader);

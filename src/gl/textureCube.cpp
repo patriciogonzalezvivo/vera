@@ -137,8 +137,11 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
 
     }
 
+    printf("SH samples: %d\n", sh_samples);
+
+    float factor = 32.0f / (float)sh_samples;
     for (int i = 0; i < 9; i++)
-        SH[i] = SH[i] * (32.0f / (float)sh_samples);
+        SH[i] = SH[i] * factor;
 
 #if defined(PLATFORM_RPI) || defined(DRIVER_DRM) || defined(__EMSCRIPTEN__)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -215,8 +218,9 @@ bool TextureCube::load(size_t _width, size_t _height, size_t _channels, const fl
     }
     delete[] faces;
 
+    float factor = 32.0f / (float)sh_samples;
     for (int i = 0; i < 9; i++)
-        SH[i] = SH[i] * (32.0f / (float)sh_samples);
+        SH[i] = SH[i] * factor;
 
 #if defined(PLATFORM_RPI) || defined(DRIVER_DRM) || defined(__EMSCRIPTEN__)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -272,8 +276,9 @@ bool TextureCube::load(SkyData* _sky, int _width, bool _vFlip) {
     delete[] faces;
     // delete[] data;
 
+    float factor = 32.0f / (float)sh_samples;
     for (int i = 0; i < 9; i++)
-        SH[i] = SH[i] * (32.0f / (float)sh_samples);
+        SH[i] = SH[i] * factor;
 
 #if defined(PLATFORM_RPI) || defined(DRIVER_DRM) || defined(__EMSCRIPTEN__)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);

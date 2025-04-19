@@ -106,7 +106,13 @@ enum CullingMode {
     CULL_BOTH
 };
 
-void blendMode( BlendMode _mode );
-void cullingMode( CullingMode _mode );
+void                blendMode( BlendMode _mode );
+const BlendMode     blendMode();
+
+void                cullingMode( CullingMode _mode );
+const CullingMode   cullingMode();
+
+void        setDepthTest(bool _value);
+const bool  getDepthTest();
 
 };

@@ -19,6 +19,7 @@ EM_BOOL App::loop (double _time, void* _userData) {
 #else
 void App::loop(double _time, App* _app) {
 #endif
+    
 
     _app->time = _time;
     _app->width = getWindowWidth();
@@ -41,7 +42,7 @@ void App::loop(double _time, App* _app) {
     }
     else
         _app->draw();
-
+        
     renderGL();
 
     #if defined(__EMSCRIPTEN__)
@@ -237,7 +238,7 @@ void App::run(WindowProperties _properties) {
 #else
     
     // Render Loop
-    while ( isGL() )
+    while ( isGL() && !bShouldExit)
         loop(getTime(), this);
 
     closeGL();
@@ -257,8 +258,6 @@ void App::background( const glm::vec4& _color ) {
 }
 
 void App::orbitControl() {
-    glEnable(GL_DEPTH_TEST);
-
     if (getXR() > 0)
         return;
 
@@ -267,9 +266,13 @@ void App::orbitControl() {
     if (cam == nullptr)
         return;
 
-    double aspect = width/height;
-    if (cam->getAspect() != aspect)
-        cam->setViewport(width, height);
+    if (cam->getViewport() == glm::ivec4(0.0)) {
+        double aspect = width/height;
+        // double aspect = getWindowWidth()/getWindowHeight();
+        if (cam->getAspect() != aspect)
+            cam->setViewport(width, height);
+            // cam->setViewport(getWindowWidth(), getWindowHeight());
+    }
 
     if (mouseIsPressed && getQuiltCurrentViewIndex() == 0) {
         float dist = cam->getDistance();
@@ -287,7 +290,7 @@ void App::orbitControl() {
         else if (mouseButton == 2) {
 
             // Right-button drag is used to zoom geometry.
-            dist += (-.008f * movedY);
+            dist += (-.05f * movedY);
             if (dist > 0.0f) {
                 cam->orbit(cameraLat, cameraLon, dist);
                 cam->lookAt(glm::vec3(0.0));
@@ -297,6 +300,8 @@ void App::orbitControl() {
 
     if (vera::getWindowStyle() == vera::LENTICULAR)
         cam->setVirtualOffset(1.5, getQuiltCurrentViewIndex(), getQuiltTotalViews());
+
+    setDepthTest(true);
 }
 
 }

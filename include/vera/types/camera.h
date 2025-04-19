@@ -32,6 +32,7 @@ public:
     virtual void        setFOV(double _fov);
     virtual void        setAspect(float _aspect) { m_aspect = _aspect; }
     virtual void        setViewport(int _width, int _height);
+    virtual void        setViewport(glm::vec4 _viewport);
     virtual void        setClipping(double _near_clip_distance, double _far_clip_distance);
     virtual void        setDistance(float _distance);
     virtual void        setTarget(glm::vec3 _target);
@@ -70,6 +71,9 @@ public:
     virtual const glm::mat4&    getProjectionViewMatrix() const { return m_projectionViewMatrix; }
     virtual const glm::mat4&    getInverseProjectionMatrix() const { return m_inverseProjectionMatrix; }
 
+    virtual glm::ivec4          getViewport() const;
+    virtual void begin();
+    virtual void end();
 protected:
 
     virtual void        onPositionChanged();
@@ -88,6 +92,9 @@ private:
     glm::mat4   m_projectionMatrix;
     glm::mat4   m_projectionViewMatrix;
     glm::mat4   m_inverseProjectionMatrix;
+
+    glm::ivec4  m_viewport;
+    glm::ivec4  m_viewport_old;
     
     glm::vec3   m_target;
     glm::vec3   m_position_offset;

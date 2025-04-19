@@ -43,6 +43,8 @@ public:
 
     // virtual GLint getAtlasTexture();
     virtual float       getHeight() { return getBoundingBox("A").z; }
+    virtual HorizontalAlign getHorizontalAlign() { return m_hAlign; }
+    virtual VerticalAlign   getVerticalAlign() { return m_vAlign; }
     virtual glm::vec4   getBoundingBox(const std::string &_text, float _x = 0, float _y = 0);
     virtual glm::vec4   getBoundingBox(const std::string &_text, const glm::vec2 &_pos) { return getBoundingBox(_text, _pos.x, _pos.y); }
 

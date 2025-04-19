@@ -2,6 +2,10 @@
 
 namespace vera {
 
+static bool         bDepthTest = false;
+static BlendMode    sBlendMode = BLEND_ALPHA;
+static CullingMode  sCullingMode = CULL_BACK;
+
 #if defined(PLATFORM_RPI)
 
     #ifndef DRIVER_BROADCOM
@@ -52,6 +56,7 @@ namespace vera {
 #endif
 
 void blendMode( BlendMode _mode ) {
+    sBlendMode = _mode;
     switch (_mode) {
         case BLEND_ALPHA:
             glEnable(GL_BLEND);
@@ -61,13 +66,14 @@ void blendMode( BlendMode _mode ) {
         case BLEND_ADD:
             glEnable(GL_BLEND);
             glBlendEquation(GL_FUNC_ADD);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+            // glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+            glBlendFunc(GL_ONE, GL_ONE);
             break;
 
         case BLEND_MULTIPLY:
             glEnable(GL_BLEND);
             glBlendEquation(GL_FUNC_ADD);
-            glBlendFunc(GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA /* GL_ZERO or GL_ONE_MINUS_SRC_ALPHA */);
+            glBlendFunc(GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA );
             break;
 
         case BLEND_SCREEN:
@@ -90,23 +96,29 @@ void blendMode( BlendMode _mode ) {
             break;
     }
 }
+const BlendMode blendMode() { return sBlendMode; }
 
-void cullingMode( CullingMode _mode ) {
-    if (_mode == CULL_NONE) {
-        glDisable(GL_CULL_FACE);
-    }
-    else {
-        glEnable(GL_CULL_FACE);
-
-        if (_mode == CULL_FRONT) 
-            glCullFace(GL_FRONT);
-        
-        else if (_mode == CULL_BACK)
-            glCullFace(GL_BACK);
-        
-        else if (_mode == CULL_BOTH)
-            glCullFace(GL_FRONT_AND_BACK);
+void cullingMode(CullingMode _mode) {
+    sCullingMode = _mode;
+    switch (_mode) {
+        case CULL_FRONT:glDisable(GL_CULL_FACE); glCullFace(GL_FRONT); break;
+        case CULL_BACK: glDisable(GL_CULL_FACE); glCullFace(GL_BACK); break;
+        case CULL_BOTH: glDisable(GL_CULL_FACE); glCullFace(GL_FRONT_AND_BACK); break;
+        case CULL_NONE: glDisable(GL_CULL_FACE); break;
+        default: break;
     }
 }
+const CullingMode cullingMode() { return sCullingMode; }
+
+void setDepthTest(bool _value) {
+    bDepthTest = _value;
+    if (_value)
+        glEnable(GL_DEPTH_TEST);
+    else
+        glDisable(GL_DEPTH_TEST);
+}
+
+const bool getDepthTest() { return bDepthTest; }
+
 
 }

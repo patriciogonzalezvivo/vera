@@ -32,6 +32,7 @@ Scene::Scene():
     activeCubemap(nullptr), 
     activeCamera(nullptr),
     activeFont(nullptr),
+    m_changed(false),
     m_skyboxSize(1024),
     m_skyboxFlip(false),
     m_streamsPrevs(0), 
@@ -71,6 +72,8 @@ void Scene::load(const std::string& _filename, bool _verbose) {
     // If it's a STL 
     else if ( ext == "stl" || ext == "STL" )
         loadSTL( _filename, this, _verbose);
+
+    m_changed = true;
 }
 
 void Scene::update() {
@@ -87,6 +90,8 @@ void Scene::update() {
 
     for (TextureStreamsMap::iterator it = streams.begin(); it != streams.end(); ++it)
         it->second->update();
+
+    m_changed = false;
 }
 
 void Scene::clear() {
@@ -102,6 +107,39 @@ void Scene::clear() {
     clearShaders();
     
     clearLabels();
+}
+
+
+void Scene::flagChange() {
+    m_changed = true;
+
+    if (activeCamera)
+        activeCamera->bChange = true;
+}
+
+void Scene::resetChange() {
+    m_changed = false;
+
+    for (vera::LightsMap::iterator it = lights.begin(); it != lights.end(); ++it)
+        it->second->bChange = false;
+
+    if (activeCamera)
+        activeCamera->bChange = false;
+}
+
+bool Scene::haveChange() { 
+    if (activeCamera)
+        if (activeCamera->bChange)
+            return true;
+            
+    for (vera::LightsMap::const_iterator it = lights.begin(); it != lights.end(); ++it)
+        if (it->second->bChange)
+            return true;
+
+    if (m_changed || streams.size() > 0)
+        return true;
+
+    return false;
 }
 
 // TEXTURES
@@ -146,6 +184,7 @@ bool Scene::addTexture(const std::string& _name, const std::string& _path, bool 
                     }
                 }
 
+                m_changed = true;
                 return true;
             }
             else
@@ -172,6 +211,8 @@ bool Scene::addTexture(const std::string& _name, const Image& _image, bool _flip
                 std::cout << "uniform sampler2D   " << _name  << ";"<< std::endl;
                 std::cout << "uniform vec2        " << _name  << "Resolution;"<< std::endl;
             }
+
+            m_changed = true;
 
             return true;
         }
@@ -213,6 +254,7 @@ bool Scene::addBumpTexture(const std::string& _name, const std::string& _path, b
                     std::cout << "uniform vec2        " << _name  << "Resolution;"<< std::endl;
                 }
 
+                m_changed = true;
                 return true;
             }
             else
@@ -235,6 +277,7 @@ void Scene::clearTextures() {
         delete (it->second);
     textures.clear();
     streams.clear();
+    m_changed = true;
 }
 
 bool Scene::addStreamingTexture( const std::string& _name, const std::string& _url, bool _vflip, bool _device, bool _verbose) {
@@ -261,6 +304,8 @@ bool Scene::addStreamingTexture( const std::string& _name, const std::string& _u
                     std::cout << "uniform float       " << _name  << "Fps;"<< std::endl;
                 }
 
+                m_changed = true;
+
                 return true;
             }
             else
@@ -284,6 +329,7 @@ bool Scene::addStreamingTexture( const std::string& _name, const std::string& _u
                     std::cout << "uniform vec2        " << _name  << "Resolution;"<< std::endl;
                 }
 
+                m_changed = true;
                 return true;
             }
             else
@@ -306,6 +352,7 @@ bool Scene::addStreamingTexture( const std::string& _name, const std::string& _u
                     std::cout << "uniform vec2        " << _name  << "Resolution;"<< std::endl;
                 }
 
+                m_changed = true;
                 return true;
             }
             else
@@ -337,6 +384,7 @@ bool Scene::addStreamingTexture( const std::string& _name, const std::string& _u
                 }
             }
 
+            m_changed = true;
             return true;
         }
         else
@@ -364,7 +412,8 @@ bool Scene::addStreamingAudioTexture(const std::string& _name, const std::string
             std::cout << "uniform sampler2D   " << _name  << ";"<< std::endl;
             std::cout << "uniform vec2        " << _name  << "Resolution;"<< std::endl;
         }
-        
+
+        m_changed = true;
         return true;
     }
     else
@@ -374,25 +423,32 @@ bool Scene::addStreamingAudioTexture(const std::string& _name, const std::string
 
 void Scene::setStreamPlay( const std::string& _name) {
     TextureStreamsMap::iterator it = streams.find(_name);
-    if (it != streams.end())
+    if (it != streams.end()) {
         it->second->play();
+        m_changed = true;
+
+    }
 }
 
 void Scene::setStreamStop( const std::string& _name) {
     TextureStreamsMap::iterator it = streams.find(_name);
-    if (it != streams.end())
+    if (it != streams.end()) {
         it->second->stop();
+        m_changed = true;
+    }
 }
 
 void Scene::setStreamRestart( const std::string& _name ) {
     TextureStreamsMap::iterator it = streams.find(_name);
-    if (it != streams.end())
+    if (it != streams.end()) {
         it->second->restart();
+        m_changed = true;
+    }
 }
 
 float Scene::getStreamTime( const std::string& _name) {
     TextureStreamsMap::iterator it = streams.find(_name);
-    if (it != streams.end())
+    if (it != streams.end()) {}
         return it->second->getTime();
     return 0.0f;
 }
@@ -406,8 +462,10 @@ float Scene::getStreamSpeed( const std::string& _name) {
 
 void Scene::setStreamSpeed( const std::string& _name, float _speed ) {
     TextureStreamsMap::iterator it = streams.find(_name);
-    if (it != streams.end())
+    if (it != streams.end()) {
         it->second->setSpeed(_speed);
+        m_changed = true;
+    }
 }
 
 float Scene::getStreamPct( const std::string& _name) {
@@ -419,49 +477,66 @@ float Scene::getStreamPct( const std::string& _name) {
 
 void Scene::setStreamPct( const std::string& _name, float _pct ) {
     TextureStreamsMap::iterator it = streams.find(_name);
-    if (it != streams.end())
+    if (it != streams.end()) {
         it->second->setPct(_pct);
+        m_changed = true;
+    }
 }
 
 void Scene::setStreamTime( const std::string& _name, float _time ) {
     TextureStreamsMap::iterator it = streams.find(_name);
-    if (it != streams.end())
+    if (it != streams.end()) {
         it->second->setTime(_time);
+        m_changed = true;
+    }
 }
 
 void Scene::setStreamsPlay() {
-    for (TextureStreamsMap::iterator it = streams.begin(); it != streams.end(); ++it)
+    for (TextureStreamsMap::iterator it = streams.begin(); it != streams.end(); ++it) {
         it->second->play();
+        m_changed = true;
+    }
 }
 
 void Scene::setStreamsStop() {
-    for (TextureStreamsMap::iterator it = streams.begin(); it != streams.end(); ++it)
+    for (TextureStreamsMap::iterator it = streams.begin(); it != streams.end(); ++it) {
         it->second->stop();
+        m_changed = true;
+    }
 }
 
 void Scene::setStreamsRestart() {
-    for (TextureStreamsMap::iterator it = streams.begin(); it != streams.end(); ++it)
+    for (TextureStreamsMap::iterator it = streams.begin(); it != streams.end(); ++it) {
         it->second->restart();
+        m_changed = true;
+    }
 }
 
 void Scene::setStreamsSpeed( float _speed ) {
-    for (TextureStreamsMap::iterator it = streams.begin(); it != streams.end(); ++it)
+    for (TextureStreamsMap::iterator it = streams.begin(); it != streams.end(); ++it) {
         it->second->setSpeed(_speed);
+        m_changed = true;
+    }
 }
 
 void Scene::setStreamsTime( float _time ) {
-    for (TextureStreamsMap::iterator it = streams.begin(); it != streams.end(); ++it)
+    for (TextureStreamsMap::iterator it = streams.begin(); it != streams.end(); ++it) {
         it->second->setTime(_time);
+        m_changed = true;
+    }
 }
 
 void Scene::setStreamsPct( float _pct ) {
-    for (TextureStreamsMap::iterator it = streams.begin(); it != streams.end(); ++it)
+    for (TextureStreamsMap::iterator it = streams.begin(); it != streams.end(); ++it) {
         it->second->setPct(_pct);
+        m_changed = true;
+    }
 }
 
 void Scene::setStreamsPrevs( size_t _total ) {
     m_streamsPrevs = _total;
     m_streamsPrevsChange = true;
+    m_changed = true;
 }
 
 void Scene::printStreams() {
@@ -497,6 +572,7 @@ bool Scene::addCubemap( const std::string& _name, const std::string& _filename, 
             }
 
             cubemaps[_name] = tex;
+            m_changed = true;
             return true;
         }
         else
@@ -531,6 +607,7 @@ void Scene::clearCubemaps() {
     for (TextureCubesMap::iterator itr = cubemaps.begin(); itr != cubemaps.end(); ++itr)
         delete (itr->second);
     cubemaps.clear();
+    m_changed = true;
 }
 
 
@@ -547,6 +624,8 @@ void Scene::setSunPosition(float _az, float _elev, float _distance) {
     p = lat * p;
     p = lon * p;
     lights["default"]->setPosition(p);
+
+    m_changed = true;
 }
 
 void Scene::setSunPosition(const glm::vec3& _v) {
@@ -554,16 +633,19 @@ void Scene::setSunPosition(const glm::vec3& _v) {
     m_skybox.azimuth = atan2(_v.x, _v.z);
     m_skybox.change = true;
     lights["default"]->setPosition(_v);
+    m_changed = true;
 }
 
 void Scene::setSkyTurbidity(float _turbidity) {
     m_skybox.turbidity = _turbidity;
     m_skybox.change = true;
+    m_changed = true;
 }
 
 void Scene::setGroundAlbedo(const glm::vec3& _albedo) {
     m_skybox.groundAlbedo = _albedo;
     m_skybox.change = true;
+    m_changed = true;
 }
 
 float Scene::getSunAzimuth() const { return m_skybox.azimuth; }
@@ -588,6 +670,7 @@ void Scene::clearCameras() {
     for (CamerasMap::iterator it = cameras.begin(); it != cameras.end(); ++it)
         delete (it->second);
     cameras.clear();
+    m_changed = true;
 }
 
 // LIGHTS
@@ -633,6 +716,7 @@ void Scene::clearLights() {
     for (LightsMap::iterator it = lights.begin(); it != lights.end(); ++it)
         delete (it->second);
     lights.clear();
+    m_changed = true;
 }
 
 // MODEL
@@ -647,6 +731,7 @@ void Scene::clearModels() {
     for (ModelsMap::iterator it = models.begin(); it != models.end(); ++it)
         delete (it->second);
     models.clear();
+    m_changed = true;
 }
 
 // MATERIAL
@@ -659,6 +744,7 @@ void Scene::printMaterials() {
 
 void Scene::clearMaterials() {
     materials.clear();
+    m_changed = true;
 }
 
 // Shaders
@@ -673,6 +759,7 @@ void Scene::clearShaders() {
     for (ShadersMap::iterator it = shaders.begin(); it != shaders.end(); ++it)
         delete (it->second);
     shaders.clear();
+    m_changed = true;
 }
 
 // FONTS
@@ -683,6 +770,7 @@ bool  Scene::addFont(const std::string& _name, const std::string& _path) {
     if (it == fonts.end() ) {
         newFont = new Font();
         fonts[_name] = newFont;
+        m_changed = true;
     }
     return newFont->load(_path);
 }
@@ -711,6 +799,7 @@ void  Scene::clearFonts() {
     for (FontsMap::iterator it = fonts.begin(); it != fonts.end(); ++it)
         delete (it->second);
     fonts.clear();
+    m_changed = true;
 }
 
 // LABELS
@@ -725,6 +814,7 @@ void Scene::clearLabels() {
     for (size_t i = 0; i < labels.size(); i++)
         delete labels[i];
     labels.clear();
+    m_changed = true;
 }
 
 }

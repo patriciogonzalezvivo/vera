@@ -122,8 +122,8 @@ bool Model::setGeom(const Mesh& _mesh) {
     else if (_mesh.getDrawMode() == TRIANGLE_FAN)
         addDefine("MODEL_PRIMITIVE_TRIANGLE_FAN");
 
-    addDefine("LIGHT_SHADOWMAP", "u_lightShadowMap");
-    addDefine("LIGHT_SHADOWMAP_SIZE", "2048.0");
+    // addDefine("LIGHT_SHADOWMAP", "u_lightShadowMap");
+    // addDefine("LIGHT_SHADOWMAP_SIZE", "2048.0");
 
     return true;
 }

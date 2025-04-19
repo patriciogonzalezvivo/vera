@@ -48,6 +48,11 @@ public:
     virtual void        update();
     virtual void        clear();
 
+    // Change state
+    virtual void        flagChange();
+    virtual void        resetChange();
+    virtual bool        haveChange();
+
     // Textures
     TexturesMap         textures;
     virtual bool        addTexture(const std::string& _name, const std::string& _path, bool _flip = true, bool _verbose = true);
@@ -141,6 +146,7 @@ public:
 
     TextureCube*        activeCubemap;
     Camera*             activeCamera;
+    Camera*             lastCamera;
     Font*               activeFont;
 
 protected:
@@ -150,6 +156,8 @@ protected:
 
     size_t              m_streamsPrevs;
     bool                m_streamsPrevsChange;
+
+    bool                m_changed;
 
 };
 

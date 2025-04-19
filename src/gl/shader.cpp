@@ -170,7 +170,7 @@ const GLint Shader::getAttribLocation(const std::string& _attribute) const {
 void Shader::use() {
     if (isDirty())
         load(m_fragmentSource, m_vertexSource, m_error_screen, false);
-
+    
     if (!inUse())
         glUseProgram(getProgram());
         
@@ -457,7 +457,7 @@ void Shader::setUniform(const std::string& _name, float _x, float _y, float _z) 
 void Shader::setUniform(const std::string& _name, float _x, float _y, float _z, float _w) {
     if (inUse()) {
         glUniform4f(getUniformLocation(_name), _x, _y, _z, _w);
-        // std::cout << "Uniform " << _name << ": vec3(" << _x << "," << _y << "," << _z <<")" << std::endl;
+        // std::cout << "Uniform " << _name << ": vec4(" << _x << "," << _y << "," << _z << "," << _w << ")" << std::endl;
     }
 }
 

@@ -50,6 +50,7 @@
     #include "vera/io/stl.h"
     #include "vera/io/obj.h"
     #include "vera/io/gltf.h"
+    #include "vera/ops/color.h"
     #include "vera/ops/draw.h"
     #include "vera/ops/env.h"
     #include "vera/ops/fs.h"
@@ -133,6 +134,7 @@ namespace std {
 };
 
 %include "include/vera/types/node.h"
+%include "include/vera/ops/color.h"
 %include "include/vera/ops/math.h"
 %include "include/vera/ops/pixel.h"
 %include "include/vera/ops/string.h"

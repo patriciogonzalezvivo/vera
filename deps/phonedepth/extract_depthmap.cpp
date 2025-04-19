@@ -748,23 +748,33 @@ int extract_depth(const char *filename,
     const unsigned char *extra = NULL;
     size_t extra_size = 0;
     image_type_t extra_type = TYPE_NONE;
+    const unsigned char* temp_dm = NULL;
 
     // look for the Samsung data
-    if (parse_samsung_trailer(file_data, file_size, cv, cv_size, dm, dm_size,
+    if (parse_samsung_trailer(file_data, file_size, cv, cv_size, &temp_dm, dm_size,
                                 &dm_width, &dm_height, dm_type, &orientation)) {
         std::cout << "Samsung trailer depth data founded" << std::endl;
         data_found = 1;
     } 
-    else if (parse_huawei_trailer(file_data, file_size, cv, cv_size, dm, dm_size,
+    else if (parse_huawei_trailer(file_data, file_size, cv, cv_size, &temp_dm, dm_size,
                                   &dm_width, &dm_height, dm_type, &orientation)) {
         std::cout << "Huawei trailer detph data founded" << std::endl;
         data_found = 1;
     }
-    else if (parse_apple_trailer( trailer, cv, cv_size, dm, dm_size,
+    else if (parse_apple_trailer( trailer, cv, cv_size, &temp_dm, dm_size,
                                   dm_type, &extra, &extra_size, &extra_type)) {
         std::cout << "Apple depth data founded" << std::endl;
         data_found = 1;
     }
+
+    unsigned char* buffer = (unsigned char*)malloc(*dm_size);
+
+    if (buffer == NULL) {
+        return 0;
+    }
+
+    *dm = buffer;
+    memcpy((void *)(*dm), temp_dm, *dm_size);
 
     // TODO: LG seems to work similar to Apple. they also concatenate JPEGs for color views,
     //       but then have a depth map in raw format it seems.

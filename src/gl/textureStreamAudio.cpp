@@ -83,6 +83,8 @@ bool TextureStreamAudio::load(const std::string &_device_id_str, bool _vFlip, ve
     }
 
     std::cout << "Capture devices available\n";
+    if (captureDeviceCount > 0)
+        default_device_id = 0;
     for (ma_uint32 iDevice = 0; iDevice < captureDeviceCount; ++iDevice) {
         if (pCaptureDeviceInfos[iDevice].isDefault == true)
             default_device_id = iDevice;
@@ -160,12 +162,12 @@ bool TextureStreamAudio::update() {
     uint8_t max_amp = 0;
     for (int i = 0; i < m_width; i++) {
         uint8_t amp = m_buffer_re.at(m_buf_len - m_width + i);
-        
+ 
         m_texture[i*4 + 1] = amp;
 
         if (amp > max_amp)
             max_amp = amp;
-        
+ 
         if (i < m_width - 2)
             m_texture[i*4 + 2] = m_texture[(i+1)*4 + 2];
         else 
@@ -174,12 +176,15 @@ bool TextureStreamAudio::update() {
         m_texture[i*4 + 3] = 255;
     }
 
-    // prerare samples for dtf
+    // prerare samples for dft
     for (int i = 0; i < m_buf_len; i++) {
-        // hann window
-        double window_modifier = (0.5 * (1 - cos(2 * M_PI * i / (m_buf_len - 1))));
         // scale value from 0-255 to -1.0-+1.0
-        float value = (float)(window_modifier * ((m_buffer_re.at(i)) / 127.0f - 1.0f));
+        float value = (float)((m_buffer_re.at(i)) / 127.0f - 1.0f);
+
+        // hann window
+        double window_modifier = (0.5 * (1 + cos(2 * M_PI * i)));
+        value *= window_modifier;
+
         // limit values
         if (value > 1.0) value = 1.0;
         if (value < -1.0) value = -1.0;
@@ -198,6 +203,10 @@ bool TextureStreamAudio::update() {
 
         // experimental scale factor
         float mag_scaled = sqrt(mag) * 50;
+
+        if (i == 0 || i == m_width - 1)
+            // There's a lot of noise on the first and last frequency
+            mag_scaled *= 0.2;
 
         // limit values
         // if (mag_scaled > 255.0) mag_scaled = 255.0;
