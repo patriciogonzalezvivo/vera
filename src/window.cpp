@@ -942,7 +942,9 @@ void updateGL() {
 
     // EVENTS
     // --------------------------------------------------------------------
-#if !defined(DRIVER_GLFW)
+#if defined(DRIVER_GLFW)
+    glfwPollEvents();
+#else
     if ( onMouseMove || onMousePress || onMouseDrag || onMouseRelease ) {
         const int XSIGN = 1<<4, YSIGN = 1<<5;
         static int fd = -1;
