@@ -50,9 +50,6 @@ static float                    yScroll         = 0.0f;
 static bool                     bShift          = false;    
 static bool                     bControl        = false;    
 
-static bool             bShift = false;    
-static bool             bControl = false;
-
 #if defined(DRIVER_GLFW)
 
     #if defined(__APPLE__)
@@ -215,7 +212,7 @@ static bool             bControl = false;
         bool                    drm_async_page_flip = false;
         uint32_t                drm_flags;
         int                     drm_waiting_for_flip = 1;
-        
+
         const EGLDisplay getEGLDisplay() { return display; }
         const EGLContext getEGLContext() { return context; }
 
