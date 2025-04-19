@@ -241,10 +241,18 @@ const int           getRestUs();
 void                setMousePosition(float _x, float _y);
 void                setMouseVisibility(bool _visible);
 
+const glm::vec2&    getMousePosition();
+const glm::vec2     getMousePositionFlipped();
 const float         getMouseX();
 const float         getMouseY();
+const float         getMouseYFlipped();
+
+const glm::vec2&    getMouseVel();
+const glm::vec2     getMouseVelFlipped();
 const float         getMouseVelX();
 const float         getMouseVelY();
+const float         getMouseVelYFlipped();
+
 const int           getMouseButton();
 const bool          getMouseEntered();
 

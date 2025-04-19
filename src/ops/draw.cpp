@@ -1206,7 +1206,7 @@ void shader(Shader* _program) {
 
     _program->setUniform("u_date", getDate() );
     _program->setUniform("u_resolution", (float)getWindowWidth(), (float)getWindowHeight() );
-    _program->setUniform("u_mouse", (float)getMouseX(), (float)getMouseY() );
+    _program->setUniform("u_mouse", getMousePosition() );
     _program->setUniform("u_time", (float)getTimeSec() );
     _program->setUniform("u_delta", (float)getDelta() );
 
