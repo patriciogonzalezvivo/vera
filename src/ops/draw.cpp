@@ -132,7 +132,7 @@ void setCamera(Camera& _camera) { setCamera(&_camera); }
 void setCamera(Camera* _camera) {
     scene->activeCamera = _camera;
 
-    setDepthTest(true);
+    // setDepthTest(true);
     if (scene->activeCamera)
         scene->activeCamera->begin();
 };
