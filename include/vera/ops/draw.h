@@ -46,6 +46,10 @@ void frameRate(int _fps);
 // cursor()
 // noCursor()
 
+void flagChange();
+bool haveChanged();
+void resetChange();
+
 float pixelDensity();
 void  pixelDensity(float _density);
 

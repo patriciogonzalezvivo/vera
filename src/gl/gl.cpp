@@ -2,6 +2,10 @@
 
 namespace vera {
 
+static bool         bDepthTest = false;
+static BlendMode    sBlendMode = BLEND_ALPHA;
+static CullingMode  sCullingMode = CULL_BACK;
+
 #if defined(PLATFORM_RPI)
 
     #ifndef DRIVER_BROADCOM
@@ -52,6 +56,7 @@ namespace vera {
 #endif
 
 void blendMode( BlendMode _mode ) {
+    sBlendMode = _mode;
     switch (_mode) {
         case BLEND_ALPHA:
             glEnable(GL_BLEND);
@@ -91,8 +96,10 @@ void blendMode( BlendMode _mode ) {
             break;
     }
 }
+const BlendMode blendMode() { return sBlendMode; }
 
 void cullingMode(CullingMode _mode) {
+    sCullingMode = _mode;
     if (_mode == CULL_NONE)
         glDisable(GL_CULL_FACE);
         
@@ -105,5 +112,17 @@ void cullingMode(CullingMode _mode) {
         }
     }
 }
+const CullingMode cullingMode() { return sCullingMode; }
+
+void setDepthTest(bool _value) {
+    bDepthTest = _value;
+    if (_value)
+        glEnable(GL_DEPTH_TEST);
+    else
+        glDisable(GL_DEPTH_TEST);
+}
+
+const bool getDepthTest() { return bDepthTest; }
+
 
 }

@@ -49,7 +49,6 @@ static float            yScroll = 0.0f;
 
 static bool             bShift = false;    
 static bool             bControl = false;
-static bool             bDepthTest = false;
 
 #if defined(DRIVER_GLFW)
 
@@ -1092,16 +1091,6 @@ void setWindowVSync(bool _value) {
     glfwSwapInterval(_value);
 #endif
 }
-
-void setDepthTest(bool _value) {
-    bDepthTest = _value;
-    if (_value)
-        glEnable(GL_DEPTH_TEST);
-    else
-        glDisable(GL_DEPTH_TEST);
-}
-
-const bool getDepthTest() { return bDepthTest; }
 
 void setViewport(float _width, float _height) {
     viewport.z = _width;

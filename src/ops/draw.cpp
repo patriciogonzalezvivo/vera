@@ -71,6 +71,10 @@ std::stack<glm::mat4> matrix_stack;
 void print(const std::string& _text) { std::cout << _text << std::endl; }
 void frameRate(int _fps) { setFps(_fps); }
 
+void flagChange() { scene->flagChange(); }
+bool haveChanged()  { return scene->haveChange(); }
+void resetChange() { scene->resetChange(); }
+
 float pixelDensity() { return getPixelDensity(); }
 void pixelDensity(float _density) { setPixelDensity(_density); }
 
