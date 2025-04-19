@@ -170,7 +170,7 @@ const GLint Shader::getAttribLocation(const std::string& _attribute) const {
 void Shader::use() {
     if (isDirty())
         load(m_fragmentSource, m_vertexSource, m_error_screen, false);
-
+    
     if (!inUse())
         glUseProgram(getProgram());
         

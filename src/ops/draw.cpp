@@ -136,14 +136,15 @@ void setCamera(Camera& _camera) { setCamera(&_camera); }
 void setCamera(Camera* _camera) {
     scene->activeCamera = _camera;
 
-    // setDepthTest(true);
     if (scene->activeCamera)
         scene->activeCamera->begin();
 };
 
 void resetCamera() {
-    if (scene->activeCamera)
+    if (scene->activeCamera) {
         scene->activeCamera->end();
+        scene->lastCamera = scene->activeCamera;
+    }
 
     scene->activeCamera = nullptr;
     setDepthTest(false);
@@ -152,6 +153,7 @@ void resetCamera() {
 void addCamera(Camera& _camera, const std::string& _name) { addCamera(&_camera, _name); }
 void addCamera(Camera* _camera, const std::string& _name) { scene->cameras[_name] = _camera; }
 Camera* getCamera() { return scene->activeCamera; }
+Camera* getLastCamera() { return scene->lastCamera; }
 Camera* getCamera(const std::string& _name) {
     CamerasMap::iterator it = scene->cameras.find(_name);
     if (it != scene->cameras.end())
@@ -1201,7 +1203,7 @@ void shader(Shader* _program) {
 
     _program->textureIndex = 0;
 
-    if (!_program->inUse())
+    if (!_program->inUse() || shaderChange)
         _program->use();
 
     _program->setUniform("u_date", getDate() );
@@ -1447,19 +1449,23 @@ void labels() {
     if (scene->activeFont == nullptr)
         scene->activeFont = getDefaultFont();
 
-    Camera *cam = getCamera();
+    bool enabledCamera = scene->activeCamera != nullptr;
+
+    Camera *cam = enabledCamera? getCamera() : getLastCamera();
 
     for (size_t i = 0; i < scene->labels.size(); i++)
         scene->labels[i]->update( cam, scene->activeFont );
 
-    resetCamera();
+    if (enabledCamera)
+        resetCamera();
 
     scene->activeFont->setEffect( EFFECT_NONE );
     scene->activeFont->setColor( fill_color );
     for (size_t i = 0; i < scene->labels.size(); i++)
         scene->labels[i]->render( scene->activeFont );
 
-    setCamera(cam);
+    if (enabledCamera)
+        setCamera(cam);
 }
 
 void cleanLabels() {

@@ -146,6 +146,7 @@ public:
 
     TextureCube*        activeCubemap;
     Camera*             activeCamera;
+    Camera*             lastCamera;
     Font*               activeFont;
 
 protected:

@@ -148,8 +148,10 @@ void Camera::begin() {
     }
 
     // If the viewport is set to zero, we don't want to change it
-    if (m_viewport == glm::ivec4(0)) 
+    if (m_viewport == glm::ivec4(0)) {
+        setViewport(vera::getWindowWidth(), vera::getWindowHeight());
         return;
+    }
     
     // extract current viewport so we can restore it later
     int vp[4];
