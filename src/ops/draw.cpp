@@ -300,7 +300,7 @@ void points(const std::vector<glm::vec2>& _positions, Shader* _program) {
     vbo.render(_program);
 #else
 
-    #if !defined(PLATFORM_RPI) && !defined(DRIVER_GBM) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
+    #if !defined(PLATFORM_RPI) && !defined(DRIVER_DRM) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
     glEnable(GL_POINT_SPRITE);
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
     #endif
@@ -326,7 +326,7 @@ void points(const std::vector<glm::vec3>& _positions, Shader* _program) {
     vbo.setDrawMode(POINTS);
     vbo.render(_program);
 #else
-    #if !defined(PLATFORM_RPI) && !defined(DRIVER_GBM) && !defined(_WIN32)
+    #if !defined(PLATFORM_RPI) && !defined(DRIVER_DRM) && !defined(_WIN32)
     glEnable(GL_POINT_SPRITE);
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
     #endif
@@ -1222,7 +1222,7 @@ void shader(Shader* _program) {
         _program->setUniform("u_size", points_size);
         _program->setUniform("u_shape", points_shape);
         _program->setUniform("u_color", fill_color);
-        #if !defined(PLATFORM_RPI) && !defined(DRIVER_GBM) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
+        #if !defined(PLATFORM_RPI) && !defined(DRIVER_DRM) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
         glEnable(GL_POINT_SPRITE);
         glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
         #endif

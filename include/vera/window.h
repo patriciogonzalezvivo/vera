@@ -156,8 +156,9 @@ struct WindowProperties {
     std::string glsl = "";
     std::string extensions = "";
 
-    #if defined(DRIVER_GBM) 
-    std::string display = "/dev/dri/card0";
+    #if defined(DRIVER_DRM) 
+    std::string display = "";
+    char        mode[DRM_DISPLAY_MODE_LEN] = "\0";
     #endif
 
     #if !defined(DRIVER_GLFW)
@@ -174,7 +175,7 @@ struct WindowProperties {
     int         screen_height = -1;
 };
 
-//	GL Context
+//  GL Context
 //----------------------------------------------
 int                 initGL(WindowProperties _properties = WindowProperties());
 const bool          isGL();
@@ -192,11 +193,11 @@ const bool          haveExtension(const std::string& _name);
 #if defined(__EMSCRIPTEN__)
 const size_t        getWebGLVersionNumber();
 #elif defined(PLATFORM_RPI)
-const EGLDisplay    getEGLDisplay();
-const EGLContext    getEGLContext();
+EGLDisplay          getEGLDisplay();
+EGLContext          getEGLContext();
 #endif
 
-//	Windows/Viewport
+//  Windows/Viewport
 //----------------------------------------------
 void                updateViewport();
 

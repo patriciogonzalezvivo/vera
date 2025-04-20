@@ -35,371 +35,874 @@ typedef struct {
     int         button;
     bool        entered;
 } Mouse;
-static Mouse            mouse;
+static Mouse                    mouse;
 
-struct timeval          tv;
-static uint32_t         screen_width = 0;
-static uint32_t         screen_height = 0;
-static double           elapseTime = 0.0;
-static double           delta = 0.0;
-static double           FPS = 0.0;
-static double           restSec = 0.0167; // default 60fps 
-static float            fPixelDensity = 1.0f;
-static float            yScroll = 0.0f;
+struct timeval                  tv;
+static uint32_t                 screen_width    = 0;
+static uint32_t                 screen_height   = 0;
+static double                   elapseTime      = 0.0;
+static double                   delta           = 0.0;
+static double                   FPS             = 0.0;
+static double                   restSec         = 0.0167; // default 60fps 
+static float                    fPixelDensity   = 1.0f;
+static float                    yScroll         = 0.0f;
 
-static bool             bShift = false;    
-static bool             bControl = false;
+static bool                     bShift          = false;    
+static bool                     bControl        = false;    
 
 #if defined(DRIVER_GLFW)
 
-#if defined(__APPLE__)
-    #define GL_PROGRAM_BINARY_LENGTH 0x8741
-    #include <GLFW/glfw3.h>
-    #include <OpenGL/gl.h>
-    #include <OpenGL/glext.h>
+    #if defined(__APPLE__)
+        #define GL_PROGRAM_BINARY_LENGTH 0x8741
+        #include <GLFW/glfw3.h>
+        #include <OpenGL/gl.h>
+        #include <OpenGL/glext.h>
 
-#elif defined(_WIN32)
-    #include <GL/glew.h>
-    #include "GLFW/glfw3.h"
-    #define APIENTRY __stdcall
+    #elif defined(_WIN32)
+        #include <GL/glew.h>
+        #include "GLFW/glfw3.h"
+        #define APIENTRY __stdcall
 
-#elif defined(__EMSCRIPTEN__)
-    #include <emscripten.h>
-    #include <emscripten/html5.h>
-    #define GL_GLEXT_PROTOTYPES
-    #define EGL_EGLEXT_PROTOTYPES
-    #include <GLFW/glfw3.h>
+    #elif defined(__EMSCRIPTEN__)
+        #include <emscripten.h>
+        #include <emscripten/html5.h>
+        #define GL_GLEXT_PROTOTYPES
+        #define EGL_EGLEXT_PROTOTYPES
+        #include <GLFW/glfw3.h>
 
-#else
-    // ANY LINUX using GLFW 
-    #define GL_GLEXT_PROTOTYPES
-    #include "GLFW/glfw3.h"
-#endif
+    #else
+        // ANY LINUX using GLFW 
+        #define GL_GLEXT_PROTOTYPES
+        #include "GLFW/glfw3.h"
+    #endif
 
-namespace vera {
-//----------------------------------------------------
-static bool             left_mouse_button_down = false;
-static GLFWwindow*      window;
+    namespace vera {
+    //----------------------------------------------------
+    static bool                     left_mouse_button_down = false;
+    static GLFWwindow*              window;
 
-#if defined(PLATFORM_RPI)
-#include "GLFW/glfw3native.h"
-EGLDisplay getEGLDisplay() { return glfwGetEGLDisplay(); }
-EGLContext getEGLContext() { return glfwGetEGLContext(window); }
-#endif
+    #if defined(PLATFORM_RPI)
+    #include "GLFW/glfw3native.h"
+    EGLDisplay getEGLDisplay() { return glfwGetEGLDisplay(); }
+    EGLContext getEGLContext() { return glfwGetEGLContext(window); }
+    #endif
 
-typedef struct _rect { int x, y; int w, h; } _rect;
-int _min(int a, int b) {
-    return a < b ? a : b;
-}
+    typedef struct _rect { int x, y; int w, h; } _rect;
+    int _min(int a, int b) { return a < b ? a : b; }
+    int _max(int a, int b) { return a > b ? a : b; }
+    #define RECT_INTERSECTS(ra, rb) \
+        ((ra)->x <= ((rb)->x + (rb)->w) && ((ra)->x + (ra)->w) >= (rb)->x && \
+        (ra)->y <= ((rb)->y + (rb)->h) && ((ra)->y + (ra)->h) >= (rb)->y)
 
-int _max(int a, int b) {
-    return a > b ? a : b;
-}
-
-
-#define RECT_INTERSECTS(ra, rb) \
-    ((ra)->x <= ((rb)->x + (rb)->w) && ((ra)->x + (ra)->w) >= (rb)->x && \
-    (ra)->y <= ((rb)->y + (rb)->h) && ((ra)->y + (ra)->h) >= (rb)->y)
-
-static _rect _get_intersection(_rect* ra, _rect* rb) {
-    _rect result = { 0, 0, 0, 0 };
-    if (RECT_INTERSECTS(ra, rb)) {
-        result.x = _max(ra->x, rb->x);
-        result.w = _min((ra->x + ra->w), (rb->x + rb->w)) - result.x;
-        result.y = _max(ra->y, rb->y);
-        result.h = _min((ra->y + ra->h), (rb->y + rb->h)) - result.y;
+    static _rect _get_intersection(_rect* ra, _rect* rb) {
+        _rect result = { 0, 0, 0, 0 };
+        if (RECT_INTERSECTS(ra, rb)) {
+            result.x = _max(ra->x, rb->x);
+            result.w = _min((ra->x + ra->w), (rb->x + rb->w)) - result.x;
+            result.y = _max(ra->y, rb->y);
+            result.h = _min((ra->y + ra->h), (rb->y + rb->h)) - result.y;
+        }
+        return result;
     }
-    return result;
-}
 
-GLFWAPI GLFWmonitor* getMonitorFromWindow(GLFWwindow* window) {  
-    GLFWmonitor* result = NULL;
+    GLFWAPI GLFWmonitor* getMonitorFromWindow(GLFWwindow* window) {  
+        GLFWmonitor* result = NULL;
 
-    int monitorCount;
-    GLFWmonitor** monitors;
-    const GLFWvidmode* vidmode;
+        int monitorCount;
+        GLFWmonitor** monitors;
+        const GLFWvidmode* vidmode;
 
-    unsigned int currentDim, overlapDim;
-    int overlapMonitor, i;
+        unsigned int currentDim, overlapDim;
+        int overlapMonitor, i;
 
-    _rect windowRect;
-    _rect monitorRect;
-    _rect scratchRect = { 0, 0, 0, 0 };
-    _rect overlapRect = { 0, 0, 0, 0 };
+        _rect windowRect;
+        _rect monitorRect;
+        _rect scratchRect = { 0, 0, 0, 0 };
+        _rect overlapRect = { 0, 0, 0, 0 };
 
-    assert(window != NULL);
+        assert(window != NULL);
 
-    // _GLFW_REQUIRE_INIT_OR_RETURN(NULL);
+        // _GLFW_REQUIRE_INIT_OR_RETURN(NULL);
 
-    monitors = glfwGetMonitors(&monitorCount);
+        monitors = glfwGetMonitors(&monitorCount);
 
-    if (monitorCount == 1)
-        result = monitors[0];
+        if (monitorCount == 1)
+            result = monitors[0];
 
-    else if (monitorCount > 1) {
-        glfwGetWindowPos(window, &windowRect.x, &windowRect.y);
-        glfwGetWindowSize(window, &windowRect.w, &windowRect.h);
+        else if (monitorCount > 1) {
+            glfwGetWindowPos(window, &windowRect.x, &windowRect.y);
+            glfwGetWindowSize(window, &windowRect.w, &windowRect.h);
 
-        glfwGetWindowFrameSize(window, &scratchRect.x, &scratchRect.y, 
-        &scratchRect.w, &scratchRect.h);
+            glfwGetWindowFrameSize(window, &scratchRect.x, &scratchRect.y, 
+            &scratchRect.w, &scratchRect.h);
 
-        windowRect.x -= scratchRect.x;
-        windowRect.y -= scratchRect.y;
-        windowRect.w += scratchRect.x + scratchRect.w;
-        windowRect.h += scratchRect.y + scratchRect.h;
+            windowRect.x -= scratchRect.x;
+            windowRect.y -= scratchRect.y;
+            windowRect.w += scratchRect.x + scratchRect.w;
+            windowRect.h += scratchRect.y + scratchRect.h;
 
-        overlapMonitor = -1;
+            overlapMonitor = -1;
 
-        for (i = 0; i < monitorCount; i++) {
-            glfwGetMonitorPos(monitors[i], &monitorRect.x, &monitorRect.y);
+            for (i = 0; i < monitorCount; i++) {
+                glfwGetMonitorPos(monitors[i], &monitorRect.x, &monitorRect.y);
 
-            vidmode = glfwGetVideoMode(monitors[i]);
-            monitorRect.w = vidmode->width;
-            monitorRect.h = vidmode->height;
+                vidmode = glfwGetVideoMode(monitors[i]);
+                monitorRect.w = vidmode->width;
+                monitorRect.h = vidmode->height;
 
-            scratchRect = _get_intersection(&windowRect, &monitorRect);
+                scratchRect = _get_intersection(&windowRect, &monitorRect);
 
-            currentDim = scratchRect.w * scratchRect.h;
-            overlapDim = overlapRect.w * overlapRect.h;
+                currentDim = scratchRect.w * scratchRect.h;
+                overlapDim = overlapRect.w * overlapRect.h;
 
-            if (currentDim > 0 && currentDim > overlapDim) {
-                overlapRect = scratchRect;
-                overlapMonitor = i;
+                if (currentDim > 0 && currentDim > overlapDim) {
+                    overlapRect = scratchRect;
+                    overlapMonitor = i;
+                }
+            }
+
+            if (overlapMonitor >= 0)
+            result = monitors[overlapMonitor];
+        }
+
+        return result;
+    }
+
+#else // NON-GLFW (DIRECT MODE)
+
+    #include <assert.h>
+    #include <fcntl.h>
+    #include <termios.h>
+    #include <stdio.h> 
+    #include <unistd.h>
+
+    #if defined(DRIVER_BROADCOM)
+        #include "bcm_host.h"
+        #undef countof
+
+        // EGL / GLES2
+        #include <EGL/egl.h>
+        #include <EGL/eglext.h>
+        #include <GLES2/gl2.h>
+        #include <GLES2/gl2ext.h>
+
+        DISPMANX_DISPLAY_HANDLE_T dispman_display;
+
+    #elif defined(DRIVER_DRM)
+        #include <errno.h>
+
+        #include <xf86drm.h>
+        #include <xf86drmMode.h>
+        
+        #include <gbm.h>
+        #include <drm_fourcc.h>
+
+        // DRM
+        #define MAX_DRM_DEVICES 64
+        #ifndef DRM_FORMAT_MOD_LINEAR
+        #define DRM_FORMAT_MOD_LINEAR 0
+        #endif
+        #ifndef DRM_FORMAT_MOD_INVALID
+        #define DRM_FORMAT_MOD_INVALID ((((__u64)0) << 56) | ((1ULL << 56) - 1))
+        #endif
+
+        int                     drm_device;
+        drmModeModeInfo*        drm_mode;
+        drmModeCrtc*            drm_crtc;
+        uint32_t                drm_connector_id;
+        uint32_t                drm_crtc_id;
+        uint32_t                drm_crtc_index;
+
+        uint32_t                drm_format = DRM_FORMAT_XRGB8888;
+        uint64_t                modifier = DRM_FORMAT_MOD_LINEAR;
+        uint32_t                drm_vrefresh;
+        bool                    drm_async_page_flip = false;
+        uint32_t                drm_flags = DRM_MODE_PAGE_FLIP_EVENT;
+
+        static void page_flip_handler(int fd, unsigned int frame, unsigned int sec, unsigned int usec, void *data) {
+            /* suppress 'unused parameter' warnings */
+            (void)fd, (void)frame, (void)sec, (void)usec;
+            int *waiting_for_flip = data;
+            *waiting_for_flip = 0;
+        }
+
+        fd_set                  drm_fds;
+        drmEventContext         drm_evctx = {
+                .version            = 2,
+                .page_flip_handler  = page_flip_handler,
+        };
+
+        static int get_resources(int fd, drmModeRes **resources) {
+            *resources = drmModeGetResources(fd);
+            if (*resources == NULL)
+                return EXIT_FAILURE;
+            return 0;
+        }
+
+        static int find_drm_device(drmModeRes **resources) {
+            drmDevicePtr devices[MAX_DRM_DEVICES] = { NULL };
+            int num_devices, fd = -1;
+
+            num_devices = drmGetDevices2(0, devices, MAX_DRM_DEVICES);
+            printf("Number of devices %d\n", num_devices);
+            if (num_devices < 0) {
+                printf("drmGetDevices2 failed: %s\n", strerror(-num_devices));
+                return -1;
+            }
+
+            for (int i = 0; i < num_devices; i++) {
+                drmDevicePtr device = devices[i];
+                int ret;
+
+                if (!(device->available_nodes & (1 << DRM_NODE_PRIMARY)))
+                    continue;
+                /* OK, it's a primary device. If we can get the
+                * drmModeResources, it means it's also a
+                * KMS-capable device.
+                */
+                fd = open(device->nodes[DRM_NODE_PRIMARY], O_RDWR);
+                if (fd < 0)
+                    continue;
+                ret = get_resources(fd, resources);
+                if (!ret)
+                    break;
+                close(fd);
+                fd = -1;
+            }
+            drmFreeDevices(devices, num_devices);
+
+            if (fd < 0)
+                printf("no drm device found!\n");
+            return fd;
+        }
+
+        static int32_t find_crtc_for_encoder(const drmModeRes *resources, const drmModeEncoder *encoder) {
+            for (int i = 0; i < resources->count_crtcs; i++) {
+                /* possible_crtcs is a bitmask as described here:
+                * https://dvdhrm.wordpress.com/2012/09/13/linux-drm-mode-setting-api
+                */
+                const uint32_t crtc_mask = 1 << i;
+                const uint32_t crtc_id = resources->crtcs[i];
+                if (encoder->possible_crtcs & crtc_mask) {
+                    return crtc_id;
+                }
+            }
+
+            /* no match found */
+            return EXIT_FAILURE;
+        }
+
+
+        static int32_t find_crtc_for_connector(const drmModeRes *resources, const drmModeConnector *connector) {
+            for (int i = 0; i < connector->count_encoders; i++) {
+                const uint32_t encoder_id = connector->encoders[i];
+                drmModeEncoder *encoder = drmModeGetEncoder(drm_device, encoder_id);
+
+                if (encoder) {
+                    const int32_t crtc_id = find_crtc_for_encoder(resources, encoder);
+
+                    drmModeFreeEncoder(encoder);
+                    if (crtc_id != 0) {
+                        return crtc_id;
+                    }
+                }
+            }
+
+            /* no match found */
+            return EXIT_FAILURE;
+        }
+
+        int init_drm(const char *device, const char *mode_str, unsigned int vrefresh) {
+            drmModeRes *resources;
+            drmModeConnector *connector = NULL;
+            drmModeEncoder *encoder = NULL;
+            int i, ret, area;
+
+            if (vera::urlExists(std::string(device))) {
+                drm_device = open(device, O_RDWR);
+                ret = get_resources(drm_device, &resources);
+                if (ret < 0 && errno == EOPNOTSUPP)
+                    printf("%s does not look like a modeset device\n", device);
+            } else {
+                drm_device = find_drm_device(&resources);
+            }
+            
+
+            if (drm_device < 0) {
+                printf("could not open drm device\n");
+                return -1;
+            }
+
+            if (!resources) {
+                printf("drmModeGetResources failed: %s\n", strerror(errno));
+                return -1;
+            }
+
+            /* find a connected connector: */
+            for (i = 0; i < resources->count_connectors; i++) {
+                connector = drmModeGetConnector(drm_device, resources->connectors[i]);
+                if (connector->connection == DRM_MODE_CONNECTED) {
+                    /* it's connected, let's use this! */
+                    break;
+                }
+                drmModeFreeConnector(connector);
+                connector = NULL;
+            }
+
+            if (!connector) {
+                /* we could be fancy and listen for hotplug events and wait for
+                * a connector..
+                */
+                printf("no connected connector!\n");
+                return -1;
+            }
+
+            /* find user requested mode: */
+            if (mode_str && *mode_str) {
+                for (i = 0; i < connector->count_modes; i++) {
+                    drmModeModeInfo *current_mode = &connector->modes[i];
+
+                    if (strcmp(current_mode->name, mode_str) == 0) {
+                        if (vrefresh == 0 || current_mode->vrefresh == vrefresh) {
+                            drm_mode = current_mode;
+                            break;
+                        }
+                    }
+                }
+
+                if (!drm_mode)
+                    printf("requested mode not found, using default mode!\n");
+            }
+
+            /* find preferred mode or the highest resolution mode: */
+            if (!drm_mode) {
+                for (i = 0, area = 0; i < connector->count_modes; i++) {
+                    drmModeModeInfo *current_mode = &connector->modes[i];
+
+                    if (current_mode->type & DRM_MODE_TYPE_PREFERRED) {
+                        drm_mode = current_mode;
+                        break;
+                    }
+
+                    std::cout << "current_mode: " << current_mode->hdisplay << "x" << current_mode->vdisplay << std::endl;
+
+                    int current_area = current_mode->hdisplay * current_mode->vdisplay;
+                    if (current_area > area) {
+                        drm_mode = current_mode;
+                        area = current_area;
+                    }
+                }
+            }
+
+            if (!drm_mode) {
+                printf("could not find mode!\n");
+                return -1;
+            }
+
+            /* find encoder: */
+            for (i = 0; i < resources->count_encoders; i++) {
+                encoder = drmModeGetEncoder(drm_device, resources->encoders[i]);
+                if (encoder->encoder_id == connector->encoder_id)
+                    break;
+                drmModeFreeEncoder(encoder);
+                encoder = NULL;
+            }
+
+            if (encoder) {
+                drm_crtc_id = encoder->crtc_id;
+            } 
+            else {
+                uint32_t crtc_id = find_crtc_for_connector(resources, connector);
+                if (crtc_id == 0) {
+                    printf("no crtc found!\n");
+                    return -1;
+                }
+                drm_crtc_id = crtc_id;
+            }
+
+            for (i = 0; i < resources->count_crtcs; i++) {
+                if (resources->crtcs[i] == drm_crtc_id) {
+                    drm_crtc_index = i;
+                    break;
+                }
+            }
+
+            drmModeFreeResources(resources);
+
+            drm_connector_id = connector->connector_id;
+
+            return 0;
+        }
+
+        // GBM
+        //
+        #define WEAK __attribute__((weak))
+        WEAK struct gbm_surface * gbm_surface_create_with_modifiers(struct gbm_device *gbm, uint32_t width, uint32_t height, uint32_t format, const uint64_t *modifiers, const unsigned int count);
+        WEAK union gbm_bo_handle gbm_bo_get_handle_for_plane(struct gbm_bo *bo, int plane);
+
+        struct gbm {
+            struct gbm_device*  device;
+            struct gbm_surface* surface;
+
+            uint32_t            format;
+            int                 width, height;
+        };
+
+        struct gbm_fb {
+            struct gbm_bo*      bo;
+            uint32_t            fb_id;
+        };
+
+        enum mode {
+            SMOOTH,        /* smooth-shaded */
+            RGBA,          /* single-plane RGBA */
+            NV12_2IMG,     /* NV12, handled as two textures and converted to RGB in shader */
+            NV12_1IMG,     /* NV12, imported as planar YUV eglimg */
+            VIDEO,         /* video textured cube */
+        };
+
+        static struct gbm       gbm;
+        static struct gbm_bo*   gbm_curr_bo = NULL;
+        static uint32_t         gbm_curr_fb;
+
+        static void gbm_fb_destroy_callback(struct gbm_bo *bo, void *data) {
+            int drm_fd = gbm_device_get_fd(gbm_bo_get_device(bo));
+            struct gbm_fb *fb = data;
+
+            if (fb->fb_id)
+                drmModeRmFB(drm_fd, fb->fb_id);
+
+            free(fb);
+        }
+
+        struct gbm_fb * gbm_fb_get_from_bo(struct gbm_bo *bo) {
+            int drm_fd = gbm_device_get_fd(gbm_bo_get_device(bo));
+            struct gbm_fb *fb = gbm_bo_get_user_data(bo);
+            uint32_t width, height, format,
+                strides[4] = {0}, handles[4] = {0},
+                offsets[4] = {0}, flags = 0;
+            int ret = -1;
+
+            if (fb)
+                return fb;
+
+            fb = calloc(1, sizeof *fb);
+            fb->bo = bo;
+
+            width = gbm_bo_get_width(bo);
+            height = gbm_bo_get_height(bo);
+            format = gbm_bo_get_format(bo);
+
+            if (gbm_bo_get_handle_for_plane && gbm_bo_get_modifier &&
+                gbm_bo_get_plane_count && gbm_bo_get_stride_for_plane &&
+                gbm_bo_get_offset) {
+
+                uint64_t modifiers[4] = {0};
+                modifiers[0] = gbm_bo_get_modifier(bo);
+                const int num_planes = gbm_bo_get_plane_count(bo);
+                for (int i = 0; i < num_planes; i++) {
+                    handles[i] = gbm_bo_get_handle_for_plane(bo, i).u32;
+                    strides[i] = gbm_bo_get_stride_for_plane(bo, i);
+                    offsets[i] = gbm_bo_get_offset(bo, i);
+                    modifiers[i] = modifiers[0];
+                }
+
+                if (modifiers[0] && modifiers[0] != DRM_FORMAT_MOD_INVALID) {
+                    flags = DRM_MODE_FB_MODIFIERS;
+                }
+
+                ret = drmModeAddFB2WithModifiers(drm_fd, width, height,
+                        format, handles, strides, offsets,
+                        modifiers, &fb->fb_id, flags);
+            }
+
+            if (ret) {
+                if (flags)
+                    fprintf(stderr, "Modifiers failed!\n");
+
+                uint32_t handles_arr[] = {gbm_bo_get_handle(bo).u32,0,0,0};
+                uint32_t strides_arr[] = {gbm_bo_get_stride(bo),0,0,0};
+                memcpy(handles, handles_arr, 16);
+                memcpy(strides, strides_arr, 16);
+                memset(offsets, 0, 16);
+                ret = drmModeAddFB2(drm_fd, width, height, format, handles, strides, offsets, &fb->fb_id, 0);
+            }
+
+            if (ret) {
+                printf("failed to create fb: %s\n", strerror(errno));
+                free(fb);
+                return NULL;
+            }
+
+            gbm_bo_set_user_data(bo, fb, gbm_fb_destroy_callback);
+
+            return fb;
+        }
+
+        int gbm_init(int drm_fd, int w, int h, uint32_t format, uint64_t modifier) {
+            // static struct gbm gbm;
+
+            gbm.device = gbm_create_device(drm_fd);
+            gbm.surface = NULL;
+
+            if (!gbm.device)
+                return EXIT_FAILURE;
+
+            if (gbm_surface_create_with_modifiers)
+                gbm.surface = gbm_surface_create_with_modifiers(gbm.device, w, h, format, &modifier, 1);
+
+            if (!gbm.surface) {
+                if (modifier != DRM_FORMAT_MOD_LINEAR) {
+                    fprintf(stderr, "Modifiers requested but support isn't available\n");
+                    return EXIT_FAILURE;
+                }
+
+                gbm.surface = gbm_surface_create(gbm.device, w, h, format, GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
+            }
+
+            if (!gbm.surface) {
+                printf("failed to create GBM surface\n");
+                return EXIT_FAILURE;
+            }
+            else {
+                printf("GBM surface created at %dx%d\n", w, h);
+                printf("===================================\n");
+            }
+
+            return 0;
+        }        
+
+        static void gbm_clean() {
+            // set the previous crtc
+            drmModeSetCrtc(drm_device, drm_crtc->crtc_id, drm_crtc->buffer_id, drm_crtc->x, drm_crtc->y, &drm_connector_id, 1, &drm_crtc->mode);
+            drmModeFreeCrtc(drm_crtc);
+            if (gbm_curr_bo) {
+                // struct gbm_fb* fb = gbm_fb_get_from_bo(gbm_curr_bo);
+                // drmModeRmFB(drm_device, fb->fb_id);
+                drmModeRmFB(drm_device, gbm_curr_fb);
+                gbm_surface_release_buffer(gbm.surface, gbm_curr_bo);
+            }
+            gbm_surface_destroy(gbm.surface);
+            gbm_device_destroy(gbm.device);
+        }
+
+        static void gbm_swap_buffers() {
+            int waiting_for_flip = 1;
+            struct gbm_bo *next_bo = gbm_surface_lock_front_buffer(gbm.surface);
+            struct gbm_fb* fb = gbm_fb_get_from_bo(next_bo);
+            if (!fb) {
+                fprintf(stderr, "Failed to get a new framebuffer BO\n");
+                return;
+            }
+
+            /*
+            * Here you could also update drm plane layers if you want
+            * hw composition
+            */
+            
+            int ret = drmModePageFlip(drm_device, drm_crtc_id, fb->fb_id, drm_flags, &waiting_for_flip);
+            if (ret) {
+                printf("failed to queue page flip: %s\n", strerror(errno));
+                return;
+            }
+
+            while (waiting_for_flip) {
+                FD_ZERO(&drm_fds);
+                FD_SET(0, &drm_fds);
+                FD_SET(drm_device, &drm_fds);
+            
+                ret = select(drm_device + 1, &drm_fds, NULL, NULL, NULL);
+                if (ret < 0) {
+                    printf("select err: %s\n", strerror(errno));
+                    return;
+                } else if (ret == 0) {
+                    printf("select timeout!\n");
+                    return;
+                } else if (FD_ISSET(0, &drm_fds)) {
+                    printf("user interrupted!\n");
+                    return;
+                }
+                drmHandleEvent(drm_device, &drm_evctx);
+            }
+            
+            /* release last buffer to render on again: */
+            if (gbm.surface) {
+                gbm_surface_release_buffer(gbm.surface, next_bo);
+            }
+            gbm_curr_bo = next_bo;
+        }
+
+
+        int drm_host_init() {
+            init_drm(properties.display.c_str(), properties.mode, drm_vrefresh);
+            screen_width = drm_mode->hdisplay;
+            screen_height = drm_mode->vdisplay;
+            gbm_init(drm_device, screen_width, screen_height, drm_format, modifier);
+        }
+
+        #endif /* DRIVER_DRM */
+
+        // EGL / GLES2
+        #include <EGL/egl.h>
+        #include <EGL/eglext.h>
+        #include <GLES2/gl2.h>
+        #include <GLES2/gl2ext.h>
+
+        #ifndef EGL_KHR_platform_gbm
+        #define EGL_KHR_platform_gbm 1
+        #define EGL_PLATFORM_GBM_KHR              0x31D7
+        #endif /* EGL_KHR_platform_gbm */
+
+        #ifndef EGL_EXT_platform_base
+        #define EGL_EXT_platform_base 1
+        typedef EGLDisplay (EGLAPIENTRYP PFNEGLGETPLATFORMDISPLAYEXTPROC) (EGLenum platform, void *native_display, const EGLint *attrib_list);
+        typedef EGLSurface (EGLAPIENTRYP PFNEGLCREATEPLATFORMWINDOWSURFACEEXTPROC) (EGLDisplay dpy, EGLConfig config, void *native_window, const EGLint *attrib_list);
+        typedef EGLSurface (EGLAPIENTRYP PFNEGLCREATEPLATFORMPIXMAPSURFACEEXTPROC) (EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLint *attrib_list);
+        #ifdef EGL_EGLEXT_PROTOTYPES
+        EGLAPI EGLDisplay EGLAPIENTRY eglGetPlatformDisplayEXT (EGLenum platform, void *native_display, const EGLint *attrib_list);
+        EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurfaceEXT (EGLDisplay dpy, EGLConfig config, void *native_window, const EGLint *attrib_list);
+        EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformPixmapSurfaceEXT (EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLint *attrib_list);
+        #endif
+        #endif /* EGL_EXT_platform_base */
+
+        #ifndef EGL_VERSION_1_5
+        #define EGLImage EGLImageKHR
+        #endif /* EGL_VERSION_1_5 */
+
+        #define WEAK __attribute__((weak))
+
+        /* Define tokens from EGL_EXT_image_dma_buf_import_modifiers */
+        #ifndef EGL_EXT_image_dma_buf_import_modifiers
+        #define EGL_EXT_image_dma_buf_import_modifiers 1
+        #define EGL_DMA_BUF_PLANE3_FD_EXT         0x3440
+        #define EGL_DMA_BUF_PLANE3_OFFSET_EXT     0x3441
+        #define EGL_DMA_BUF_PLANE3_PITCH_EXT      0x3442
+        #define EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT 0x3443
+        #define EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT 0x3444
+        #define EGL_DMA_BUF_PLANE1_MODIFIER_LO_EXT 0x3445
+        #define EGL_DMA_BUF_PLANE1_MODIFIER_HI_EXT 0x3446
+        #define EGL_DMA_BUF_PLANE2_MODIFIER_LO_EXT 0x3447
+        #define EGL_DMA_BUF_PLANE2_MODIFIER_HI_EXT 0x3448
+        #define EGL_DMA_BUF_PLANE3_MODIFIER_LO_EXT 0x3449
+        #define EGL_DMA_BUF_PLANE3_MODIFIER_HI_EXT 0x344A
+        #endif
+
+        struct egl {
+            EGLDisplay  display;
+            EGLContext  context;
+            EGLSurface  surface;
+
+            EGLConfig   config;
+            
+            #if defined(DRIVER_DRM)
+            PFNEGLGETPLATFORMDISPLAYEXTPROC     eglGetPlatformDisplayEXT;
+            PFNEGLCREATEIMAGEKHRPROC            eglCreateImageKHR;
+            PFNEGLDESTROYIMAGEKHRPROC           eglDestroyImageKHR;
+            PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES;
+            PFNEGLCREATESYNCKHRPROC             eglCreateSyncKHR;
+            PFNEGLDESTROYSYNCKHRPROC            eglDestroySyncKHR;
+            PFNEGLWAITSYNCKHRPROC               eglWaitSyncKHR;
+            PFNEGLCLIENTWAITSYNCKHRPROC         eglClientWaitSyncKHR;
+            PFNEGLDUPNATIVEFENCEFDANDROIDPROC   eglDupNativeFenceFDANDROID;
+
+            /* AMD_performance_monitor */
+            PFNGLGETPERFMONITORGROUPSAMDPROC         glGetPerfMonitorGroupsAMD;
+            PFNGLGETPERFMONITORCOUNTERSAMDPROC       glGetPerfMonitorCountersAMD;
+            PFNGLGETPERFMONITORGROUPSTRINGAMDPROC    glGetPerfMonitorGroupStringAMD;
+            PFNGLGETPERFMONITORCOUNTERSTRINGAMDPROC  glGetPerfMonitorCounterStringAMD;
+            PFNGLGETPERFMONITORCOUNTERINFOAMDPROC    glGetPerfMonitorCounterInfoAMD;
+            PFNGLGENPERFMONITORSAMDPROC              glGenPerfMonitorsAMD;
+            PFNGLDELETEPERFMONITORSAMDPROC           glDeletePerfMonitorsAMD;
+            PFNGLSELECTPERFMONITORCOUNTERSAMDPROC    glSelectPerfMonitorCountersAMD;
+            PFNGLBEGINPERFMONITORAMDPROC             glBeginPerfMonitorAMD;
+            PFNGLENDPERFMONITORAMDPROC               glEndPerfMonitorAMD;
+            PFNGLGETPERFMONITORCOUNTERDATAAMDPROC    glGetPerfMonitorCounterDataAMD;
+            #endif /* DRIVER_DRM */
+
+            bool modifiers_supported;
+
+            // void (*draw)(uint64_t start_time, unsigned frame);
+        };
+        static struct egl egl;
+
+        #define egl_check() assert(glGetError() == 0)
+
+        // Get the EGL error back as a string. Useful for debugging.
+        static const char *egl_get_error_str() {
+            switch (eglGetError()) {
+            case EGL_SUCCESS:
+                return "The last function succeeded without error.";
+            case EGL_NOT_INITIALIZED:
+                return "EGL is not initialized, or could not be initialized, for the "
+                    "specified EGL display connection.";
+            case EGL_BAD_ACCESS:
+                return "EGL cannot access a requested resource (for example a context "
+                    "is bound in another thread).";
+            case EGL_BAD_ALLOC:
+                return "EGL failed to allocate resources for the requested operation.";
+            case EGL_BAD_ATTRIBUTE:
+                return "An unrecognized attribute or attribute value was passed in the "
+                    "attribute list.";
+            case EGL_BAD_CONTEXT:
+                return "An EGLContext argument does not name a valid EGL rendering "
+                    "context.";
+            case EGL_BAD_CONFIG:
+                return "An EGLConfig argument does not name a valid EGL frame buffer "
+                    "configuration.";
+            case EGL_BAD_CURRENT_SURFACE:
+                return "The current surface of the calling thread is a window, pixel "
+                    "buffer or pixmap that is no longer valid.";
+            case EGL_BAD_DISPLAY:
+                return "An EGLDisplay argument does not name a valid EGL display "
+                    "connection.";
+            case EGL_BAD_SURFACE:
+                return "An EGLSurface argument does not name a valid surface (window, "
+                    "pixel buffer or pixmap) configured for GL rendering.";
+            case EGL_BAD_MATCH:
+                return "Arguments are inconsistent (for example, a valid context "
+                    "requires buffers not supplied by a valid surface).";
+            case EGL_BAD_PARAMETER:
+                return "One or more argument values are invalid.";
+            case EGL_BAD_NATIVE_PIXMAP:
+                return "A NativePixmapType argument does not refer to a valid native "
+                    "pixmap.";
+            case EGL_BAD_NATIVE_WINDOW:
+                return "A NativeWindowType argument does not refer to a valid native "
+                    "window.";
+            case EGL_CONTEXT_LOST:
+                return "A power management event has occurred. The application must "
+                    "destroy all contexts and reinitialise OpenGL ES state and "
+                    "objects to continue rendering.";
+            default:
+                break;
+            }
+            return "Unknown error!";
+        }
+
+        static bool egl_has_ext(const char *extension_list, const char *ext) {
+            const char *ptr = extension_list;
+            int len = strlen(ext);
+
+            if (ptr == NULL || *ptr == '\0')
+                return false;
+
+            while (true) {
+                ptr = strstr(ptr, ext);
+                if (!ptr)
+                    return false;
+
+                if (ptr[len] == ' ' || ptr[len] == '\0')
+                    return true;
+
+                ptr += len;
             }
         }
 
-        if (overlapMonitor >= 0)
-        result = monitors[overlapMonitor];
-    }
+        static int match_config_to_visual(EGLint visual_id, EGLConfig *configs, int count) {
+            int i;
 
-    return result;
-}
+            for (i = 0; i < count; ++i) {
+                EGLint id;
 
-#else
+                if (!eglGetConfigAttrib(egl.display, configs[i], EGL_NATIVE_VISUAL_ID, &id))
+                    continue;
 
-#if defined(DRIVER_BROADCOM)
-    #include "bcm_host.h"
-    #undef countof
-#elif defined(DRIVER_GBM)
-    #include <xf86drm.h>
-    #include <xf86drmMode.h>
-    #include <gbm.h>
+                if (id == visual_id)
+                    return i;
+            }
+
+            return EXIT_FAILURE;
+        }
+
+        static bool egl_choose_config(const EGLint *attribs, EGLint visual_id, EGLConfig *config_out) {
+            EGLint count = 0;
+            EGLint matched = 0;
+            EGLConfig* configs;
+            int config_index = -1;
+
+            if (!eglGetConfigs(egl.display, NULL, 0, &count) || count < 1) {
+                printf("No EGL configs to choose from.\n");
+                return false;
+            }
+            configs = (EGLConfig*)malloc(count * sizeof *configs);
+            if (configs == NULL) {
+                printf("Failed to allocate memory for EGL configs.\n");
+                return false;
+            }
+    
+            if (!eglChooseConfig(egl.display, attribs, configs, count, &matched) || !matched) {
+                printf("No EGL configs with appropriate attributes.\n");
+                goto out;
+            }
+
+            if (!visual_id)
+                config_index = 0;
+
+            if (config_index == -1)
+                config_index = match_config_to_visual(visual_id, configs, matched);
+
+            if (config_index != -1)
+                *config_out = configs[config_index];
+
+        out:
+            free(configs);
+            if (config_index == -1)
+                return false;
+
+            return true;
+        }
+        
+    namespace vera {
+
+        EGLDisplay getEGLDisplay() { return egl.display; }
+        EGLContext getEGLContext() { return egl.context; }
+    
 #endif
 
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
+    std::function<void(int,int)>            onViewportResize;
+    std::function<void(int)>                onKeyPress;
+    std::function<void(float, float)>       onMouseMove;
+    std::function<void(float, float, int)>  onMousePress;
+    std::function<void(float, float, int)>  onMouseDrag;
+    std::function<void(float, float, int)>  onMouseRelease;
+    std::function<void(float)>              onScroll;
+    std::function<void(int, const char**)>  onDrop;
 
-#include <assert.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <stdio.h> 
-#include <unistd.h>
-
-namespace vera {
-
-#define check() assert(glGetError() == 0)
-
-// EGL context globals
-EGLDisplay display;
-EGLContext context;
-EGLSurface surface;
-
-const EGLDisplay getEGLDisplay() { return display; }
-const EGLContext getEGLContext() { return context; }
-
-// Get the EGL error back as a string. Useful for debugging.
-static const char *eglGetErrorStr() {
-    switch (eglGetError()) {
-    case EGL_SUCCESS:
-        return "The last function succeeded without error.";
-    case EGL_NOT_INITIALIZED:
-        return "EGL is not initialized, or could not be initialized, for the "
-               "specified EGL display connection.";
-    case EGL_BAD_ACCESS:
-        return "EGL cannot access a requested resource (for example a context "
-               "is bound in another thread).";
-    case EGL_BAD_ALLOC:
-        return "EGL failed to allocate resources for the requested operation.";
-    case EGL_BAD_ATTRIBUTE:
-        return "An unrecognized attribute or attribute value was passed in the "
-               "attribute list.";
-    case EGL_BAD_CONTEXT:
-        return "An EGLContext argument does not name a valid EGL rendering "
-               "context.";
-    case EGL_BAD_CONFIG:
-        return "An EGLConfig argument does not name a valid EGL frame buffer "
-               "configuration.";
-    case EGL_BAD_CURRENT_SURFACE:
-        return "The current surface of the calling thread is a window, pixel "
-               "buffer or pixmap that is no longer valid.";
-    case EGL_BAD_DISPLAY:
-        return "An EGLDisplay argument does not name a valid EGL display "
-               "connection.";
-    case EGL_BAD_SURFACE:
-        return "An EGLSurface argument does not name a valid surface (window, "
-               "pixel buffer or pixmap) configured for GL rendering.";
-    case EGL_BAD_MATCH:
-        return "Arguments are inconsistent (for example, a valid context "
-               "requires buffers not supplied by a valid surface).";
-    case EGL_BAD_PARAMETER:
-        return "One or more argument values are invalid.";
-    case EGL_BAD_NATIVE_PIXMAP:
-        return "A NativePixmapType argument does not refer to a valid native "
-               "pixmap.";
-    case EGL_BAD_NATIVE_WINDOW:
-        return "A NativeWindowType argument does not refer to a valid native "
-               "window.";
-    case EGL_CONTEXT_LOST:
-        return "A power management event has occurred. The application must "
-               "destroy all contexts and reinitialise OpenGL ES state and "
-               "objects to continue rendering.";
-    default:
-        break;
-    }
-    return "Unknown error!";
-}
-#endif
-
-std::function<void(int,int)>            onViewportResize;
-std::function<void(int)>                onKeyPress;
-std::function<void(float, float)>       onMouseMove;
-std::function<void(float, float, int)>  onMousePress;
-std::function<void(float, float, int)>  onMouseDrag;
-std::function<void(float, float, int)>  onMouseRelease;
-std::function<void(float)>              onScroll;
-std::function<void(int, const char**)>  onDrop;
-
-void setViewportResizeCallback(std::function<void(int,int)> _callback) { onViewportResize = _callback; }
-void setKeyPressCallback(std::function<void(int)> _callback) { onKeyPress = _callback; }
-void setMouseMoveCallback(std::function<void(float, float)> _callback) { onMouseMove = _callback; }
-void setMousePressCallback(std::function<void(float, float, int)> _callback) { onMousePress = _callback; }
-void setMouseDragCallback(std::function<void(float, float, int)> _callback) { onMouseDrag = _callback; }
-void setMouseReleaseCallback(std::function<void(float, float, int)> _callback) { onMouseRelease = _callback; }
-void setScrollCallback(std::function<void(float)>_callback) { onScroll = _callback; }
-void setDropCallback(std::function<void(int, const char**)>_callback) { onDrop = _callback; }
-
-#if defined(DRIVER_BROADCOM)
-    DISPMANX_DISPLAY_HANDLE_T dispman_display;
-
-#elif defined(DRIVER_GBM)
-    // https://github.com/matusnovak/rpi-opengl-without-x/blob/master/triangle_rpi4.c
-
-    int device;
-    drmModeModeInfo mode;
-    struct gbm_device *gbmDevice;
-    struct gbm_surface *gbmSurface;
-    drmModeCrtc *crtc;
-    uint32_t connectorId;
-
-    static drmModeConnector *getConnector(drmModeRes *resources) {
-        for (int i = 0; i < resources->count_connectors; i++) {
-            drmModeConnector *connector = drmModeGetConnector(device, resources->connectors[i]);
-            if (connector->connection == DRM_MODE_CONNECTED)
-                return connector;
-            drmModeFreeConnector(connector);
-        }
-        return NULL;
-    }
-
-    static drmModeEncoder *findEncoder(drmModeRes *resources, drmModeConnector *connector) {
-        if (connector->encoder_id)
-            return drmModeGetEncoder(device, connector->encoder_id);
-        return NULL;
-    }
-
-    static struct gbm_bo *previousBo = NULL;
-    static uint32_t previousFb;
-
-    static void gbmSwapBuffers() {
-        struct gbm_bo *bo = gbm_surface_lock_front_buffer(gbmSurface);
-        uint32_t handle = gbm_bo_get_handle(bo).u32;
-        uint32_t pitch = gbm_bo_get_stride(bo);
-        uint32_t fb;
-        drmModeAddFB(device, mode.hdisplay, mode.vdisplay, 24, 32, pitch, handle, &fb);
-        drmModeSetCrtc(device, crtc->crtc_id, fb, 0, 0, &connectorId, 1, &mode);
-        if (previousBo) {
-            drmModeRmFB(device, previousFb);
-            gbm_surface_release_buffer(gbmSurface, previousBo);
-        }
-        previousBo = bo;
-        previousFb = fb;
-    }
-
-    static void gbmClean() {
-        // set the previous crtc
-        drmModeSetCrtc(device, crtc->crtc_id, crtc->buffer_id, crtc->x, crtc->y, &connectorId, 1, &crtc->mode);
-        drmModeFreeCrtc(crtc);
-        if (previousBo) {
-            drmModeRmFB(device, previousFb);
-            gbm_surface_release_buffer(gbmSurface, previousBo);
-        }
-        gbm_surface_destroy(gbmSurface);
-        gbm_device_destroy(gbmDevice);
-    }
-#endif
+    void setViewportResizeCallback(std::function<void(int,int)> _callback) { onViewportResize = _callback; }
+    void setKeyPressCallback(std::function<void(int)> _callback) { onKeyPress = _callback; }
+    void setMouseMoveCallback(std::function<void(float, float)> _callback) { onMouseMove = _callback; }
+    void setMousePressCallback(std::function<void(float, float, int)> _callback) { onMousePress = _callback; }
+    void setMouseDragCallback(std::function<void(float, float, int)> _callback) { onMouseDrag = _callback; }
+    void setMouseReleaseCallback(std::function<void(float, float, int)> _callback) { onMouseRelease = _callback; }
+    void setScrollCallback(std::function<void(float)>_callback) { onScroll = _callback; }
+    void setDropCallback(std::function<void(int, const char**)>_callback) { onDrop = _callback; }
 
 #if !defined(DRIVER_GLFW)
     static bool bHostInited = false;
-    static void initHost() {
+    static void init_host() {
         if (bHostInited)
             return;
 
         #if defined(DRIVER_BROADCOM)
             bcm_host_init();
 
-        #elif defined(DRIVER_GBM)
-            if (!urlExists(properties.display))
-                std::cout << "Can't open display " <<  properties.display << " seams it doesn't exist" << std::endl;
-            
-            device = open(  properties.display.c_str(), O_RDWR | O_CLOEXEC);
-
-            drmModeRes *resources = drmModeGetResources(device);
-            if (resources == NULL) {
-                std::cerr << "Unable to get DRM resources" << std::endl;
-                return EXIT_FAILURE;
-            }
-
-            drmModeConnector *connector = getConnector(resources);
-            if (connector == NULL) {
-                std::cerr << "Unable to get connector" << std::endl;
-                drmModeFreeResources(resources);
-                return EXIT_FAILURE;
-            }
-
-            connectorId = connector->connector_id;
-            mode = connector->modes[0];
-
-            drmModeEncoder *encoder = findEncoder(resources, connector);
-            if (connector == NULL) {
-                std::cerr << "Unable to get encoder" << std::endl;
-                drmModeFreeConnector(connector);
-                drmModeFreeResources(resources);
-                return EXIT_FAILURE;
-            }
-
-            crtc = drmModeGetCrtc(device, encoder->crtc_id);
-            drmModeFreeEncoder(encoder);
-            drmModeFreeConnector(connector);
-            drmModeFreeResources(resources);
-            gbmDevice = gbm_create_device(device);
-            gbmSurface = gbm_surface_create(gbmDevice, mode.hdisplay, mode.vdisplay, GBM_FORMAT_XRGB8888, GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
+        #elif defined(DRIVER_DRM)
+            drm_host_init();
         #endif
 
         bHostInited = true;
     }
 
     static EGLDisplay getDisplay() {
-        initHost();
+        init_host();
         // printf("resolution: %ix%i\n", mode.hdisplay, mode.vdisplay);
 
         #if defined(DRIVER_BROADCOM)
             return eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
-        #elif defined(DRIVER_GBM)
+        #elif defined(DRIVER_DRM)
 
-            return eglGetDisplay(gbmDevice);
+            return eglGetDisplay(gbm.device);
         #endif
 
         return nullptr;
@@ -468,64 +971,129 @@ int initGL(WindowProperties _prop) {
         properties.screen_height = getScreenHeight();
 
     // Clear application state
+    EGLint major, minor;
     EGLBoolean result;
 
-    display = getDisplay();
-    assert(display != EGL_NO_DISPLAY);
-    check();
+    egl.display = getDisplay();
+    assert(egl.display != EGL_NO_DISPLAY);
+    egl_check();
 
-    result = eglInitialize(display, NULL, NULL);
-    #if defined(DRIVER_GBM)
-    if (EGL_FALSE == result) {
-        std::cout << "Fail to initialize EGL context from display " << properties.display << " try another." << std::endl;
-    }
-    #endif
+    result = eglInitialize(egl.display, NULL, NULL);
+    if (EGL_FALSE == result)
+        std::cout << "Fail to initialize EGL context." << std::endl;
     assert(EGL_FALSE != result);
-    check();
+    egl_check();
 
     // Make sure that we can use OpenGL in this EGL app.
     // result = eglBindAPI(EGL_OPENGL_API);
     result = eglBindAPI(EGL_OPENGL_ES_API);
     assert(EGL_FALSE != result);
-    check();
+    egl_check();
+
+
+    static const EGLint context_attribs[] = {
+        EGL_CONTEXT_CLIENT_VERSION, 2,
+        EGL_NONE
+    };
     
-    static const EGLint configAttribs[] = {
+    static const EGLint config_attribs[] = {
+        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
         EGL_RED_SIZE, 8,
         EGL_GREEN_SIZE, 8,
         EGL_BLUE_SIZE, 8,
         EGL_ALPHA_SIZE, 8,
         EGL_SAMPLE_BUFFERS, 1, EGL_SAMPLES, 4,
-        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+        #if defined(DRIVER_BROADCOM)
         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+        #elif defined(DRIVER_DRM)
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
+        #endif
         EGL_DEPTH_SIZE, 16,
         EGL_NONE
     };
 
-    static const EGLint contextAttribs[] = {
-        EGL_CONTEXT_CLIENT_VERSION, 2,
-        EGL_NONE
-    };
+    #if defined(DRIVER_DRM)
 
-    EGLConfig config;
-    EGLint numConfigs;
+    const char *egl_exts_client, *egl_exts_dpy, *gl_exts;
+
+    #define get_proc_client(ext, name) do { \
+            if (egl_has_ext(egl_exts_client, #ext)) \
+                egl.name = (void*)eglGetProcAddress(#name); \
+        } while (0)
+    #define get_proc_dpy(ext, name) do { \
+            if (egl_has_ext(egl_exts_dpy, #ext)) \
+                egl.name = (void*)eglGetProcAddress(#name); \
+        } while (0)
+    #define get_proc_gl(ext, name) do { \
+            if (egl_has_ext(gl_exts, #ext)) \
+                egl.name = (void*)eglGetProcAddress(#name); \
+        } while (0)
+
+    egl_exts_client = eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
+    get_proc_client(EGL_EXT_platform_base, eglGetPlatformDisplayEXT);
+
+    if (egl.eglGetPlatformDisplayEXT) {
+        egl.display = egl.eglGetPlatformDisplayEXT(EGL_PLATFORM_GBM_KHR, gbm.device, NULL);
+    } else {
+        egl.display = eglGetDisplay((void*)gbm.device);
+    }
+
+    if (!eglInitialize(egl.display, &major, &minor)) {
+        printf("failed to initialize\n");
+        return EXIT_FAILURE;
+    }
+
+    egl_exts_dpy = eglQueryString(egl.display, EGL_EXTENSIONS);
+    get_proc_dpy(EGL_KHR_image_base, eglCreateImageKHR);
+    get_proc_dpy(EGL_KHR_image_base, eglDestroyImageKHR);
+    get_proc_dpy(EGL_KHR_fence_sync, eglCreateSyncKHR);
+    get_proc_dpy(EGL_KHR_fence_sync, eglDestroySyncKHR);
+    get_proc_dpy(EGL_KHR_fence_sync, eglWaitSyncKHR);
+    get_proc_dpy(EGL_KHR_fence_sync, eglClientWaitSyncKHR);
+    get_proc_dpy(EGL_ANDROID_native_fence_sync, eglDupNativeFenceFDANDROID);
+
+    egl.modifiers_supported = egl_has_ext(egl_exts_dpy, "EGL_EXT_image_dma_buf_import_modifiers");
+
+    printf("Using display %p with EGL version %d.%d\n", egl.display, major, minor);
+
+    printf("===================================\n");
+    printf("EGL information:\n");
+    printf("  version: \"%s\"\n", eglQueryString(egl.display, EGL_VERSION));
+    printf("  vendor: \"%s\"\n", eglQueryString(egl.display, EGL_VENDOR));
+    printf("  client extensions: \"%s\"\n", egl_exts_client);
+    printf("  display extensions: \"%s\"\n", egl_exts_dpy);
+    printf("===================================\n");
+
+    if (!eglBindAPI(EGL_OPENGL_ES_API)) {
+        printf("failed to bind api EGL_OPENGL_ES_API\n");
+        return EXIT_FAILURE;
+    }
+
+    if (!egl_choose_config(config_attribs, drm_format, &egl.config)) {
+        printf("failed to choose config\n");
+        return EXIT_FAILURE;
+    }
+
+    #elif defined(DRIVER_BROADCOM)
 
     // get an appropriate EGL frame buffer configuration
-    if (eglChooseConfig(display, configAttribs, &config, 1, &numConfigs) == EGL_FALSE) {
-        std::cerr << "Failed to get EGL configs! Error: " << eglGetErrorStr() << std::endl;
-        eglTerminate(display);
+    EGLint matched = 0;
+    if (eglChooseConfig(egl.display, config_attribs, &egl.config, 1, &matched) == EGL_FALSE) {
+        std::cerr << "Failed to get EGL configs! Error: " << egl_get_error_str() << std::endl;
+        eglTerminate(egl.display);
         #if defined(DRIVER_GBM)
         gbmClean();
         #endif
         return EXIT_FAILURE;
     }
+    #endif
 
-    // create an EGL rendering context
-    context = eglCreateContext(display, config, EGL_NO_CONTEXT, contextAttribs);
-    if (context == EGL_NO_CONTEXT) {
-        std::cerr << "Failed to create EGL context! Error: " << eglGetErrorStr() << std::endl;
-        eglTerminate(display);
-        #if defined(DRIVER_GBM)
-        gbmClean();
+    egl.context = eglCreateContext(egl.display, egl.config, EGL_NO_CONTEXT, context_attribs);
+    if (egl.context == EGL_NO_CONTEXT) {
+        printf("failed to create context\n");
+        eglTerminate(egl.display);
+        #if defined(DRIVER_DRM)
+        gbm_clean();
         #endif
         return EXIT_FAILURE;
     }
@@ -575,27 +1143,88 @@ int initGL(WindowProperties _prop) {
         nativeviewport.width = properties.screen_width;
         nativeviewport.height = properties.screen_height;
         vc_dispmanx_update_submit_sync( dispman_update );
-        check();
+        egl_check();
 
-        surface = eglCreateWindowSurface( display, config, &nativeviewport, NULL );
-        assert(surface != EGL_NO_SURFACE);
-        check();
+        egl.surface = eglCreateWindowSurface(egl.display, egl.config, &nativeviewport, NULL );
+        assert(egl.surface != EGL_NO_SURFACE);
+        egl_check();
 
-    #elif defined(DRIVER_GBM)
-        surface = eglCreateWindowSurface(display, config, gbmSurface, NULL);
-        if (surface == EGL_NO_SURFACE) {
-            std::cerr << "Failed to create EGL surface! Error: " << eglGetErrorStr() << std::endl;
-            eglDestroyContext(display, context);
-            eglTerminate(display);
-            gbmClean();
+        // connect the context to the surface
+        result = eglMakeCurrent(egl.display, egl.surface, egl.surface, egl.context);
+        assert(EGL_FALSE != result);
+        egl_check();
+
+    #elif defined(DRIVER_DRM)
+        // egl.surface = eglCreateWindowSurface(egl.display, egl.config, gbm.surface, NULL);
+        // if (egl.surface == EGL_NO_SURFACE) {
+        //     std::cerr << "Failed to create EGL surface! Error: " << egl_get_error_str() << std::endl;
+        //     eglDestroyContext(egl.display, egl.context);
+        //     eglTerminate(egl.display);
+        //     gbm_clean();
+        //     return EXIT_FAILURE;
+        // }
+
+        if (!gbm.surface) {
+            egl.surface = EGL_NO_SURFACE;
+        } else {
+            egl.surface = eglCreateWindowSurface(egl.display, egl.config, (EGLNativeWindowType)gbm.surface, NULL);
+            if (egl.surface == EGL_NO_SURFACE) {
+                std::cerr << "Failed to create EGL surface! Error: " << egl_get_error_str() << std::endl;
+                eglDestroyContext(egl.display, egl.context);
+                eglTerminate(egl.display);
+                gbm_clean();
+                return EXIT_FAILURE;
+            }
+        }
+
+        /* connect the context to the surface */
+        eglMakeCurrent(egl.display, egl.surface, egl.surface, egl.context);
+
+        gl_exts = (char *) glGetString(GL_EXTENSIONS);
+        printf("OpenGL ES:\n");
+        printf("  version: \"%s\"\n", glGetString(GL_VERSION));
+        printf("  shading language version: \"%s\"\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+        printf("  vendor: \"%s\"\n", glGetString(GL_VENDOR));
+        printf("  renderer: \"%s\"\n", glGetString(GL_RENDERER));
+        printf("  extensions: \"%s\"\n", gl_exts);
+        printf("===================================\n");
+
+        get_proc_gl(GL_OES_EGL_image, glEGLImageTargetTexture2DOES);
+
+        get_proc_gl(GL_AMD_performance_monitor, glGetPerfMonitorGroupsAMD);
+        get_proc_gl(GL_AMD_performance_monitor, glGetPerfMonitorCountersAMD);
+        get_proc_gl(GL_AMD_performance_monitor, glGetPerfMonitorGroupStringAMD);
+        get_proc_gl(GL_AMD_performance_monitor, glGetPerfMonitorCounterStringAMD);
+        get_proc_gl(GL_AMD_performance_monitor, glGetPerfMonitorCounterInfoAMD);
+        get_proc_gl(GL_AMD_performance_monitor, glGenPerfMonitorsAMD);
+        get_proc_gl(GL_AMD_performance_monitor, glDeletePerfMonitorsAMD);
+        get_proc_gl(GL_AMD_performance_monitor, glSelectPerfMonitorCountersAMD);
+        get_proc_gl(GL_AMD_performance_monitor, glBeginPerfMonitorAMD);
+        get_proc_gl(GL_AMD_performance_monitor, glEndPerfMonitorAMD);
+        get_proc_gl(GL_AMD_performance_monitor, glGetPerfMonitorCounterDataAMD);
+
+        eglSwapBuffers(egl.display, egl.surface);
+        gbm_curr_bo = gbm_surface_lock_front_buffer(gbm.surface);
+        struct gbm_fb *fb = gbm_fb_get_from_bo(gbm_curr_bo);
+        if (!fb) {
+            fprintf(stderr, "Failed to get a new framebuffer BO\n");
             return EXIT_FAILURE;
         }
-    #endif
+        int ret = drmModeSetCrtc(drm_device, drm_crtc_id, fb->fb_id, 0, 0, &drm_connector_id, 1, drm_mode);
+        if (ret) {
+            printf("failed to set mode: %s\n", strerror(errno));
+            return ret;
+        }
 
-    // connect the context to the surface
-    result = eglMakeCurrent(display, surface, surface, context);
-    assert(EGL_FALSE != result);
-    check();
+        if (drm_async_page_flip)
+            drm_flags = DRM_MODE_PAGE_FLIP_EVENT;
+        else
+            drm_flags = DRM_MODE_PAGE_FLIP_EVENT;
+
+        properties.screen_width = screen_width;
+        properties.screen_height = screen_height;
+        glViewport(0, 0, screen_width, screen_height);
+    #endif
 
 // GLFW
 #else
@@ -795,7 +1424,7 @@ int initGL(WindowProperties _prop) {
             if (onMouseRelease)
                 onMouseRelease(mouse.pos.x, mouse.pos.y, mouse.button);
         }
-    });	
+    }); 
 
     // callback when the mouse cursor moves
     glfwSetCursorPosCallback(window, [](GLFWwindow* _window, double x, double y) {
@@ -876,7 +1505,6 @@ int initGL(WindowProperties _prop) {
 #endif 
         
 #endif
-
     setViewport(properties.screen_width, properties.screen_height);
 
 #if defined(__EMSCRIPTEN__)
@@ -909,7 +1537,7 @@ const bool isGL() {
 #elif defined(DRIVER_BROADCOM)
     return bHostInited;
 
-#elif defined(DRIVER_GBM)
+#elif defined(DRIVER_DRM)
     return true;
 
 #endif
@@ -1027,9 +1655,10 @@ void renderGL(){
     glfwPollEvents();
 
 #else
-    eglSwapBuffers(display, surface);
-    #if defined(DRIVER_GBM)
-    gbmSwapBuffers();
+    glFinish();
+    eglSwapBuffers(egl.display, egl.surface);
+    #if defined(DRIVER_DRM)
+    gbm_swap_buffers();
     #endif
 
 #endif
@@ -1042,22 +1671,22 @@ void closeGL(){
     glfwTerminate();
 
 #else
-    eglSwapBuffers(display, surface);
+    eglSwapBuffers(egl.display, egl.surface);
 
     // Release OpenGL resources
-    eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-    eglDestroySurface(display, surface);
-    eglDestroyContext(display, context);
-    eglTerminate(display);
+    eglMakeCurrent(egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    eglDestroySurface(egl.display, egl.surface);
+    eglDestroyContext(egl.display, egl.context);
+    eglTerminate(egl.display);
     eglReleaseThread();
 
     #if defined(DRIVER_BROADCOM)
     vc_dispmanx_display_close(dispman_display);
     bcm_host_deinit();
 
-    #elif defined(DRIVER_GBM)
-    gbmClean();
-    close(device);
+    #elif defined(DRIVER_DRM)
+    gbm_clean();
+    close(drm_device);
     #endif
 
 #endif
@@ -1136,15 +1765,12 @@ void getScreenSize() {
     screen_height = mode->height;
 
 #elif defined(DRIVER_BROADCOM)
-    initHost();
+    init_host();
     int32_t success = graphics_get_display_size(0 /* LCD */, &screen_width, &screen_height);
     assert(success >= 0);
 
-#elif defined(DRIVER_GBM)
-    initHost();
-    screen_width = mode.hdisplay;
-    screen_height = mode.vdisplay;
-
+#elif defined(DRIVER_DRM)
+    init_host();
 #endif
 }
 

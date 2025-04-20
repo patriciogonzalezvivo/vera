@@ -7,7 +7,7 @@
     #undef countof
 
     // RASPBERRY PI - WINDOWLESS using GBM (RPi 4 )
-    #if defined(DRIVER_GBM)
+    #if defined(DRIVER_DRM)
         #include <xf86drm.h>
         #include <xf86drmMode.h>
         #include <gbm.h>
@@ -38,7 +38,7 @@
     void imageTargetTexture2D(EGLenum target, EGLImageKHR image);
     }
 
-#elif defined(DRIVER_GBM)
+#elif defined(DRIVER_DRM)
 
     // #include "bcm_host.h"
     // #undef countof
