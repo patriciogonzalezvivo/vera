@@ -222,7 +222,7 @@ static bool                     bControl        = false;
         static void page_flip_handler(int fd, unsigned int frame, unsigned int sec, unsigned int usec, void *data) {
             /* suppress 'unused parameter' warnings */
             (void)fd, (void)frame, (void)sec, (void)usec;
-            int *waiting_for_flip = data;
+            int *waiting_for_flip = (int*)data;
             *waiting_for_flip = 0;
         }
 
@@ -465,9 +465,9 @@ static bool                     bControl        = false;
         static struct gbm_bo*   gbm_curr_bo = NULL;
         static uint32_t         gbm_curr_fb;
 
-        static void gbm_fb_destroy_callback(struct gbm_bo *bo, void *data) {
+        static void gbm_fb_destroy_callback(struct gbm_bo* bo, void* data) {
             int drm_fd = gbm_device_get_fd(gbm_bo_get_device(bo));
-            struct gbm_fb *fb = data;
+            struct gbm_fb* fb = data;
 
             if (fb->fb_id)
                 drmModeRmFB(drm_fd, fb->fb_id);
@@ -475,9 +475,9 @@ static bool                     bControl        = false;
             free(fb);
         }
 
-        struct gbm_fb * gbm_fb_get_from_bo(struct gbm_bo *bo) {
+        struct gbm_fb* gbm_fb_get_from_bo(struct gbm_bo *bo) {
             int drm_fd = gbm_device_get_fd(gbm_bo_get_device(bo));
-            struct gbm_fb *fb = gbm_bo_get_user_data(bo);
+            struct gbm_fb* fb = gbm_bo_get_user_data(bo);
             uint32_t width, height, format,
                 strides[4] = {0}, handles[4] = {0},
                 offsets[4] = {0}, flags = 0;
@@ -486,7 +486,7 @@ static bool                     bControl        = false;
             if (fb)
                 return fb;
 
-            fb = calloc(1, sizeof *fb);
+            fb = (gbm_fb*)calloc(1, sizeof *fb);
             fb->bo = bo;
 
             width = gbm_bo_get_width(bo);
@@ -577,8 +577,6 @@ static bool                     bControl        = false;
             drmModeSetCrtc(drm_device, drm_crtc->crtc_id, drm_crtc->buffer_id, drm_crtc->x, drm_crtc->y, &drm_connector_id, 1, &drm_crtc->mode);
             drmModeFreeCrtc(drm_crtc);
             if (gbm_curr_bo) {
-                // struct gbm_fb* fb = gbm_fb_get_from_bo(gbm_curr_bo);
-                // drmModeRmFB(drm_device, fb->fb_id);
                 drmModeRmFB(drm_device, gbm_curr_fb);
                 gbm_surface_release_buffer(gbm.surface, gbm_curr_bo);
             }
@@ -588,7 +586,7 @@ static bool                     bControl        = false;
 
         static void gbm_swap_buffers() {
             int waiting_for_flip = 1;
-            struct gbm_bo *next_bo = gbm_surface_lock_front_buffer(gbm.surface);
+            struct gbm_bo* next_bo = gbm_surface_lock_front_buffer(gbm.surface);
             struct gbm_fb* fb = gbm_fb_get_from_bo(next_bo);
             if (!fb) {
                 fprintf(stderr, "Failed to get a new framebuffer BO\n");
@@ -634,10 +632,14 @@ static bool                     bControl        = false;
 
 
         int drm_host_init() {
-            init_drm(properties.display.c_str(), properties.mode, drm_vrefresh);
+            if (init_drm(properties.display.c_str(), properties.mode, drm_vrefresh) == -1) {
+                printf("drm init failed\n");
+                return -1;
+            }
+
             screen_width = drm_mode->hdisplay;
             screen_height = drm_mode->vdisplay;
-            gbm_init(drm_device, screen_width, screen_height, drm_format, modifier);
+            return gbm_init(drm_device, screen_width, screen_height, drm_format, modifier);
         }
 
         #endif /* DRIVER_DRM */
