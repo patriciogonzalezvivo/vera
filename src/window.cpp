@@ -211,8 +211,7 @@ static bool                     bControl        = false;
         uint64_t                modifier = DRM_FORMAT_MOD_LINEAR;
         uint32_t                drm_vrefresh;
         bool                    drm_async_page_flip = false;
-        uint32_t                drm_flags;
-        int                     drm_waiting_for_flip = 1;
+        uint32_t                drm_flags = DRM_MODE_PAGE_FLIP_EVENT;
 
         static void page_flip_handler(int fd, unsigned int frame, unsigned int sec, unsigned int usec, void *data) {
             /* suppress 'unused parameter' warnings */
@@ -798,52 +797,49 @@ static bool                     bControl        = false;
     }
 
     static void gbm_swap_buffers() {
-        struct gbm_bo *bo = gbm_surface_lock_front_buffer(gbm.surface);
-        
-        uint32_t handle = gbm_bo_get_handle(bo).u32;
-        uint32_t pitch = gbm_bo_get_stride(bo);
-        uint32_t fb;
-        drmModeAddFB(drm_device, drm_mode->hdisplay, drm_mode->vdisplay, 24, 32, pitch, handle, &fb);
-        drmModeSetCrtc(drm_device, drm_crtc->crtc_id, fb, 0, 0, &drm_connector_id, 1, drm_mode);
-        if (gbm_curr_bo) {
-            drmModeRmFB(drm_device, gbm_curr_fb);
-            gbm_surface_release_buffer(gbm.surface, gbm_curr_bo);
+        int waiting_for_flip = 1;
+        struct gbm_bo *next_bo = gbm_surface_lock_front_buffer(gbm.surface);
+        struct gbm_fb* fb = gbm_fb_get_from_bo(next_bo);
+        if (!fb) {
+            fprintf(stderr, "Failed to get a new framebuffer BO\n");
+            return;
         }
-        gbm_curr_fb = fb;
+
+        /*
+        * Here you could also update drm plane layers if you want
+        * hw composition
+        */
         
-        // struct gbm_fb* fb = gbm_fb_get_from_bo(bo);
-        // if (!fb) {
-        //     fprintf(stderr, "Failed to get a new framebuffer BO\n");
-        //     return;
-        // }
+        int ret = drmModePageFlip(drm_device, drm_crtc_id, fb->fb_id, drm_flags, &waiting_for_flip);
+        if (ret) {
+            printf("failed to queue page flip: %s\n", strerror(errno));
+            return;
+        }
 
-        // int ret = drmModePageFlip(drm_device, drm_crtc_id, fb->fb_id, drm_flags, &drm_waiting_for_flip);
-        // if (!drm_async_page_flip) {
-        //  while (drm_waiting_for_flip) {
-        //      FD_ZERO(&drm_fds);
-        //      FD_SET(0, &drm_fds);
-        //      FD_SET(drm_device, &drm_fds);
-
-        //      ret = select(drm_device + 1, &drm_fds, NULL, NULL, NULL);
-        //      if (ret < 0) {
-        //          printf("select err: %s\n", strerror(errno));
-        //          return ret;
-        //      } else if (ret == 0) {
-        //          printf("select timeout!\n");
-        //          return -1;
-        //      } else if (FD_ISSET(0, &drm_fds)) {
-        //          printf("user interrupted!\n");
-        //          return 0;
-        //      }
-        //      drmHandleEvent(drm_device, &drm_evctx);
-        //  }
-        // }
-
-        // if (gbm.surface) {
-        //  gbm_surface_release_buffer(gbm.surface, bo);
-        // }
-
-        gbm_curr_bo = bo;
+        while (waiting_for_flip) {
+            FD_ZERO(&drm_fds);
+            FD_SET(0, &drm_fds);
+            FD_SET(drm_device, &drm_fds);
+          
+            ret = select(drm_device + 1, &drm_fds, NULL, NULL, NULL);
+            if (ret < 0) {
+                printf("select err: %s\n", strerror(errno));
+                return;
+            } else if (ret == 0) {
+                printf("select timeout!\n");
+                return;
+            } else if (FD_ISSET(0, &drm_fds)) {
+                printf("user interrupted!\n");
+                return;
+            }
+            drmHandleEvent(drm_device, &drm_evctx);
+        }
+        
+        /* release last buffer to render on again: */
+        if (gbm.surface) {
+            gbm_surface_release_buffer(gbm.surface, next_bo);
+        }
+        gbm_curr_bo = next_bo;
     }
 
 namespace vera {
@@ -1212,8 +1208,9 @@ int initGL(WindowProperties _prop) {
         else
             drm_flags = DRM_MODE_PAGE_FLIP_EVENT;
 
+        properties.screen_width = screen_width;
+        properties.screen_height = screen_height;
         glViewport(0, 0, screen_width, screen_height);
-        
     #endif
 
 // GLFW
@@ -1495,7 +1492,6 @@ int initGL(WindowProperties _prop) {
 #endif 
         
 #endif
-
     setViewport(properties.screen_width, properties.screen_height);
 
 #if defined(__EMSCRIPTEN__)
