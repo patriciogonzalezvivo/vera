@@ -1139,7 +1139,7 @@ int initGL(WindowProperties _prop) {
         dispman_element = vc_dispmanx_element_add(  dispman_update, dispman_display,
                                                     0/*layer*/, &dst_rect, 0/*src*/,
                                                     &src_rect, DISPMANX_PROTECTION_NONE,
-                                                    alpha , 0/*clamp*/, (DISPMANX_TRANSFORM_T)0/*transform*/);
+                                                    &alpha , 0/*clamp*/, (DISPMANX_TRANSFORM_T)0/*transform*/);
 
         nativeviewport.element = dispman_element;
         nativeviewport.width = properties.screen_width;
