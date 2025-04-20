@@ -824,10 +824,12 @@ static bool                     bControl        = false;
                 printf("No EGL configs to choose from.\n");
                 return false;
             }
-            configs = malloc(count * sizeof *configs);
-            if (!configs)
+            configs = (EGLConfig*)malloc(count * sizeof *configs);
+            if (configs == NULL) {
+                printf("Failed to allocate memory for EGL configs.\n");
                 return false;
-
+            }
+    
             if (!eglChooseConfig(egl.display, attribs, configs, count, &matched) || !matched) {
                 printf("No EGL configs with appropriate attributes.\n");
                 goto out;
