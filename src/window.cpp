@@ -1145,7 +1145,7 @@ int initGL(WindowProperties _prop) {
         vc_dispmanx_update_submit_sync( dispman_update );
         egl_check();
 
-        surface = eglCreateWindowSurface(egl.display, egl.config, &nativeviewport, NULL );
+        egl.surface = eglCreateWindowSurface(egl.display, egl.config, &nativeviewport, NULL );
         assert(surface != EGL_NO_SURFACE);
         egl_check();
 
