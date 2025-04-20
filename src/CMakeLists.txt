@@ -98,7 +98,9 @@ set_target_properties(vera PROPERTIES
 
 message(STATUS "SYSTEM ${CMAKE_SYSTEM_PROCESSOR}")
 
-if ( ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm32" )
+# if it's arm32 or armv7l 
+if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm32" OR 
+    ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "armv7l" )
     find_package(BROADCOM)
     if (BROADCOM_FOUND)
         message(STATUS "BROADCOM_DEFINITIONS:   ${BROADCOM_DEFINITIONS}")
