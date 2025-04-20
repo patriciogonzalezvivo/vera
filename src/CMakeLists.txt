@@ -96,6 +96,8 @@ set_target_properties(vera PROPERTIES
     CXX_STANDARD_REQUIRED ON
 )
 
+message(STATUS "SYSTEM ${CMAKE_SYSTEM_PROCESSOR}")
+
 if ( ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm32" )
     find_package(BROADCOM)
     if (BROADCOM_FOUND)
