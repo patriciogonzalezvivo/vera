@@ -1146,7 +1146,7 @@ int initGL(WindowProperties _prop) {
         egl_check();
 
         egl.surface = eglCreateWindowSurface(egl.display, egl.config, &nativeviewport, NULL );
-        assert(surface != EGL_NO_SURFACE);
+        assert(egl.surface != EGL_NO_SURFACE);
         egl_check();
 
         // connect the context to the surface
