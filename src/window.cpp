@@ -1076,7 +1076,7 @@ int initGL(WindowProperties _prop) {
 
     // get an appropriate EGL frame buffer configuration
     EGLint matched = 0;
-    if (eglChooseConfig(egl.display, config_attribs, egl.config, 1, &matched) == EGL_FALSE) {
+    if (eglChooseConfig(egl.display, config_attribs, &egl.config, 1, &matched) == EGL_FALSE) {
         std::cerr << "Failed to get EGL configs! Error: " << egl_get_error_str() << std::endl;
         eglTerminate(egl.display);
         #if defined(DRIVER_GBM)
