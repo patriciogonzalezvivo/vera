@@ -988,6 +988,7 @@ int initGL(WindowProperties _prop) {
     assert(EGL_FALSE != result);
     egl_check();
 
+
     static const EGLint context_attribs[] = {
         EGL_CONTEXT_CLIENT_VERSION, 2,
         EGL_NONE
@@ -1009,6 +1010,8 @@ int initGL(WindowProperties _prop) {
         EGL_DEPTH_SIZE, 16,
         EGL_NONE
     };
+
+    #if defined(DRIVER_DRM)
 
     const char *egl_exts_client, *egl_exts_dpy, *gl_exts;
 
@@ -1070,17 +1073,20 @@ int initGL(WindowProperties _prop) {
         return EXIT_FAILURE;
     }
 
-    // // get an appropriate EGL frame buffer configuration
-    // EGLConfig* configs;
-    // EGLint matched = 0;
-    // if (eglChooseConfig(egl.display, config_attribs, configs, 1, &matched) == EGL_FALSE) {
-    //     std::cerr << "Failed to get EGL configs! Error: " << egl_get_error_str() << std::endl;
-    //     eglTerminate(egl.display);
-    //     #if defined(DRIVER_GBM)
-    //     gbmClean();
-    //     #endif
-    //     return EXIT_FAILURE;
-    // }
+    #elif defined(DRIVER_BROADCOM)
+
+    // get an appropriate EGL frame buffer configuration
+    EGLConfig* configs;
+    EGLint matched = 0;
+    if (eglChooseConfig(egl.display, config_attribs, configs, 1, &matched) == EGL_FALSE) {
+        std::cerr << "Failed to get EGL configs! Error: " << egl_get_error_str() << std::endl;
+        eglTerminate(egl.display);
+        #if defined(DRIVER_GBM)
+        gbmClean();
+        #endif
+        return EXIT_FAILURE;
+    }
+    #endif
 
     egl.context = eglCreateContext(egl.display, egl.config, EGL_NO_CONTEXT, context_attribs);
     if (egl.context == EGL_NO_CONTEXT) {
