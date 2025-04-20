@@ -996,7 +996,6 @@ int initGL(WindowProperties _prop) {
     
     static const EGLint config_attribs[] = {
         EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-
         EGL_RED_SIZE, 8,
         EGL_GREEN_SIZE, 8,
         EGL_BLUE_SIZE, 8,
@@ -1076,9 +1075,8 @@ int initGL(WindowProperties _prop) {
     #elif defined(DRIVER_BROADCOM)
 
     // get an appropriate EGL frame buffer configuration
-    EGLConfig* configs;
     EGLint matched = 0;
-    if (eglChooseConfig(egl.display, config_attribs, configs, 1, &matched) == EGL_FALSE) {
+    if (eglChooseConfig(egl.display, config_attribs, egl.config, 1, &matched) == EGL_FALSE) {
         std::cerr << "Failed to get EGL configs! Error: " << egl_get_error_str() << std::endl;
         eglTerminate(egl.display);
         #if defined(DRIVER_GBM)
