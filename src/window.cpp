@@ -182,6 +182,24 @@ static bool                     bControl        = false;
 
         DISPMANX_DISPLAY_HANDLE_T dispman_display;
 
+        #include <EGL/egl.h>
+        #include <EGL/eglext.h>
+        #include <GLES2/gl2.h>
+        #include <GLES2/gl2ext.h>
+
+    namespace vera {
+
+        #define check() assert(glGetError() == 0)
+        
+        // EGL context globals
+        EGLDisplay display;
+        EGLContext context;
+        EGLSurface surface;
+        
+        const EGLDisplay getEGLDisplay() { return display; }
+        const EGLContext getEGLContext() { return context; }
+    
+
     #elif defined(DRIVER_DRM)
         #include <errno.h>
 
@@ -588,264 +606,266 @@ static bool                     bControl        = false;
             gbm_init(drm_device, screen_width, screen_height, drm_format, modifier);
         }
 
+        // EGL / GLES2
+        #include <EGL/egl.h>
+        #include <EGL/eglext.h>
+        #include <GLES2/gl2.h>
+        #include <GLES2/gl2ext.h>
 
-    #endif
+        #ifndef EGL_KHR_platform_gbm
+        #define EGL_KHR_platform_gbm 1
+        #define EGL_PLATFORM_GBM_KHR              0x31D7
+        #endif /* EGL_KHR_platform_gbm */
 
-    // EGL / GLES2
-    #include <EGL/egl.h>
-    #include <EGL/eglext.h>
-    #include <GLES2/gl2.h>
-    #include <GLES2/gl2ext.h>
+        #ifndef EGL_EXT_platform_base
+        #define EGL_EXT_platform_base 1
+        typedef EGLDisplay (EGLAPIENTRYP PFNEGLGETPLATFORMDISPLAYEXTPROC) (EGLenum platform, void *native_display, const EGLint *attrib_list);
+        typedef EGLSurface (EGLAPIENTRYP PFNEGLCREATEPLATFORMWINDOWSURFACEEXTPROC) (EGLDisplay dpy, EGLConfig config, void *native_window, const EGLint *attrib_list);
+        typedef EGLSurface (EGLAPIENTRYP PFNEGLCREATEPLATFORMPIXMAPSURFACEEXTPROC) (EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLint *attrib_list);
+        #ifdef EGL_EGLEXT_PROTOTYPES
+        EGLAPI EGLDisplay EGLAPIENTRY eglGetPlatformDisplayEXT (EGLenum platform, void *native_display, const EGLint *attrib_list);
+        EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurfaceEXT (EGLDisplay dpy, EGLConfig config, void *native_window, const EGLint *attrib_list);
+        EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformPixmapSurfaceEXT (EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLint *attrib_list);
+        #endif
+        #endif /* EGL_EXT_platform_base */
 
-    #ifndef EGL_KHR_platform_gbm
-    #define EGL_KHR_platform_gbm 1
-    #define EGL_PLATFORM_GBM_KHR              0x31D7
-    #endif /* EGL_KHR_platform_gbm */
+        #ifndef EGL_VERSION_1_5
+        #define EGLImage EGLImageKHR
+        #endif /* EGL_VERSION_1_5 */
 
-    #ifndef EGL_EXT_platform_base
-    #define EGL_EXT_platform_base 1
-    typedef EGLDisplay (EGLAPIENTRYP PFNEGLGETPLATFORMDISPLAYEXTPROC) (EGLenum platform, void *native_display, const EGLint *attrib_list);
-    typedef EGLSurface (EGLAPIENTRYP PFNEGLCREATEPLATFORMWINDOWSURFACEEXTPROC) (EGLDisplay dpy, EGLConfig config, void *native_window, const EGLint *attrib_list);
-    typedef EGLSurface (EGLAPIENTRYP PFNEGLCREATEPLATFORMPIXMAPSURFACEEXTPROC) (EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLint *attrib_list);
-    #ifdef EGL_EGLEXT_PROTOTYPES
-    EGLAPI EGLDisplay EGLAPIENTRY eglGetPlatformDisplayEXT (EGLenum platform, void *native_display, const EGLint *attrib_list);
-    EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurfaceEXT (EGLDisplay dpy, EGLConfig config, void *native_window, const EGLint *attrib_list);
-    EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformPixmapSurfaceEXT (EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLint *attrib_list);
-    #endif
-    #endif /* EGL_EXT_platform_base */
+        #define WEAK __attribute__((weak))
 
-    #ifndef EGL_VERSION_1_5
-    #define EGLImage EGLImageKHR
-    #endif /* EGL_VERSION_1_5 */
+        /* Define tokens from EGL_EXT_image_dma_buf_import_modifiers */
+        #ifndef EGL_EXT_image_dma_buf_import_modifiers
+        #define EGL_EXT_image_dma_buf_import_modifiers 1
+        #define EGL_DMA_BUF_PLANE3_FD_EXT         0x3440
+        #define EGL_DMA_BUF_PLANE3_OFFSET_EXT     0x3441
+        #define EGL_DMA_BUF_PLANE3_PITCH_EXT      0x3442
+        #define EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT 0x3443
+        #define EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT 0x3444
+        #define EGL_DMA_BUF_PLANE1_MODIFIER_LO_EXT 0x3445
+        #define EGL_DMA_BUF_PLANE1_MODIFIER_HI_EXT 0x3446
+        #define EGL_DMA_BUF_PLANE2_MODIFIER_LO_EXT 0x3447
+        #define EGL_DMA_BUF_PLANE2_MODIFIER_HI_EXT 0x3448
+        #define EGL_DMA_BUF_PLANE3_MODIFIER_LO_EXT 0x3449
+        #define EGL_DMA_BUF_PLANE3_MODIFIER_HI_EXT 0x344A
+        #endif
 
-    #define WEAK __attribute__((weak))
+        struct egl {
+            EGLDisplay  display;
+            EGLContext  context;
+            EGLSurface  surface;
+            EGLConfig   config;
 
-    /* Define tokens from EGL_EXT_image_dma_buf_import_modifiers */
-    #ifndef EGL_EXT_image_dma_buf_import_modifiers
-    #define EGL_EXT_image_dma_buf_import_modifiers 1
-    #define EGL_DMA_BUF_PLANE3_FD_EXT         0x3440
-    #define EGL_DMA_BUF_PLANE3_OFFSET_EXT     0x3441
-    #define EGL_DMA_BUF_PLANE3_PITCH_EXT      0x3442
-    #define EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT 0x3443
-    #define EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT 0x3444
-    #define EGL_DMA_BUF_PLANE1_MODIFIER_LO_EXT 0x3445
-    #define EGL_DMA_BUF_PLANE1_MODIFIER_HI_EXT 0x3446
-    #define EGL_DMA_BUF_PLANE2_MODIFIER_LO_EXT 0x3447
-    #define EGL_DMA_BUF_PLANE2_MODIFIER_HI_EXT 0x3448
-    #define EGL_DMA_BUF_PLANE3_MODIFIER_LO_EXT 0x3449
-    #define EGL_DMA_BUF_PLANE3_MODIFIER_HI_EXT 0x344A
-    #endif
+            PFNEGLGETPLATFORMDISPLAYEXTPROC     eglGetPlatformDisplayEXT;
+            PFNEGLCREATEIMAGEKHRPROC            eglCreateImageKHR;
+            PFNEGLDESTROYIMAGEKHRPROC           eglDestroyImageKHR;
+            PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES;
+            PFNEGLCREATESYNCKHRPROC             eglCreateSyncKHR;
+            PFNEGLDESTROYSYNCKHRPROC            eglDestroySyncKHR;
+            PFNEGLWAITSYNCKHRPROC               eglWaitSyncKHR;
+            PFNEGLCLIENTWAITSYNCKHRPROC         eglClientWaitSyncKHR;
+            PFNEGLDUPNATIVEFENCEFDANDROIDPROC   eglDupNativeFenceFDANDROID;
 
-    struct egl {
-        EGLDisplay  display;
-        EGLContext  context;
-        EGLSurface  surface;
-        EGLConfig   config;
+            /* AMD_performance_monitor */
+            PFNGLGETPERFMONITORGROUPSAMDPROC         glGetPerfMonitorGroupsAMD;
+            PFNGLGETPERFMONITORCOUNTERSAMDPROC       glGetPerfMonitorCountersAMD;
+            PFNGLGETPERFMONITORGROUPSTRINGAMDPROC    glGetPerfMonitorGroupStringAMD;
+            PFNGLGETPERFMONITORCOUNTERSTRINGAMDPROC  glGetPerfMonitorCounterStringAMD;
+            PFNGLGETPERFMONITORCOUNTERINFOAMDPROC    glGetPerfMonitorCounterInfoAMD;
+            PFNGLGENPERFMONITORSAMDPROC              glGenPerfMonitorsAMD;
+            PFNGLDELETEPERFMONITORSAMDPROC           glDeletePerfMonitorsAMD;
+            PFNGLSELECTPERFMONITORCOUNTERSAMDPROC    glSelectPerfMonitorCountersAMD;
+            PFNGLBEGINPERFMONITORAMDPROC             glBeginPerfMonitorAMD;
+            PFNGLENDPERFMONITORAMDPROC               glEndPerfMonitorAMD;
+            PFNGLGETPERFMONITORCOUNTERDATAAMDPROC    glGetPerfMonitorCounterDataAMD;
 
-        PFNEGLGETPLATFORMDISPLAYEXTPROC     eglGetPlatformDisplayEXT;
-        PFNEGLCREATEIMAGEKHRPROC            eglCreateImageKHR;
-        PFNEGLDESTROYIMAGEKHRPROC           eglDestroyImageKHR;
-        PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES;
-        PFNEGLCREATESYNCKHRPROC             eglCreateSyncKHR;
-        PFNEGLDESTROYSYNCKHRPROC            eglDestroySyncKHR;
-        PFNEGLWAITSYNCKHRPROC               eglWaitSyncKHR;
-        PFNEGLCLIENTWAITSYNCKHRPROC         eglClientWaitSyncKHR;
-        PFNEGLDUPNATIVEFENCEFDANDROIDPROC   eglDupNativeFenceFDANDROID;
+            bool modifiers_supported;
 
-        /* AMD_performance_monitor */
-        PFNGLGETPERFMONITORGROUPSAMDPROC         glGetPerfMonitorGroupsAMD;
-        PFNGLGETPERFMONITORCOUNTERSAMDPROC       glGetPerfMonitorCountersAMD;
-        PFNGLGETPERFMONITORGROUPSTRINGAMDPROC    glGetPerfMonitorGroupStringAMD;
-        PFNGLGETPERFMONITORCOUNTERSTRINGAMDPROC  glGetPerfMonitorCounterStringAMD;
-        PFNGLGETPERFMONITORCOUNTERINFOAMDPROC    glGetPerfMonitorCounterInfoAMD;
-        PFNGLGENPERFMONITORSAMDPROC              glGenPerfMonitorsAMD;
-        PFNGLDELETEPERFMONITORSAMDPROC           glDeletePerfMonitorsAMD;
-        PFNGLSELECTPERFMONITORCOUNTERSAMDPROC    glSelectPerfMonitorCountersAMD;
-        PFNGLBEGINPERFMONITORAMDPROC             glBeginPerfMonitorAMD;
-        PFNGLENDPERFMONITORAMDPROC               glEndPerfMonitorAMD;
-        PFNGLGETPERFMONITORCOUNTERDATAAMDPROC    glGetPerfMonitorCounterDataAMD;
+            // void (*draw)(uint64_t start_time, unsigned frame);
+        };
+        static struct egl egl;
 
-        bool modifiers_supported;
+        #define egl_check() assert(glGetError() == 0)
 
-        // void (*draw)(uint64_t start_time, unsigned frame);
-    };
-    static struct egl egl;
-
-    #define egl_check() assert(glGetError() == 0)
-
-    // Get the EGL error back as a string. Useful for debugging.
-    static const char *egl_get_error_str() {
-        switch (eglGetError()) {
-        case EGL_SUCCESS:
-            return "The last function succeeded without error.";
-        case EGL_NOT_INITIALIZED:
-            return "EGL is not initialized, or could not be initialized, for the "
-                "specified EGL display connection.";
-        case EGL_BAD_ACCESS:
-            return "EGL cannot access a requested resource (for example a context "
-                "is bound in another thread).";
-        case EGL_BAD_ALLOC:
-            return "EGL failed to allocate resources for the requested operation.";
-        case EGL_BAD_ATTRIBUTE:
-            return "An unrecognized attribute or attribute value was passed in the "
-                "attribute list.";
-        case EGL_BAD_CONTEXT:
-            return "An EGLContext argument does not name a valid EGL rendering "
-                "context.";
-        case EGL_BAD_CONFIG:
-            return "An EGLConfig argument does not name a valid EGL frame buffer "
-                "configuration.";
-        case EGL_BAD_CURRENT_SURFACE:
-            return "The current surface of the calling thread is a window, pixel "
-                "buffer or pixmap that is no longer valid.";
-        case EGL_BAD_DISPLAY:
-            return "An EGLDisplay argument does not name a valid EGL display "
-                "connection.";
-        case EGL_BAD_SURFACE:
-            return "An EGLSurface argument does not name a valid surface (window, "
-                "pixel buffer or pixmap) configured for GL rendering.";
-        case EGL_BAD_MATCH:
-            return "Arguments are inconsistent (for example, a valid context "
-                "requires buffers not supplied by a valid surface).";
-        case EGL_BAD_PARAMETER:
-            return "One or more argument values are invalid.";
-        case EGL_BAD_NATIVE_PIXMAP:
-            return "A NativePixmapType argument does not refer to a valid native "
-                "pixmap.";
-        case EGL_BAD_NATIVE_WINDOW:
-            return "A NativeWindowType argument does not refer to a valid native "
-                "window.";
-        case EGL_CONTEXT_LOST:
-            return "A power management event has occurred. The application must "
-                "destroy all contexts and reinitialise OpenGL ES state and "
-                "objects to continue rendering.";
-        default:
-            break;
+        // Get the EGL error back as a string. Useful for debugging.
+        static const char *egl_get_error_str() {
+            switch (eglGetError()) {
+            case EGL_SUCCESS:
+                return "The last function succeeded without error.";
+            case EGL_NOT_INITIALIZED:
+                return "EGL is not initialized, or could not be initialized, for the "
+                    "specified EGL display connection.";
+            case EGL_BAD_ACCESS:
+                return "EGL cannot access a requested resource (for example a context "
+                    "is bound in another thread).";
+            case EGL_BAD_ALLOC:
+                return "EGL failed to allocate resources for the requested operation.";
+            case EGL_BAD_ATTRIBUTE:
+                return "An unrecognized attribute or attribute value was passed in the "
+                    "attribute list.";
+            case EGL_BAD_CONTEXT:
+                return "An EGLContext argument does not name a valid EGL rendering "
+                    "context.";
+            case EGL_BAD_CONFIG:
+                return "An EGLConfig argument does not name a valid EGL frame buffer "
+                    "configuration.";
+            case EGL_BAD_CURRENT_SURFACE:
+                return "The current surface of the calling thread is a window, pixel "
+                    "buffer or pixmap that is no longer valid.";
+            case EGL_BAD_DISPLAY:
+                return "An EGLDisplay argument does not name a valid EGL display "
+                    "connection.";
+            case EGL_BAD_SURFACE:
+                return "An EGLSurface argument does not name a valid surface (window, "
+                    "pixel buffer or pixmap) configured for GL rendering.";
+            case EGL_BAD_MATCH:
+                return "Arguments are inconsistent (for example, a valid context "
+                    "requires buffers not supplied by a valid surface).";
+            case EGL_BAD_PARAMETER:
+                return "One or more argument values are invalid.";
+            case EGL_BAD_NATIVE_PIXMAP:
+                return "A NativePixmapType argument does not refer to a valid native "
+                    "pixmap.";
+            case EGL_BAD_NATIVE_WINDOW:
+                return "A NativeWindowType argument does not refer to a valid native "
+                    "window.";
+            case EGL_CONTEXT_LOST:
+                return "A power management event has occurred. The application must "
+                    "destroy all contexts and reinitialise OpenGL ES state and "
+                    "objects to continue rendering.";
+            default:
+                break;
+            }
+            return "Unknown error!";
         }
-        return "Unknown error!";
-    }
 
-    static bool egl_has_ext(const char *extension_list, const char *ext) {
-        const char *ptr = extension_list;
-        int len = strlen(ext);
+        static bool egl_has_ext(const char *extension_list, const char *ext) {
+            const char *ptr = extension_list;
+            int len = strlen(ext);
 
-        if (ptr == NULL || *ptr == '\0')
-            return false;
-
-        while (true) {
-            ptr = strstr(ptr, ext);
-            if (!ptr)
+            if (ptr == NULL || *ptr == '\0')
                 return false;
 
-            if (ptr[len] == ' ' || ptr[len] == '\0')
-                return true;
+            while (true) {
+                ptr = strstr(ptr, ext);
+                if (!ptr)
+                    return false;
 
-            ptr += len;
-        }
-    }
+                if (ptr[len] == ' ' || ptr[len] == '\0')
+                    return true;
 
-    static int match_config_to_visual(EGLint visual_id, EGLConfig *configs, int count) {
-        int i;
-
-        for (i = 0; i < count; ++i) {
-            EGLint id;
-
-            if (!eglGetConfigAttrib(egl.display, configs[i], EGL_NATIVE_VISUAL_ID, &id))
-                continue;
-
-            if (id == visual_id)
-                return i;
+                ptr += len;
+            }
         }
 
-        return EXIT_FAILURE;
-    }
+        static int match_config_to_visual(EGLint visual_id, EGLConfig *configs, int count) {
+            int i;
 
-    static bool egl_choose_config(const EGLint *attribs, EGLint visual_id, EGLConfig *config_out) {
-        EGLint count = 0;
-        EGLint matched = 0;
-        EGLConfig* configs;
-        int config_index = -1;
+            for (i = 0; i < count; ++i) {
+                EGLint id;
 
-        if (!eglGetConfigs(egl.display, NULL, 0, &count) || count < 1) {
-            printf("No EGL configs to choose from.\n");
-            return false;
-        }
-        configs = malloc(count * sizeof *configs);
-        if (!configs)
-            return false;
+                if (!eglGetConfigAttrib(egl.display, configs[i], EGL_NATIVE_VISUAL_ID, &id))
+                    continue;
 
-        if (!eglChooseConfig(egl.display, attribs, configs, count, &matched) || !matched) {
-            printf("No EGL configs with appropriate attributes.\n");
-            goto out;
+                if (id == visual_id)
+                    return i;
+            }
+
+            return EXIT_FAILURE;
         }
 
-        if (!visual_id)
-            config_index = 0;
+        static bool egl_choose_config(const EGLint *attribs, EGLint visual_id, EGLConfig *config_out) {
+            EGLint count = 0;
+            EGLint matched = 0;
+            EGLConfig* configs;
+            int config_index = -1;
 
-        if (config_index == -1)
-            config_index = match_config_to_visual(visual_id, configs, matched);
+            if (!eglGetConfigs(egl.display, NULL, 0, &count) || count < 1) {
+                printf("No EGL configs to choose from.\n");
+                return false;
+            }
+            configs = malloc(count * sizeof *configs);
+            if (!configs)
+                return false;
 
-        if (config_index != -1)
-            *config_out = configs[config_index];
+            if (!eglChooseConfig(egl.display, attribs, configs, count, &matched) || !matched) {
+                printf("No EGL configs with appropriate attributes.\n");
+                goto out;
+            }
 
-    out:
-        free(configs);
-        if (config_index == -1)
-            return false;
+            if (!visual_id)
+                config_index = 0;
 
-        return true;
-    }
+            if (config_index == -1)
+                config_index = match_config_to_visual(visual_id, configs, matched);
 
-    static void gbm_swap_buffers() {
-        int waiting_for_flip = 1;
-        struct gbm_bo *next_bo = gbm_surface_lock_front_buffer(gbm.surface);
-        struct gbm_fb* fb = gbm_fb_get_from_bo(next_bo);
-        if (!fb) {
-            fprintf(stderr, "Failed to get a new framebuffer BO\n");
-            return;
+            if (config_index != -1)
+                *config_out = configs[config_index];
+
+        out:
+            free(configs);
+            if (config_index == -1)
+                return false;
+
+            return true;
         }
 
-        /*
-        * Here you could also update drm plane layers if you want
-        * hw composition
-        */
-        
-        int ret = drmModePageFlip(drm_device, drm_crtc_id, fb->fb_id, drm_flags, &waiting_for_flip);
-        if (ret) {
-            printf("failed to queue page flip: %s\n", strerror(errno));
-            return;
-        }
-
-        while (waiting_for_flip) {
-            FD_ZERO(&drm_fds);
-            FD_SET(0, &drm_fds);
-            FD_SET(drm_device, &drm_fds);
-          
-            ret = select(drm_device + 1, &drm_fds, NULL, NULL, NULL);
-            if (ret < 0) {
-                printf("select err: %s\n", strerror(errno));
-                return;
-            } else if (ret == 0) {
-                printf("select timeout!\n");
-                return;
-            } else if (FD_ISSET(0, &drm_fds)) {
-                printf("user interrupted!\n");
+        static void gbm_swap_buffers() {
+            int waiting_for_flip = 1;
+            struct gbm_bo *next_bo = gbm_surface_lock_front_buffer(gbm.surface);
+            struct gbm_fb* fb = gbm_fb_get_from_bo(next_bo);
+            if (!fb) {
+                fprintf(stderr, "Failed to get a new framebuffer BO\n");
                 return;
             }
-            drmHandleEvent(drm_device, &drm_evctx);
+
+            /*
+            * Here you could also update drm plane layers if you want
+            * hw composition
+            */
+            
+            int ret = drmModePageFlip(drm_device, drm_crtc_id, fb->fb_id, drm_flags, &waiting_for_flip);
+            if (ret) {
+                printf("failed to queue page flip: %s\n", strerror(errno));
+                return;
+            }
+
+            while (waiting_for_flip) {
+                FD_ZERO(&drm_fds);
+                FD_SET(0, &drm_fds);
+                FD_SET(drm_device, &drm_fds);
+            
+                ret = select(drm_device + 1, &drm_fds, NULL, NULL, NULL);
+                if (ret < 0) {
+                    printf("select err: %s\n", strerror(errno));
+                    return;
+                } else if (ret == 0) {
+                    printf("select timeout!\n");
+                    return;
+                } else if (FD_ISSET(0, &drm_fds)) {
+                    printf("user interrupted!\n");
+                    return;
+                }
+                drmHandleEvent(drm_device, &drm_evctx);
+            }
+            
+            /* release last buffer to render on again: */
+            if (gbm.surface) {
+                gbm_surface_release_buffer(gbm.surface, next_bo);
+            }
+            gbm_curr_bo = next_bo;
         }
-        
-        /* release last buffer to render on again: */
-        if (gbm.surface) {
-            gbm_surface_release_buffer(gbm.surface, next_bo);
-        }
-        gbm_curr_bo = next_bo;
-    }
+    
 
 namespace vera {
 
     EGLDisplay getEGLDisplay() { return egl.display; }
     EGLContext getEGLContext() { return egl.context; }
+
+
+
+    #endif
 
     
 #endif
