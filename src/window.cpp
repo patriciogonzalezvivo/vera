@@ -180,25 +180,13 @@ static bool                     bControl        = false;
         #include "bcm_host.h"
         #undef countof
 
-        DISPMANX_DISPLAY_HANDLE_T dispman_display;
-
+        // EGL / GLES2
         #include <EGL/egl.h>
         #include <EGL/eglext.h>
         #include <GLES2/gl2.h>
         #include <GLES2/gl2ext.h>
 
-    namespace vera {
-
-        #define check() assert(glGetError() == 0)
-        
-        // EGL context globals
-        EGLDisplay display;
-        EGLContext context;
-        EGLSurface surface;
-        
-        const EGLDisplay getEGLDisplay() { return display; }
-        const EGLContext getEGLContext() { return context; }
-    
+        DISPMANX_DISPLAY_HANDLE_T dispman_display;
 
     #elif defined(DRIVER_DRM)
         #include <errno.h>
@@ -598,6 +586,52 @@ static bool                     bControl        = false;
             gbm_device_destroy(gbm.device);
         }
 
+        static void gbm_swap_buffers() {
+            int waiting_for_flip = 1;
+            struct gbm_bo *next_bo = gbm_surface_lock_front_buffer(gbm.surface);
+            struct gbm_fb* fb = gbm_fb_get_from_bo(next_bo);
+            if (!fb) {
+                fprintf(stderr, "Failed to get a new framebuffer BO\n");
+                return;
+            }
+
+            /*
+            * Here you could also update drm plane layers if you want
+            * hw composition
+            */
+            
+            int ret = drmModePageFlip(drm_device, drm_crtc_id, fb->fb_id, drm_flags, &waiting_for_flip);
+            if (ret) {
+                printf("failed to queue page flip: %s\n", strerror(errno));
+                return;
+            }
+
+            while (waiting_for_flip) {
+                FD_ZERO(&drm_fds);
+                FD_SET(0, &drm_fds);
+                FD_SET(drm_device, &drm_fds);
+            
+                ret = select(drm_device + 1, &drm_fds, NULL, NULL, NULL);
+                if (ret < 0) {
+                    printf("select err: %s\n", strerror(errno));
+                    return;
+                } else if (ret == 0) {
+                    printf("select timeout!\n");
+                    return;
+                } else if (FD_ISSET(0, &drm_fds)) {
+                    printf("user interrupted!\n");
+                    return;
+                }
+                drmHandleEvent(drm_device, &drm_evctx);
+            }
+            
+            /* release last buffer to render on again: */
+            if (gbm.surface) {
+                gbm_surface_release_buffer(gbm.surface, next_bo);
+            }
+            gbm_curr_bo = next_bo;
+        }
+
 
         int drm_host_init() {
             init_drm(properties.display.c_str(), properties.mode, drm_vrefresh);
@@ -605,6 +639,8 @@ static bool                     bControl        = false;
             screen_height = drm_mode->vdisplay;
             gbm_init(drm_device, screen_width, screen_height, drm_format, modifier);
         }
+
+        #endif /* DRIVER_DRM */
 
         // EGL / GLES2
         #include <EGL/egl.h>
@@ -655,8 +691,10 @@ static bool                     bControl        = false;
             EGLDisplay  display;
             EGLContext  context;
             EGLSurface  surface;
-            EGLConfig   config;
 
+            EGLConfig   config;
+            
+            #if defined(DRIVER_DRM)
             PFNEGLGETPLATFORMDISPLAYEXTPROC     eglGetPlatformDisplayEXT;
             PFNEGLCREATEIMAGEKHRPROC            eglCreateImageKHR;
             PFNEGLDESTROYIMAGEKHRPROC           eglDestroyImageKHR;
@@ -679,6 +717,7 @@ static bool                     bControl        = false;
             PFNGLBEGINPERFMONITORAMDPROC             glBeginPerfMonitorAMD;
             PFNGLENDPERFMONITORAMDPROC               glEndPerfMonitorAMD;
             PFNGLGETPERFMONITORCOUNTERDATAAMDPROC    glGetPerfMonitorCounterDataAMD;
+            #endif /* DRIVER_DRM */
 
             bool modifiers_supported;
 
@@ -810,63 +849,11 @@ static bool                     bControl        = false;
 
             return true;
         }
+        
+    namespace vera {
 
-        static void gbm_swap_buffers() {
-            int waiting_for_flip = 1;
-            struct gbm_bo *next_bo = gbm_surface_lock_front_buffer(gbm.surface);
-            struct gbm_fb* fb = gbm_fb_get_from_bo(next_bo);
-            if (!fb) {
-                fprintf(stderr, "Failed to get a new framebuffer BO\n");
-                return;
-            }
-
-            /*
-            * Here you could also update drm plane layers if you want
-            * hw composition
-            */
-            
-            int ret = drmModePageFlip(drm_device, drm_crtc_id, fb->fb_id, drm_flags, &waiting_for_flip);
-            if (ret) {
-                printf("failed to queue page flip: %s\n", strerror(errno));
-                return;
-            }
-
-            while (waiting_for_flip) {
-                FD_ZERO(&drm_fds);
-                FD_SET(0, &drm_fds);
-                FD_SET(drm_device, &drm_fds);
-            
-                ret = select(drm_device + 1, &drm_fds, NULL, NULL, NULL);
-                if (ret < 0) {
-                    printf("select err: %s\n", strerror(errno));
-                    return;
-                } else if (ret == 0) {
-                    printf("select timeout!\n");
-                    return;
-                } else if (FD_ISSET(0, &drm_fds)) {
-                    printf("user interrupted!\n");
-                    return;
-                }
-                drmHandleEvent(drm_device, &drm_evctx);
-            }
-            
-            /* release last buffer to render on again: */
-            if (gbm.surface) {
-                gbm_surface_release_buffer(gbm.surface, next_bo);
-            }
-            gbm_curr_bo = next_bo;
-        }
-    
-
-namespace vera {
-
-    EGLDisplay getEGLDisplay() { return egl.display; }
-    EGLContext getEGLContext() { return egl.context; }
-
-
-
-    #endif
-
+        EGLDisplay getEGLDisplay() { return egl.display; }
+        EGLContext getEGLContext() { return egl.context; }
     
 #endif
 
