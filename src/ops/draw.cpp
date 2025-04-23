@@ -1203,7 +1203,7 @@ void shader(Shader* _program) {
 
     _program->textureIndex = 0;
 
-    if (!_program->inUse() || shaderChange)
+    if (!_program->inUse() && shaderChange)
         _program->use();
 
     _program->setUniform("u_date", getDate() );
