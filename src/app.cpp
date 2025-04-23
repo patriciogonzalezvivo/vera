@@ -1,5 +1,8 @@
 #include "vera/app.h"
 
+#include "vera/ops/fs.h"
+#include "vera/ops/pixel.h"
+
 #include <iostream>
 
 #if defined(__EMSCRIPTEN__)
@@ -20,7 +23,6 @@ EM_BOOL App::loop (double _time, void* _userData) {
 void App::loop(double _time, App* _app) {
 #endif
     
-
     _app->time = _time;
     _app->width = getWindowWidth();
     _app->height = getWindowHeight();
@@ -32,8 +34,19 @@ void App::loop(double _time, App* _app) {
     _app->update();
     updateGL();
 
-    if (_app->auto_background_enabled)
-        clear(_app->auto_background_color);
+    if (_app->m_saveToPath.length() > 0) {
+        if (!_app->m_framebuffer.isAllocated())
+            _app->m_framebuffer.allocate(_app->width, _app->height, vera::COLOR_TEXTURE_DEPTH_BUFFER);
+
+        if (vera::haveExt(_app->m_saveToPath, "png")) {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        }
+        _app->m_framebuffer.bind();
+    }
+
+    if (_app->m_backgroundEnabled)
+        clear(_app->m_backgroundColor);
 
     if (vera::getWindowStyle() == vera::LENTICULAR) {
         vera::renderQuilt([&](const vera::QuiltProperties& quilt, glm::vec4& viewport, int &viewIndex) {
@@ -44,6 +57,17 @@ void App::loop(double _time, App* _app) {
         _app->draw();
         
     renderGL();
+
+    if (_app->m_saveToPath.length() > 0) {
+        _app->m_framebuffer.unbind();
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA);
+
+        vera::image(_app->m_framebuffer);
+
+        _app->onSave();
+    }
 
     #if defined(__EMSCRIPTEN__)
     return (getXR() == NONE_XR_MODE);
@@ -68,7 +92,7 @@ void App::run(WindowProperties _properties) {
 
     setup();
 
-    post_setup = true;
+    bPostSetup = true;
 
 #ifdef EVENTS_AS_CALLBACKS
     setViewportResizeCallback( [&](int _width, int _height) {
@@ -162,8 +186,8 @@ void App::run(WindowProperties _properties) {
             _app->update();
             updateGL();
 
-            if (_app->auto_background_enabled)
-                clear(_app->auto_background_color);
+            if (_app->m_backgroundEnabled)
+                clear(_app->m_backgroundColor);
 
             Camera* cam = getCamera();
 
@@ -247,14 +271,36 @@ void App::run(WindowProperties _properties) {
 #endif
 }
 
-void App::background() { background(auto_background_color); }
+void App::background() { background(m_backgroundColor); }
 void App::background( float _brightness ) { background(glm::vec3(_brightness)); }
 void App::background( const glm::vec3& _color ) { background(glm::vec4(_color, 1.0f)); }
 void App::background( const glm::vec4& _color ) {
-    auto_background_color = _color;
-    if (!post_setup)
-        auto_background_enabled = true;
-    clear(auto_background_color);
+    m_backgroundColor = _color;
+    if (!bPostSetup)
+        m_backgroundEnabled = true;
+    clear(m_backgroundColor);
+}
+
+void App::save(const std::string& _path) { m_saveToPath = _path; }
+void App::onSave() {
+
+    glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer.getId());
+
+    if (vera::getExt(m_saveToPath) == "hdr") {
+        float* pixels = new float[vera::getWindowWidth() * vera::getWindowHeight()*4];
+        glReadPixels(0, 0, vera::getWindowWidth(), vera::getWindowHeight(), GL_RGBA, GL_FLOAT, pixels);
+        vera::savePixelsFloat(m_saveToPath, pixels, vera::getWindowWidth(), vera::getWindowHeight());
+    }
+    else {
+        int width = vera::getWindowWidth();
+        int height = vera::getWindowHeight();
+        auto pixels = std::unique_ptr<unsigned char[]>(new unsigned char [width * height * 4]);
+        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.get());
+        vera::savePixels(m_saveToPath, pixels.get(), width, height);
+    }
+
+    std::cout << "Saved to " << m_saveToPath << std::endl;
+    m_saveToPath = "";
 }
 
 void App::orbitControl() {
@@ -268,10 +314,8 @@ void App::orbitControl() {
 
     if (cam->getViewport() == glm::ivec4(0.0)) {
         double aspect = width/height;
-        // double aspect = getWindowWidth()/getWindowHeight();
         if (cam->getAspect() != aspect)
             cam->setViewport(width, height);
-            // cam->setViewport(getWindowWidth(), getWindowHeight());
     }
 
     if (mouseIsPressed && getQuiltCurrentViewIndex() == 0) {
