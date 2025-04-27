@@ -1211,6 +1211,7 @@ void shader(Shader* _program) {
     _program->setUniform("u_mouse", getMousePosition() );
     _program->setUniform("u_time", (float)getTimeSec() );
     _program->setUniform("u_delta", (float)getDelta() );
+    _program->setUniform("u_pixelDensity", getPixelDensity() );
 
     if (_program == fill_shader)
         _program->setUniform("u_color", fill_color);
