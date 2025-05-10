@@ -26,6 +26,11 @@ public:
     float       getWidth() const { return fabs(max.x - min.x); }
     float       getHeight() const { return fabs(max.y - min.y); }
     float       getDepth() const { return fabs(max.z - min.z); }
+
+    glm::vec2   getTopLeft() const { return glm::vec2(min.x, max.y); }
+    glm::vec2   getTopRight() const { return glm::vec2(max.x, max.y); }
+    glm::vec2   getBottomLeft() const { return glm::vec2(min.x, min.y); }
+    glm::vec2   getBottomRight() const { return glm::vec2(max.x, min.y); }
     
     glm::vec3   getCenter() const { return min + (max - min) * 0.5f; }
     glm::vec3   getDiagonal() const { return max - min; }

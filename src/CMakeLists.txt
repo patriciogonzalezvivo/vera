@@ -80,6 +80,8 @@ set(VERA_SOURCES
     ${SOURCE_FOLDER}/types/mesh.cpp 
     ${SOURCE_FOLDER}/types/model.cpp
     ${SOURCE_FOLDER}/types/node.cpp
+    ${SOURCE_FOLDER}/types/polarPoint.cpp
+    ${SOURCE_FOLDER}/types/polyline.cpp
     ${SOURCE_FOLDER}/types/scene.cpp
     ${SOURCE_FOLDER}/types/triangle.cpp
     ${SOURCE_FOLDER}/shaders/defaultShaders.cpp
