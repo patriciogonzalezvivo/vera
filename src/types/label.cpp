@@ -15,6 +15,27 @@ Label::Label() : m_text(""), m_type(LABEL_CENTER), m_bbox(nullptr), m_worldPos(n
 
 }
 
+Label::Label(const char* _text, glm::vec3* _position, LabelType _type, float _margin) : m_bbox(nullptr){ 
+    setText(_text);
+    linkTo(_position);
+    setType(_type);
+    setMargin(_margin);
+}
+
+Label::Label(const char* _text, Node* _node, LabelType _type, float _margin) : m_bbox(nullptr) { 
+    setText(_text);
+    linkTo(_node);
+    setType(_type);
+    setMargin(_margin);
+}
+
+Label::Label(const char* _text, Model* _model, LabelType _type, float _margin) { 
+    setText(_text);
+    linkTo(_model);
+    setType(_type);
+    setMargin(_margin);
+}
+
 Label::Label(const std::string& _text, glm::vec3* _position, LabelType _type, float _margin) : m_bbox(nullptr){ 
     setText(_text);
     linkTo(_position);

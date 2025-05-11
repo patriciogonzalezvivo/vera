@@ -1427,6 +1427,16 @@ void addLabel(Label* _label) {
     scene->labels.push_back( _label );
 }
 
+void addLabel(const char* _text, glm::vec3* _position, LabelType _type, float _margin) {
+    addLabel( new vera::Label(_text, _position, _type, _margin) );
+}
+void addLabel(const char* _text, Node* _node, LabelType _type, float _margin) {
+    addLabel( new vera::Label(_text, _node, _type, _margin) );
+}
+void addLabel(const char* _text, Model* _model, LabelType _type, float _margin) {
+    addLabel( new vera::Label(_text, _model, _type, _margin) );
+}
+
 void addLabel(const std::string& _text, glm::vec3* _position, LabelType _type, float _margin) {
     addLabel( new vera::Label(_text, _position, _type, _margin) );
 }

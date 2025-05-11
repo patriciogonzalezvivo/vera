@@ -20,6 +20,10 @@ class Label : public BoundingBox {
 public:
     Label();
 
+    Label(const char* _text, glm::vec3* _position, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
+    Label(const char* _text, Node* _node, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
+    Label(const char* _text, Model* _model, LabelType _type = LABEL_CENTER, float _margin = 0.0f );
+
     Label(const std::string& _text, glm::vec3* _position, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
     Label(const std::string& _text, Node* _node, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
     Label(const std::string& _text, Model* _model, LabelType _type = LABEL_CENTER, float _margin = 0.0f );
@@ -28,8 +32,9 @@ public:
     Label(std::function<std::string(void)> _func, Node* _node, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
     Label(std::function<std::string(void)> _func, Model* _model, LabelType _type = LABEL_CENTER, float _margin = 0.0f );
 
-    void setText(std::function<std::string(void)> _func) { m_textFunc = _func; }
+    void setText(const char* _text) { m_text = std::string(_text); }
     void setText(const std::string& _text) { m_text = _text; }
+    void setText(std::function<std::string(void)> _func) { m_textFunc = _func; }
 
     void linkTo(glm::vec3* _position);
     void linkTo(Node* _position);

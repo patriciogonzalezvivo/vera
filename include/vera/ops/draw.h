@@ -356,6 +356,9 @@ void model(const Mesh& _mesh, Shader* _program = nullptr);
 // -----------------------------
 void addLabel(Label& _label);
 void addLabel(Label* _label);
+void addLabel(const char* _text, glm::vec3* _position, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
+void addLabel(const char* _text, Node* _node, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
+void addLabel(const char* _text, Model* _node, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
 void addLabel(const std::string& _text, glm::vec3* _position, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
 void addLabel(const std::string& _text, Node* _node, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
 void addLabel(const std::string& _text, Model* _node, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
