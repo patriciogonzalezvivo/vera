@@ -457,6 +457,10 @@ void line(const glm::vec3& _a, const glm::vec3& _b, Shader* _program) {
     line(pts, _program);
 }
 
+void line(const Polyline& _polyline, Shader* _program) {
+    line(_polyline.get3DPoints(), _program);
+}
+
 void line(const std::vector<glm::vec3>& _positions, Shader* _program) {
     if (stroke_enabled == false || _positions.size() < 2)
         return;
@@ -1455,6 +1459,10 @@ void addLabel(std::function<std::string(void)> _func, Node* _node, LabelType _ty
 void addLabel(std::function<std::string(void)> _func, Model* _model, LabelType _type, float _margin) {
     addLabel( new vera::Label(_func, _model, _type, _margin) );
 }
+
+void labelStraightLines(bool _straight) { scene->labelsStraightLines = _straight; }
+void labelScreenCenter(float _x, float _y) { scene->labelsScreenCenter = glm::vec2(_x, _y); }
+void labelScreenCenter(const glm::vec2& _center) { scene->labelsScreenCenter = _center; }
 
 void labels() {
     if (scene->activeFont == nullptr)

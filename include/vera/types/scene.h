@@ -141,6 +141,8 @@ public:
 
     // Labels
     LabelsList          labels;
+    glm::vec2           labelsScreenCenter = glm::vec2(0.5f, 0.5f);    
+    bool                labelsStraightLines = true;
     virtual void        printLabels();
     virtual void        clearLabels();
 

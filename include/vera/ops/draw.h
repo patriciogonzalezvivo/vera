@@ -12,6 +12,7 @@
 #include "vera/types/line.h"
 #include "vera/types/mesh.h"
 #include "vera/types/scene.h"
+#include "vera/types/polyline.h"
 #include "vera/types/triangle.h"
 
 #if defined(__EMSCRIPTEN__)
@@ -126,6 +127,7 @@ void line(float _x1, float _y1, float _z1, float _x2, float _y2, float _z2, Shad
 void line(const glm::vec3& _a, const glm::vec3& _b, Shader* _program = nullptr);
 void line(const std::vector<glm::vec3>& _positions, Shader* _program = nullptr);
 void line(const Line& _line, Shader* _program = nullptr);
+void line(const Polyline& _polyline, Shader* _program = nullptr);
 void line(const Triangle& _triangle, Shader* _program = nullptr);
 void line(const BoundingBox& _bbox, Shader* _program = nullptr);
 void lineBoundingBox(const glm::vec4& _bbox, Shader* _program = nullptr);
@@ -365,8 +367,13 @@ void addLabel(const std::string& _text, Model* _node, LabelType _type = LABEL_CE
 void addLabel(std::function<std::string(void)> _func, glm::vec3* _position, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
 void addLabel(std::function<std::string(void)> _func, Node* _node, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
 void addLabel(std::function<std::string(void)> _func, Model* _model, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
+
 void labels();
 void cleanLabels();
+void labelStraightLines(bool _straight);
+void labelScreenCenter(const glm::vec2& _center);
+void labelScreenCenter(float _x, float _y);
+
 int labelAt(float _x, float _y);
 Label* label(size_t _index);
 

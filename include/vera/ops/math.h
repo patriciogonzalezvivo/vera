@@ -181,4 +181,8 @@ inline glm::mat4 inverseMatrix(const glm::mat4& m) {
                     m[2][0] * b03 - m[2][1] * b01 + m[2][2] * b00) / det;
 }
 
+inline float random() { return static_cast<float>(rand()) / static_cast<float>(RAND_MAX); }
+inline float random(float min, float max) { return min + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX/(max - min))); }
+inline int random(int min, int max) { return min + rand() % (max - min + 1); }
+
 }
