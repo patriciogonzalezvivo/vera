@@ -51,6 +51,7 @@ public:
     void render(Font *_font = nullptr);
 
     bool            bVisible;
+    bool            bEnabled = true;
 
 private:
     std::function<std::string(void)> m_textFunc;
