@@ -138,7 +138,7 @@ void Label::update(Camera* _cam, Font *_font) {
         _font->setAlign(vera::ALIGN_LEFT);
         m_line_points[0] = m_screenPos;
         m_line_points[1] = m_screenPos;
-        float w = getWidth() * vera::getPixelDensity();
+        float w = getWidth() * vera::getDisplayPixelRatio();
         if (m_screenPos.x < vera::getWindowWidth() * 0.5) {
             m_line_points[0].x -= m_screenBox.getWidth();
             m_line_points[1].x = w + TEXT_MARGIN;

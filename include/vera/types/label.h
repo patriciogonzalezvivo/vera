@@ -41,7 +41,7 @@ public:
     void linkTo(Model* _position);
 
     void setType(LabelType _type) { m_type = _type; };
-    void setMargin(float _margin) { m_margin = _margin * vera::getPixelDensity(); };
+    void setMargin(float _margin) { m_margin = _margin * vera::getDisplayPixelRatio(); };
 
     virtual glm::vec3   getScreenPosition() const { return m_screenPos; }
     virtual float       getMargin() const { return m_margin; }

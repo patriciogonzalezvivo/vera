@@ -25,8 +25,8 @@ static glm::ivec4               viewport;
 static glm::ivec4               viewport_last;
 static vera::WindowProperties   properties;
 struct timespec                 time_start;
-static glm::mat4                orthoMatrix;
-static glm::mat4                orthoFlippedMatrix;
+static glm::mat4                ortho_matrix;
+static glm::mat4                ortho_flipped_matrix;
 
 typedef struct {
     glm::vec2   pos;
@@ -38,14 +38,13 @@ typedef struct {
 static Mouse                    mouse;
 
 struct timeval                  tv;
-static uint32_t                 screen_width    = 0;
-static uint32_t                 screen_height   = 0;
-static double                   elapseTime      = 0.0;
-static double                   delta           = 0.0;
-static double                   FPS             = 0.0;
-static double                   restSec         = 0.0167; // default 60fps 
-static float                    fPixelDensity   = 1.0f;
-static float                    yScroll         = 0.0f;
+static uint32_t                 screen_width        = 0;
+static uint32_t                 screen_height       = 0;
+static double                   elapsed_time        = 0.0;
+static double                   delta               = 0.0;
+static double                   FPS                 = 0.0;
+static double                   rest_sec             = 0.0167; // default 60fps 
+static float                    device_pixel_ratio  = 1.0f;
 
 static bool                     bShift          = false;    
 static bool                     bControl        = false;    
@@ -948,6 +947,8 @@ static bool                     bControl        = false;
     }
 #endif
 
+WindowProperties getWindowProperties() { return properties; }
+
 int initGL(WindowProperties _prop) {
     clock_gettime(CLOCK_MONOTONIC, &time_start);
     properties = _prop;
@@ -967,10 +968,10 @@ int initGL(WindowProperties _prop) {
         properties.screen_y = 0;
 
     if (properties.screen_width == -1 || properties.style == FULLSCREEN)
-        properties.screen_width = getScreenWidth();
+        properties.screen_width = getDisplayWidth();
 
     if (properties.screen_height == -1 || properties.style == FULLSCREEN)
-        properties.screen_height = getScreenHeight();
+        properties.screen_height = getDisplayHeight();
 
     // Clear application state
     EGLint major, minor;
@@ -1326,10 +1327,10 @@ int initGL(WindowProperties _prop) {
 
         #if !defined(__EMSCRIPTEN__)
         if (properties.screen_x == -1)
-            properties.screen_x = getScreenWidth() / 2 - properties.screen_width / 2;
+            properties.screen_x = getDisplayWidth() / 2 - properties.screen_width / 2;
 
         if (properties.screen_y == -1)
-            properties.screen_y = getScreenHeight() / 2 - properties.screen_height / 2;
+            properties.screen_y = getDisplayHeight() / 2 - properties.screen_height / 2;
 
         glfwSetWindowPos(window, properties.screen_x, properties.screen_y);
         #endif
@@ -1371,7 +1372,7 @@ int initGL(WindowProperties _prop) {
 
     glfwSetScrollCallback(window, [](GLFWwindow* _window, double xoffset, double yoffset) {
         if (onScroll)
-            onScroll(-yoffset * fPixelDensity);
+            onScroll(-yoffset * device_pixel_ratio);
     });
 
     glfwSetDropCallback(window, [](GLFWwindow* window, int count, const char** paths) {
@@ -1380,8 +1381,8 @@ int initGL(WindowProperties _prop) {
     });
 
     glfwSetWindowContentScaleCallback(window, [](GLFWwindow* _window, float xscale, float yscale) {
-        fPixelDensity = (xscale > yscale ? xscale : yscale);
-        std::cout << "Pixel Density: " << fPixelDensity << std::endl;
+        device_pixel_ratio = (xscale > yscale ? xscale : yscale);
+        std::cout << "Pixel Density: " << device_pixel_ratio << std::endl;
 
         if (onViewportResize)
             onViewportResize(properties.screen_width, properties.screen_height);
@@ -1496,7 +1497,7 @@ int initGL(WindowProperties _prop) {
 #else
 
     glfwSetWindowPosCallback(window, [](GLFWwindow* _window, int x, int y) {
-        if (fPixelDensity != getPixelDensity(true))
+        if (device_pixel_ratio != getDisplayPixelRatio(true))
             updateViewport();
     });
 
@@ -1551,14 +1552,14 @@ void updateGL() {
     // Update time
     // --------------------------------------------------------------------
     double now = getTimeSec();
-    float diff = now - elapseTime;
-    if (diff < restSec) {
-        sleep_ms(int((restSec - diff) * 1000000));
+    float diff = now - elapsed_time;
+    if (diff < rest_sec) {
+        sleep_ms(int((rest_sec - diff) * 1000000));
         now = getTimeSec();
     }    
 
-    delta = now - elapseTime;
-    elapseTime = now;
+    delta = now - elapsed_time;
+    elapsed_time = now;
 
     static int frame_count = 0;
     static double lastTime = 0.0;
@@ -1699,15 +1700,15 @@ void closeGL(){
 void setWindowSize(int _width, int _height) {
 #if defined(__EMSCRIPTEN__)
     setViewport((float)_width, (float)_height);
-    glfwSetWindowSize(window, _width * getPixelDensity(true), _height * getPixelDensity(true));
+    glfwSetWindowSize(window, _width * getDisplayPixelRatio(true), _height * getDisplayPixelRatio(true));
     return;
 
 #elif defined(DRIVER_GLFW)
     if (properties.style != EMBEDDED)
-        glfwSetWindowSize(window, _width / getPixelDensity(true), _height / getPixelDensity(true));
+        glfwSetWindowSize(window, _width / getDisplayPixelRatio(true), _height / getDisplayPixelRatio(true));
 #endif
 
-    setViewport((float)_width / getPixelDensity(true), (float)_height / getPixelDensity(true));
+    setViewport((float)_width / getDisplayPixelRatio(true), (float)_height / getDisplayPixelRatio(true));
 }
 
 void setWindowTitle( const char* _title) {
@@ -1739,20 +1740,20 @@ void setViewport(int _x, int _y, int _width, int _height){
 }
 
 void updateViewport() {
-    fPixelDensity = getPixelDensity(true);
+    device_pixel_ratio = getDisplayPixelRatio(true);
     float width = getWindowWidth();
     float height = getWindowHeight();
 
     if (properties.style != EMBEDDED) {
-        glViewport( (float)viewport.x * fPixelDensity, (float)viewport.y * fPixelDensity,
+        glViewport( (float)viewport.x * device_pixel_ratio, (float)viewport.y * device_pixel_ratio,
                     width, height);
     }
 
-    orthoMatrix = glm::ortho(   (float)viewport.x * fPixelDensity, width, 
-                                (float)viewport.y * fPixelDensity, height);
+    ortho_matrix = glm::ortho(   (float)viewport.x * device_pixel_ratio, width, 
+                                (float)viewport.y * device_pixel_ratio, height);
 
-    orthoFlippedMatrix = glm::ortho(   (float)viewport.x * fPixelDensity, width, 
-                                        height, (float)viewport.y * fPixelDensity);
+    ortho_flipped_matrix = glm::ortho(   (float)viewport.x * device_pixel_ratio, width, 
+                                        height, (float)viewport.y * device_pixel_ratio);
 
     if (onViewportResize)
         onViewportResize(width, height);
@@ -1776,13 +1777,13 @@ void getScreenSize() {
 #endif
 }
 
-const int getScreenWidth() {
+const int getDisplayWidth() {
     if (screen_width <= 0.0)
         getScreenSize();
     return screen_width;
 }
 
-const int getScreenHeight() {
+const int getDisplayHeight() {
     if (screen_height <= 0.0)
         getScreenSize();
     return screen_height;
@@ -1843,8 +1844,7 @@ void setFullscreen(bool _fullscreen) {
 #endif
 }
 
-void setPixelDensity(float _density) { fPixelDensity = std::max(1.0f,_density); }
-const float getPixelDensity(bool _compute) {
+const float getDisplayPixelRatio(bool _compute) {
     if (_compute && properties.style != EMBEDDED) {
 #if defined(__EMSCRIPTEN__)
         return std::max(1.0f, float(emscripten_get_device_pixel_ratio()));
@@ -1854,11 +1854,11 @@ const float getPixelDensity(bool _compute) {
         glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
         return std::max(1.0f, float(framebuffer_width))/std::max(1.0f, float(window_width));
 #else
-        return std::max(1.0f, fPixelDensity);
+        return std::max(1.0f, device_pixel_ratio);
 #endif
     }
     else
-        return std::max(1.0f, fPixelDensity);
+        return std::max(1.0f, device_pixel_ratio);
 }
 
 void setWindowIcon(unsigned char* _data, size_t _width, size_t _height) {
@@ -1878,10 +1878,10 @@ const glm::ivec4& getViewport() {
     return viewport;
 }
 
-const glm::mat4& getOrthoMatrix() { return orthoMatrix; }
-const glm::mat4& getFlippedOrthoMatrix() { return orthoFlippedMatrix; }
-const int getWindowWidth() { return viewport.z * fPixelDensity; }
-const int getWindowHeight() { return viewport.w * fPixelDensity; }
+const glm::mat4& getOrthoMatrix() { return ortho_matrix; }
+const glm::mat4& getFlippedOrthoMatrix() { return ortho_flipped_matrix; }
+const int getWindowWidth() { return viewport.z * device_pixel_ratio; }
+const int getWindowHeight() { return viewport.w * device_pixel_ratio; }
 const int getWindowMSAA() { return properties.msaa; }
 const WindowStyle getWindowStyle() { return properties.style; }
 
@@ -1953,20 +1953,20 @@ glm::vec4 getDate() {
 #endif 
 }
 
-const double  getTime() { return elapseTime;}
+const double  getTime() { return elapsed_time;}
 const double  getDelta() { return delta; }
 
 void    setFps(int _fps) { 
     if (_fps == 0)
-        restSec = 0.0;
+        rest_sec = 0.0;
     else
-        restSec = 1.0f/(float)_fps; 
+        rest_sec = 1.0f/(float)_fps; 
 }
-const double  getFps() { return 1.0/restSec; }
+const double  getFps() { return 1.0/rest_sec; }
 
-const float   getRestSec() { return restSec; }
-const int     getRestMs() { return restSec * 1000; }
-const int     getRestUs() { return restSec * 1000000; }
+const float   getRestSec() { return rest_sec; }
+const int     getRestMs() { return rest_sec * 1000; }
+const int     getRestUs() { return rest_sec * 1000000; }
 
 void    setMousePosition( float _x, float _y ) {
     mouse.pos = glm::vec2(_x, _y);
@@ -1975,7 +1975,7 @@ void    setMousePosition( float _x, float _y ) {
     #if defined(DRIVER_GLFW)
     float h = getWindowHeight();
     float y = _y;//h - glm::clamp(_y, 0.0f, h);
-    glfwSetCursorPos(window, _x / fPixelDensity , y / fPixelDensity);
+    glfwSetCursorPos(window, _x / device_pixel_ratio , y / device_pixel_ratio);
     #endif
 }
 

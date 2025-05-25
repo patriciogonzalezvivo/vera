@@ -183,7 +183,7 @@ void Font::render(const std::string &_text, float _x, float _y) {
         loadDefault();
 
     fonsSetFont(fs, m_id);
-    fonsSetSize(fs, m_size * vera::getPixelDensity() );
+    fonsSetSize(fs, m_size );
     fonsSetColor(fs, m_color);
     fonsSetAlign(fs, m_hAlign | m_vAlign);
 

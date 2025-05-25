@@ -18,6 +18,8 @@
 
 namespace vera {
 
+float       pd              = getDisplayPixelRatio(); // pixel density
+
 Shader*     shaderPtr       = nullptr;
 bool        shaderChange    = true; 
 
@@ -75,8 +77,9 @@ void flagChange() { scene->flagChange(); }
 bool haveChanged()  { return scene->haveChange(); }
 void resetChange() { scene->resetChange(); }
 
-float pixelDensity() { return getPixelDensity(); }
-void pixelDensity(float _density) { setPixelDensity(_density); }
+float displayDensity() { return getDisplayPixelRatio(); }
+float pixelDensity() { return pd; }
+void pixelDensity(float _density) { pd = _density; }
 
 bool fullscreen() { return isFullscreen(); }
 void fullscreen(bool _fullscreen) { setFullscreen(_fullscreen); }
@@ -277,12 +280,11 @@ void stroke( const glm::vec4& _color ) {
     if (shaderPtr == nullptr || shaderPtr != fill_shader)
         shaderPtr = fill_shader;
 }
-void strokeWeight( float _weight) { 
-    // glLineWidth(_weight);
-    stroke_weight = _weight;
+void strokeWeight( float _weight) {
+    stroke_weight = _weight * pd;
 }
 
-void pointSize( float _size ) { points_size = _size; }
+void pointSize( float _size ) { points_size = _size * pd; }
 void pointShape( PointShape _shape) { points_shape = _shape; }
 
 
@@ -1008,10 +1010,6 @@ Font* getFont(const std::string& _name) {
     return nullptr;
 }
 
-float getFontHeight() {
-    return getFont()->getHeight();
-}
-
 //  FONT
 //
 Font* textFont(const std::string& _name) { 
@@ -1048,15 +1046,27 @@ void textSize(float _size, Font* _font) {
         _font = getFont();
 
     if (getWindowStyle() == LENTICULAR)
-        _font->setSize(_size * 3.0f );
+        _font->setSize(_size * 3.0f * pd);
     else
-        _font->setSize(_size );
+        _font->setSize(_size * pd);
 }
 
 float textWidth(const std::string& _text, Font* _font) {
     if (_font == nullptr)
         _font = getFont();
-    return _font->getBoundingBox(_text).z;
+    return _font->getBoundingBox(_text).z * getDisplayPixelRatio();
+}
+
+float textHeight(Font* _font) {
+    if (_font == nullptr)
+        _font = getFont();
+    return _font->getHeight() * getDisplayPixelRatio();
+}
+
+float textHeight(const std::string& _text, Font* _font) {
+    if (_font == nullptr)
+        _font = getFont();
+    return _font->getBoundingBox(_text).w * getDisplayPixelRatio();
 }
 
 void text(const std::string& _text, const glm::vec3& _pos, Font* _font) { 
@@ -1111,7 +1121,7 @@ void textHighlight(const std::string& _text, float _x , float _y, const glm::vec
     BoundingBox bbox = BoundingBox(_font->getBoundingBox(_text, _x, _y));
     bbox.expand(4.0f);
 
-    float s = getPixelDensity() == 1.0f ? 1.0f : getPixelDensity() * 2.0f;
+    float s = getDisplayPixelRatio() == 1.0f ? 1.0f : getDisplayPixelRatio() * 2.0f;
         
     fill(_bg);
     noStroke();
@@ -1215,7 +1225,7 @@ void shader(Shader* _program) {
     _program->setUniform("u_mouse", getMousePosition() );
     _program->setUniform("u_time", (float)getTimeSec() );
     _program->setUniform("u_delta", (float)getDelta() );
-    _program->setUniform("u_pixelDensity", getPixelDensity() );
+    _program->setUniform("u_pixelDensity", getDisplayPixelRatio() );
 
     if (_program == fill_shader)
         _program->setUniform("u_color", fill_color);

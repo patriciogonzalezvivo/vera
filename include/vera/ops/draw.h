@@ -44,6 +44,7 @@ void fullscreen(bool _fullscreen);
 
 void print(const std::string& _text);
 void frameRate(int _fps);
+
 // cursor()
 // noCursor()
 
@@ -51,6 +52,7 @@ void flagChange();
 bool haveChanged();
 void resetChange();
 
+float displayDensity();
 float pixelDensity();
 void  pixelDensity(float _density);
 
@@ -239,7 +241,6 @@ Vbo* getBillboard();
 // -----------------------------
 Font* getFont();
 Font* getFont(const std::string& _name);
-float getFontHeight();
 
 Font* loadFont(const std::string& _file, const std::string& _name = "default");
 void  addFont(Font& _font, const std::string _name);
@@ -259,6 +260,8 @@ void textAlign(VerticalAlign _align, Font* _font = nullptr);
 void textAngle(float _angle, Font* _font = nullptr);
 void textSize(float _size, Font* _font = nullptr);
 float textWidth(const std::string& _text, Font* _font = nullptr);
+float textHeight(Font* _font = nullptr);
+float textHeight(const std::string& _text, Font* _font = nullptr);
 void text(const std::string& _text, const glm::vec3& _pos, Font* _font = nullptr);
 void text(const std::string& _text, const glm::vec2& _pos, Font* _font = nullptr );
 void text(const std::string& _text, float _x, float _y, Font* _font = nullptr);

@@ -171,7 +171,7 @@ void App::run(WindowProperties _properties) {
         [](void* _userData, int, WebXRRigidTransform* _headPose, WebXRView* _views, int _viewCount) {
             App* _app = (App*)_userData;
 
-            float px = getPixelDensity();
+            float px = getDisplayPixelRatio();
             float width = getWindowWidth();
             float height = getWindowHeight();
 

@@ -42,7 +42,7 @@ public:
     virtual void setAngle(float _angle) { m_angle = _angle; }
 
     // virtual GLint getAtlasTexture();
-    virtual float       getHeight() { return getBoundingBox("A").z; }
+    virtual float       getHeight() { return getBoundingBox("A").w; }
     virtual HorizontalAlign getHorizontalAlign() { return m_hAlign; }
     virtual VerticalAlign   getVerticalAlign() { return m_vAlign; }
     virtual glm::vec4   getBoundingBox(const std::string &_text, float _x = 0, float _y = 0);

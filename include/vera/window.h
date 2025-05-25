@@ -146,8 +146,14 @@ enum WindowStyle {
 
 struct WindowProperties {
     WindowStyle style   = REGULAR;
+
+    #if defined(__APPLE__)
+    size_t      major   = 4;
+    size_t      minor   = 1;
+    #else
     size_t      major   = 2;
     size_t      minor   = 0;
+    #endif
     size_t      msaa    = 0;
     
     std::string vendor = "";
@@ -197,12 +203,13 @@ EGLDisplay          getEGLDisplay();
 EGLContext          getEGLContext();
 #endif
 
+WindowProperties    getWindowProperties();
+
 //  Windows/Viewport
 //----------------------------------------------
 void                updateViewport();
 
 void                setFps(int _fps);
-void                setPixelDensity(float _density);
 void                setViewport(float _width, float _height);
 void                setWindowSize(int _width, int _height);
 void                setWindowTitle(const char* _title);
@@ -212,9 +219,9 @@ void                setWindowIcon(unsigned char* _data, size_t _width, size_t _h
 const bool          isFullscreen();
 void                setFullscreen(bool _fullscreen);
 
-const int           getScreenWidth();
-const int           getScreenHeight();
-const float         getPixelDensity(bool _compute = false);
+const float         getDisplayPixelRatio(bool _recompute = false);
+const int           getDisplayWidth();
+const int           getDisplayHeight();
 
 const glm::ivec4&   getViewport();
 const glm::mat4&    getOrthoMatrix();
