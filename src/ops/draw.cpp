@@ -1126,7 +1126,7 @@ void textHighlight(const std::string& _text, float _x , float _y, const glm::vec
 
     shapeHAlign = ALIGN_CENTER;
     shapeVAlign = ALIGN_MIDDLE;
-    rect(bbox.getCenter().x, bbox.getCenter().y, bbox.getWidth() * pd * 1.1, bbox.getHeight() * pd * 1.5);
+    rect(bbox.getCenter().x, bbox.getCenter().y, bbox.getWidth() * pd * 1.05, bbox.getHeight() * pd * 1.25);
 
     
     // restore style
@@ -1180,14 +1180,26 @@ Shader createShader(DefaultShaders _frag, DefaultShaders _vert) {
 
 void addShader(const std::string& _name, Shader* _shader) { scene->shaders[_name] = _shader; }
 void addShader(const std::string& _name, Shader& _shader) { addShader(_name, &_shader); }
-void addShader(const std::string& _name, const std::string& _fragSrc, const std::string& _vertSrc) {
+void addShader(const std::string& _name, const std::string& _frag, const std::string& _vert) {
     scene->shaders[_name] = new Shader();
-    if (!_fragSrc.empty() && _vertSrc.empty())
-        scene->shaders[_name]->setSource(_fragSrc, getDefaultSrc(VERT_DEFAULT_SCENE));
-    else if (_fragSrc.empty())
-        scene->shaders[_name]->setSource(getDefaultSrc(FRAG_DEFAULT_SCENE), getDefaultSrc(VERT_DEFAULT_SCENE));
-    else
-        scene->shaders[_name]->setSource(_fragSrc, _vertSrc);
+
+    std::string vertSrc = _vert;
+    if (vertSrc.empty()) {
+        vertSrc = getDefaultSrc(VERT_DEFAULT_SCENE);
+    }
+    else if (vertSrc.find(".vert") != std::string::npos) {
+        vertSrc = loadGlslFrom(vertSrc);
+    }
+
+    std::string fragSrc = _frag;
+    if (fragSrc.empty()) {
+        fragSrc = getDefaultSrc(FRAG_DEFAULT_SCENE);
+    }
+    else if (fragSrc.find(".frag") != std::string::npos) {
+        fragSrc = loadGlslFrom(fragSrc);
+    }
+
+    scene->shaders[_name]->setSource(fragSrc, vertSrc);
 }
 
 Shader* getShader(const std::string& _name) {
@@ -1198,6 +1210,13 @@ Shader* getShader(const std::string& _name) {
 }
 
 Shader* getShader() { return shaderPtr; }
+std::vector<std::string> getShaderNames() {
+    std::vector<std::string> names;
+    for (const auto& pair : scene->shaders) {
+        names.push_back(pair.first);
+    }
+    return names;
+}
 void resetShader() { shaderPtr = nullptr; }
 
 void shader(const std::string& _name) {

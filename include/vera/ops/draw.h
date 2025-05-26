@@ -281,6 +281,7 @@ void    addShader(const std::string& _name, const std::string& _fragSrc = "", co
 
 Shader* getShader();
 Shader* getShader(const std::string& _name);
+std::vector<std::string> getShaderNames();
 Shader* getFillShader();
 Shader* getStrokeShader();
 Shader* getPointShader();
