@@ -2,6 +2,7 @@
 
 #include "vera/ops/fs.h"
 #include "vera/ops/pixel.h"
+#include "vera/ops/time.h"
 
 #include <iostream>
 
@@ -281,7 +282,14 @@ void App::background( const glm::vec4& _color ) {
     clear(m_backgroundColor);
 }
 
-void App::save(const std::string& _path) { m_saveToPath = _path; }
+void App::save(const std::string& _path, bool _exitAfterSave) { 
+    m_saveToPath = _path;
+    if (m_saveToPath.empty()) {
+        m_saveToPath = "screenshot_" + vera::getDateTimeString() + ".png";
+    }
+    m_exitAfterSave = _exitAfterSave;
+}
+
 void App::onSave() {
 
     glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer.getId());
@@ -301,6 +309,10 @@ void App::onSave() {
 
     std::cout << "Saved to " << m_saveToPath << std::endl;
     m_saveToPath = "";
+    
+    if (m_exitAfterSave) {
+        bShouldExit = true;
+    }
 }
 
 void App::orbitControl() {

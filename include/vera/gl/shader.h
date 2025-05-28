@@ -32,6 +32,7 @@ public:
     void    setDefaultErrorBehaviour(ShaderErrorResolve _error) { m_error_screen = _error; }
 
     bool    load(const std::string& _fragmentSrc, const std::string& _vertexSrc, ShaderErrorResolve _onError = SHOW_MAGENTA_SHADER, bool _verbose = false);
+    bool    reload();
     void    use();
 
     const   GLuint  getProgram() const { return m_program; };

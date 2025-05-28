@@ -54,7 +54,7 @@ public:
     virtual void background( const glm::vec3& _color );
     virtual void background( const glm::vec4& _color );
 
-    virtual void save(const std::string& _path = "");
+    virtual void save(const std::string& _path = "", bool _exitOnDone = false);
 
     virtual void orbitControl();
 
@@ -89,6 +89,7 @@ protected:
     void        onSave();
     Fbo         m_framebuffer;
     std::string m_saveToPath = "";
+    bool        m_exitAfterSave = false;
 
     glm::vec4   m_backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     bool        m_backgroundEnabled = false;

@@ -261,9 +261,8 @@ void fill( const glm::vec4& _color ) {
     fill_color = _color;
     fill_enabled = true;
 
-    getFillShader();
     if (shaderPtr == nullptr || shaderPtr != fill_shader)
-        shaderPtr = fill_shader;
+        shaderPtr = getFillShader();
 }
 
 const glm::vec4& getStrokeColor() { return stroke_color; }
@@ -276,9 +275,8 @@ void stroke( const glm::vec4& _color ) {
     stroke_color = _color;
     stroke_enabled = true;
 
-    getFillShader();
     if (shaderPtr == nullptr || shaderPtr != fill_shader)
-        shaderPtr = fill_shader;
+        shaderPtr = getFillShader();
 }
 void strokeWeight( float _weight) {
     stroke_weight = _weight * pd;
@@ -431,8 +429,8 @@ void line(const std::vector<glm::vec2>& _positions, Shader* _program) {
 
         mesh.addVertex( glm::vec3(_positions[0], 0.0f) + normal );
         mesh.addVertex( glm::vec3(_positions[0], 0.0f) - normal );
-        mesh.addTexCoord( glm::vec2(0.0f, 0.0f) );
-        mesh.addTexCoord( glm::vec2(1.0f, 0.0f) );
+        // mesh.addTexCoord( glm::vec2(0.0f, 0.0f) );
+        // mesh.addTexCoord( glm::vec2(1.0f, 0.0f) );
     
         for (int i = 1; i < _positions.size(); i++) {
             glm::vec3 normal = glm::normalize( glm::vec3(_positions[i], 0.0f) - glm::vec3(_positions[i-1], 0.0f) );
@@ -441,12 +439,13 @@ void line(const std::vector<glm::vec2>& _positions, Shader* _program) {
             mesh.addVertex( glm::vec3(_positions[i], 0.0f) + normal );
             mesh.addVertex( glm::vec3(_positions[i], 0.0f) - normal );
 
-            float pct = (float)i/(float)_positions.size();
-            mesh.addTexCoord( glm::vec2(0.0f, pct) );
-            mesh.addTexCoord( glm::vec2(1.0f, pct) );
+            // float pct = (float)i/(float)_positions.size();
+            // mesh.addTexCoord( glm::vec2(0.0f, pct) );
+            // mesh.addTexCoord( glm::vec2(1.0f, pct) );
         }
 
         Vbo vbo = Vbo(mesh);
+
         if (_program == nullptr)
             _program = getStrokeShader();
 
@@ -500,8 +499,8 @@ void line(const std::vector<glm::vec3>& _positions, Shader* _program) {
         mesh.addVertex( _positions[0] );
         mesh.addNormal( normal );
         mesh.addNormal( -normal );
-        mesh.addTexCoord( glm::vec2(0.0f, 0.0f) );
-        mesh.addTexCoord( glm::vec2(1.0f, 0.0f) );
+        // mesh.addTexCoord( glm::vec2(0.0f, 0.0f) );
+        // mesh.addTexCoord( glm::vec2(1.0f, 0.0f) );
     
         for (int i = 1; i < _positions.size(); i++) {
             glm::vec3 normal = glm::normalize(_positions[i] - _positions[i-1]);
@@ -511,9 +510,9 @@ void line(const std::vector<glm::vec3>& _positions, Shader* _program) {
             mesh.addNormal( normal );
             mesh.addNormal( -normal );
 
-            float pct = (float)i/(float)_positions.size();
-            mesh.addTexCoord( glm::vec2(0.0f, pct) );
-            mesh.addTexCoord( glm::vec2(1.0f, pct) );
+            // float pct = (float)i/(float)_positions.size();
+            // mesh.addTexCoord( glm::vec2(0.0f, pct) );
+            // mesh.addTexCoord( glm::vec2(1.0f, pct) );
         }
 
         Vbo vbo = Vbo(mesh);
@@ -606,7 +605,7 @@ void triangle(const glm::vec3& _center, glm::vec3 _up, float _radius, Shader* _p
 
 void triangles(const std::vector<glm::vec2>& _positions, Shader* _program) {
     if (_program == nullptr)
-        _program = getFillShader();;
+        _program = getFillShader();
 
     shader(_program);
 
@@ -627,7 +626,7 @@ void triangles(const std::vector<glm::vec2>& _positions, Shader* _program) {
 
 void triangles(const std::vector<glm::vec3>& _positions, Shader* _program) {
     if (_program == nullptr)
-        _program = getFillShader();;
+        _program = getFillShader();
 
     shader(_program);
 
@@ -1234,8 +1233,9 @@ void shader(Shader* _program) {
 
     _program->textureIndex = 0;
 
-    if (!_program->inUse() && shaderChange)
+    if (!_program->inUse() && shaderChange) {
         _program->use();
+    }
 
     _program->setUniform("u_date", getDate() );
     _program->setUniform("u_resolution", (float)getWindowWidth(), (float)getWindowHeight() );
@@ -1386,10 +1386,12 @@ void model(const Mesh& _mesh, Shader* _program) {
 void model(Vbo& _vbo, Shader* _program) { model(&_vbo, _program); }
 void model(Vbo* _vbo, Shader* _program) {
     if (_program == nullptr) {
-        if (shaderPtr != nullptr)
+        if (shaderPtr != nullptr) {
             _program = shaderPtr;
-        else
+        }
+        else {
             _program = getFillShader();
+        }
     }
 
     if (shaderChange ) //&& 
@@ -1416,7 +1418,10 @@ void model(Vbo* _vbo, Shader* _program) {
         if (vl->haveAttrib("tangent"))
             _program->addDefine("MODEL_VERTEX_TANGENT", "v_tangent");
         else
-            _program->delDefine("MODEL_VERTEX_TEXCOORD");
+            _program->delDefine("MODEL_VERTEX_TANGENT");
+
+        if (_program->isDirty())
+            _program->reload();
 
         shaderChange = false;
     }

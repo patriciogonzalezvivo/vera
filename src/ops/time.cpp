@@ -8,6 +8,7 @@
 #else
     #include <unistd.h>
 #endif 
+#include <time.h>
 
 namespace vera {
 
@@ -17,7 +18,15 @@ void sleep_ms(uint64_t value) {
 #else
     usleep(value);
 #endif 
+}
 
+std::string getDateTimeString(const std::string& format) {
+    time_t now = time(nullptr);
+    struct tm tstruct;
+    char buf[80];
+    localtime_r(&now, &tstruct);
+    strftime(buf, sizeof(buf), format.c_str(), &tstruct);
+    return std::string(buf);
 }
 
 }

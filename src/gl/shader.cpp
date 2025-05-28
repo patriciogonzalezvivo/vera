@@ -167,12 +167,22 @@ const GLint Shader::getAttribLocation(const std::string& _attribute) const {
     return glGetAttribLocation(m_program, _attribute.c_str());
 }
 
+bool Shader::reload() {
+    if (inUse() && isLoaded()) {
+        std::cout << "Reloading shader program " << getProgram() << ", all previous uniforms will be lost!" << std::endl;
+        glUseProgram(0); // Unbind the current shader progra;
+    } 
+    return load(m_fragmentSource, m_vertexSource, m_error_screen, false);
+}
+
 void Shader::use() {
-    if (isDirty())
-        load(m_fragmentSource, m_vertexSource, m_error_screen, false);
+    if (isDirty()) {
+        reload();
+    }
     
-    if (!inUse())
+    if (!inUse()) {
         glUseProgram(getProgram());
+    }
         
     textureIndex = 0;
 }
@@ -393,21 +403,18 @@ void Shader::setUniform(const std::string& _name, int _x) {
 void Shader::setUniform(const std::string& _name, int _x, int _y) {
     if (inUse()) {
         glUniform2i(getUniformLocation(_name), _x, _y);
-        // std::cout << "Uniform " << _name << ": vec2i(" << _x << "," << _y << ")" << std::endl;
     }
 }
 
 void Shader::setUniform(const std::string& _name, int _x, int _y, int _z) {
     if (inUse()) {
         glUniform3i(getUniformLocation(_name), _x, _y, _z);
-        // std::cout << "Uniform " << _name << ": vec3i(" << _x << "," << _y << "," << _z <<")" << std::endl;
     }
 }
 
 void Shader::setUniform(const std::string& _name, int _x, int _y, int _z, int _w) {
     if (inUse()) {
         glUniform4i(getUniformLocation(_name), _x, _y, _z, _w);
-        // std::cout << "Uniform " << _name << ": vec4i(" << _x << "," << _y << "," << _z << << "," << _w << ")" << std::endl;
     }
 }
 
@@ -419,7 +426,6 @@ void Shader::setUniform(const std::string& _name, const int *_array, size_t _siz
         }
         else if (_size == 2) {
             glUniform2i(loc, _array[0], _array[1]);
-            std::cout << _name << ',' << _array[0] << ',' << _array[1] << std::endl;
         }
         else if (_size == 3) {
             glUniform3i(loc, _array[0], _array[1], _array[2]);
@@ -436,28 +442,24 @@ void Shader::setUniform(const std::string& _name, const int *_array, size_t _siz
 void Shader::setUniform(const std::string& _name, float _x) {
     if (inUse()) {
         glUniform1f(getUniformLocation(_name), _x);
-        // std::cout << "Uniform " << _name << ": float(" << _x << ")" << std::endl;
     }
 }
 
 void Shader::setUniform(const std::string& _name, float _x, float _y) {
     if (inUse()) {
         glUniform2f(getUniformLocation(_name), _x, _y);
-        // std::cout << "Uniform " << _name << ": vec2(" << _x << "," << _y << ")" << std::endl;
     }
 }
 
 void Shader::setUniform(const std::string& _name, float _x, float _y, float _z) {
     if (inUse()) {
         glUniform3f(getUniformLocation(_name), _x, _y, _z);
-        // std::cout << "Uniform " << _name << ": vec3(" << _x << "," << _y << "," << _z <<")" << std::endl;
     }
 }
 
 void Shader::setUniform(const std::string& _name, float _x, float _y, float _z, float _w) {
     if (inUse()) {
         glUniform4f(getUniformLocation(_name), _x, _y, _z, _w);
-        // std::cout << "Uniform " << _name << ": vec4(" << _x << "," << _y << "," << _z << "," << _w << ")" << std::endl;
     }
 }
 
