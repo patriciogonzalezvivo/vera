@@ -398,7 +398,8 @@ void line(const std::vector<glm::vec2>& _positions, Shader* _program) {
     
     if (stroke_weight > 0.0f && stroke_weight <= 1.0f) {
         if (_program == nullptr)
-            _program = getFillShader();
+            // _program = getFillShader();
+            _program = getStrokeShader();
        
         shader(_program);
         _program->setUniform("u_color", stroke_color);
@@ -468,7 +469,8 @@ void line(const std::vector<glm::vec3>& _positions, Shader* _program) {
 
     if (stroke_weight > 0.0f && stroke_weight <= 1.0f) {
         if (_program == nullptr)
-            _program = getFillShader();
+            // _program = getFillShader();
+            _program = getStrokeShader();
 
         shader(_program);
         _program->setUniform("u_color", stroke_color);
@@ -689,8 +691,8 @@ void circleResolution(int _resolution) {
 
 void circle(const glm::vec2& _pos, float _radius, Shader* _program) { circle(_pos.x, _pos.y, _radius, _program); }
 void circle(float _x, float _y, float _radius, Shader* _program) {
-    if (_program == nullptr)
-        _program = getFillShader();
+    // if (_program == nullptr)
+    //     _program = getFillShader();
 
     if (cached_circle_coorners.size() == 0)
         circleResolution();
@@ -1242,7 +1244,7 @@ void shader(Shader* _program) {
     _program->setUniform("u_mouse", getMousePosition() );
     _program->setUniform("u_time", (float)getTimeSec() );
     _program->setUniform("u_delta", (float)getDelta() );
-    _program->setUniform("u_pixelDensity", getDisplayPixelRatio() );
+    _program->setUniform("u_pixelDensity", pixelDensity() );
 
     if (_program == fill_shader)
         _program->setUniform("u_color", fill_color);

@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <cstring>
 #include <string>
+#include <cmath>
 
 namespace vera {
 
@@ -61,5 +62,60 @@ void flipPixelsVertically(T *_pixels, int _width, int _height, int _bytes_per_pi
     }
     free(row);
 }
+
+// Convert from linear RGB to sRGB
+inline unsigned char linearToSrgb(float _value) {
+    if (_value <= 0.0031308f) {
+        return static_cast<unsigned char>(255 * _value * 12.92f);
+    } else {
+        return static_cast<unsigned char>(255 * (1.055f * pow(_value, 1.0f / 2.4f) - 0.055f));
+    }
+}
+
+inline unsigned char linearToSrgb(unsigned char _value) {
+    return linearToSrgb(static_cast<float>(_value) / 255.0f);
+}
+
+inline unsigned char linearToSrgb(unsigned short _value) {
+    return linearToSrgb(static_cast<float>(_value) / 65535.0f); 
+}
+
+template<typename T>
+void linearToSrgb(T *_pixels, int _width, int _height, int _bytes_per_pixel) {
+    for (int i = 0; i < _width * _height * _bytes_per_pixel; i++) {
+        _pixels[i] = linearToSrgb(_pixels[i]);
+    }
+}
+
+// Convert from sRGB to linear RGB
+inline float srgbToLinear(unsigned char _value) {
+    if (_value <= 0.04045f * 255.0f) {
+        return static_cast<float>(_value) / 255.0f / 12.92f;
+    } else {
+        return pow((static_cast<float>(_value) / 255.0f + 0.055f) / 1.055f, 2.4f);
+    }
+}
+
+inline float srgbToLinear(unsigned short _value) {
+    if (_value <= 0.04045f * 65535.0f) {
+        return static_cast<float>(_value) / 65535.0f / 12.92f;
+    } else {
+        return pow((static_cast<float>(_value) / 65535.0f + 0.055f) / 1.055f, 2.4f);
+    }
+}
+
+inline void srgbToLinear(unsigned char *_pixels, int _width, int _height, int _bytes_per_pixel) {
+    for (int i = 0; i < _width * _height * _bytes_per_pixel; i++) {
+        _pixels[i] = static_cast<unsigned char>(srgbToLinear(_pixels[i]) * 255.0f);
+    }
+}
+
+template<typename T>
+inline void srgbToLinear(T *_pixels, int _width, int _height, int _bytes_per_pixel) {
+    for (int i = 0; i < _width * _height * _bytes_per_pixel; i++) {
+        _pixels[i] = static_cast<T>(srgbToLinear(static_cast<unsigned char>(_pixels[i])) * 255.0f);
+    }
+}
+
 
 }

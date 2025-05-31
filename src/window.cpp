@@ -1249,6 +1249,7 @@ int initGL(WindowProperties _prop) {
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, properties.major);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, properties.minor);
+    glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
     if (properties.major >= 3 && properties.minor >= 2) {
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
         glfwWindowHint(GLFW_OPENGL_PROFILE,GLFW_OPENGL_CORE_PROFILE);

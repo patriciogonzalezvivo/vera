@@ -108,6 +108,7 @@ bool savePixels(const std::string& _path, unsigned char* _pixels, int _width, in
 
     // Flip the image on Y
     flipPixelsVertically<unsigned char>(_pixels, _width, _height, channels);
+    // srgbToLinear(_pixels, _width, _height, channels);
 
     if ( ext == "png") 
         saved = stbi_write_png(_path.c_str(), _width, _height, channels, _pixels, _width * channels);
