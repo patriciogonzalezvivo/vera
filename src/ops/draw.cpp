@@ -216,6 +216,7 @@ Shader* getPointShader() {
     if (points_shader == nullptr) {
         points_shader = new Shader();
         points_shader->setSource( getDefaultSrc(FRAG_POINTS), getDefaultSrc(VERT_POINTS) );
+        addShader("points", points_shader);
     }
 
     return points_shader;
@@ -225,6 +226,7 @@ Shader* getStrokeShader() {
     if (stroke_shader == nullptr) {
         stroke_shader = new Shader();
         stroke_shader->setSource( getDefaultSrc(FRAG_STROKE), getDefaultSrc(VERT_STROKE) );
+        addShader("stroke", stroke_shader);
     }
     
     return stroke_shader;
@@ -235,6 +237,7 @@ Shader* getFillShader() {
     if (fill_shader == nullptr) {
         fill_shader = new Shader();
         fill_shader->setSource( getDefaultSrc(FRAG_FILL), getDefaultSrc(VERT_FILL) );
+        addShader("fill", fill_shader);
     }
     
     return fill_shader;
@@ -667,16 +670,16 @@ void rect(float _x, float _y, float _w, float _h, Shader* _program) {
     std::vector<glm::vec2> coorners = { glm::vec2(_x, _y),     glm::vec2(_x + _w, _y), 
                                         glm::vec2(_x + _w, _y + _h), glm::vec2(_x, _y + _h),
                                         glm::vec2(_x, _y) };
-
-    std::vector<glm::vec2> tris = {     coorners[0], coorners[1], coorners[2],
-                                        coorners[2], coorners[3], coorners[0] };
-
-    if (_program == nullptr) {
-        if (fill_enabled) triangles(tris);
-        if (stroke_enabled) line(coorners);
-    }
-    else
+        
+    if (fill_enabled) {
+        std::vector<glm::vec2> tris = {     coorners[0], coorners[1], coorners[2],
+                                            coorners[2], coorners[3], coorners[0] };
         triangles(tris, _program);
+    }
+
+    if (stroke_enabled) {
+        line(coorners, _program);
+    }
 }
 
 // CIRCLES
@@ -691,9 +694,6 @@ void circleResolution(int _resolution) {
 
 void circle(const glm::vec2& _pos, float _radius, Shader* _program) { circle(_pos.x, _pos.y, _radius, _program); }
 void circle(float _x, float _y, float _radius, Shader* _program) {
-    // if (_program == nullptr)
-    //     _program = getFillShader();
-
     if (cached_circle_coorners.size() == 0)
         circleResolution();
     
