@@ -34,6 +34,7 @@ glm::vec4   stroke_color    = glm::vec4(1.0f);
 float       stroke_weight   = 1.0f;
 bool        stroke_enabled  = true;
 Shader*     stroke_shader   = nullptr;
+Shader*     spline_shader   = nullptr;
 
 // POINTS
 float       points_size     = 10.0f;
@@ -230,6 +231,16 @@ Shader* getStrokeShader() {
     }
     
     return stroke_shader;
+}
+
+Shader* getSplineShader() {
+    if (spline_shader == nullptr) {
+        spline_shader = new Shader();
+        spline_shader->setSource( getDefaultSrc(FRAG_FILL), getDefaultSrc(VERT_FILL) );
+        addShader("spline", spline_shader);
+    }
+    
+    return spline_shader;
 }
 
 
@@ -472,11 +483,11 @@ void line(const std::vector<glm::vec3>& _positions, Shader* _program) {
 
     if (stroke_weight > 0.0f && stroke_weight <= 1.0f) {
         if (_program == nullptr)
-            // _program = getFillShader();
-            _program = getStrokeShader();
+            _program = getSplineShader();
 
         shader(_program);
         _program->setUniform("u_color", stroke_color);
+        _program->setUniform("u_strokeWeight", stroke_weight);
         
         #if defined(__EMSCRIPTEN__)
         Vbo vbo = _positions;
@@ -1228,7 +1239,7 @@ void shader(const std::string& _name) {
 
 void shader(Shader& _program) { shader(&_program); }
 void shader(Shader* _program) {
-    if (shaderPtr != fill_shader || shaderPtr != stroke_shader || shaderPtr != points_shader) {
+    if (shaderPtr != fill_shader || shaderPtr != stroke_shader || shaderPtr != spline_shader || shaderPtr != points_shader) {
         shaderPtr = _program; 
         shaderChange = true;
     }
@@ -1248,7 +1259,7 @@ void shader(Shader* _program) {
 
     if (_program == fill_shader)
         _program->setUniform("u_color", fill_color);
-    else if (_program == stroke_shader) {
+    else if (_program == stroke_shader || _program == spline_shader) {
         _program->setUniform("u_color", stroke_color);
         _program->setUniform("u_strokeWeight", stroke_weight);
     }

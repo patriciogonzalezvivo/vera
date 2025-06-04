@@ -181,6 +181,8 @@ void Label::update(Camera* _cam, Font *_font, float margin) {
     updateVisibility(_cam, margin);
     if (!bVisible)
         return;
+        
+    // Update the screen position
     updatePosition(_font, margin);
 }
 
@@ -265,7 +267,8 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font, 
 
         // Is there space at that height on the screen
         bool isFreeSpace = false;
-        if (straightLine) {
+        // if (straightLine) 
+        {
             isFreeSpace = true;
             for (int j = i - 1; j >= 0; j--) {
                 if (_labels[j]->bVisible && 
@@ -290,19 +293,20 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font, 
         // +
 
         // 0 is the screen position of the object associated with the label
-        _labels[i]->m_line_points[0] = _labels[i]->m_screenPos;
+        _labels[i]->m_line_points.clear();
+        _labels[i]->m_line_points.push_back(_labels[i]->m_screenPos);
         if (isFreeSpace) {
-            // 
-            _labels[i]->m_line_points[1] = _labels[i]->m_screenPos;
+            _labels[i]->m_line_points.push_back(_labels[i]->m_line_points[0]);
         }
         else {
             // if there is no space offset diagonally
             glm::vec2 fromFocus = _labels[i]->m_line_points[0] - screenCenter;
             glm::vec2 fromFocusDir = glm::normalize(fromFocus);
-            _labels[i]->m_line_points[1] = _labels[i]->m_line_points[0] + fromFocus * 0.5f;
-            // add marging between the obect and the begining of the line
-            // This should be a parameter
-            _labels[i]->m_line_points[0] += fromFocusDir * 10.0f;
+            _labels[i]->m_line_points.push_back( _labels[i]->m_line_points[0] + fromFocus * 0.5f );
+
+            // // add marging between the obect and the begining of the line
+            // // This should be a parameter
+            // _labels[i]->m_line_points[0] += fromFocusDir * _labels[i]->m_margin;
         }
 
         // it's the first marker inside margin area
@@ -312,22 +316,24 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font, 
             continue;
         }
         
-        // if (_labels[i]->m_line_points[1].x < margin + label_width + HIGHLIGHT_WIDTH_MARGIN) {
-        //     _labels[i]->m_line_points[1].x = margin + label_width + HIGHLIGHT_WIDTH_MARGIN;
-        // }
+        // // if (_labels[i]->m_line_points[1].x < margin + label_width + HIGHLIGHT_WIDTH_MARGIN) {
+        // //     _labels[i]->m_line_points[1].x = margin + label_width + HIGHLIGHT_WIDTH_MARGIN;
+        // // }
         
-        if (_labels[i]->m_line_points[1].x < margin + label_width) {
-            _labels[i]->m_line_points[1].x = margin + label_width;
-        }
-
-        // if (_labels[i]->m_line_points[1].x > vera::getWindowWidth() - margin - label_width - HIGHLIGHT_WIDTH_MARGIN) {
-        //     _labels[i]->m_line_points[1].x = vera::getWindowWidth() - margin - label_width - HIGHLIGHT_WIDTH_MARGIN;
+        // if (_labels[i]->m_line_points[1].x < margin + label_width) {
+        //     _labels[i]->m_line_points[1].x = margin + label_width;
         // }
 
+        // // if (_labels[i]->m_line_points[1].x > vera::getWindowWidth() - margin - label_width - HIGHLIGHT_WIDTH_MARGIN) {
+        // //     _labels[i]->m_line_points[1].x = vera::getWindowWidth() - margin - label_width - HIGHLIGHT_WIDTH_MARGIN;
+        // // }
+
         
-        if (_labels[i]->m_line_points[1].x > vera::getWindowWidth() - margin - label_width) {
-            _labels[i]->m_line_points[1].x = vera::getWindowWidth() - margin - label_width;
-        }
+        // if (_labels[i]->m_line_points[1].x > vera::getWindowWidth() - margin - label_width) {
+        //     _labels[i]->m_line_points[1].x = vera::getWindowWidth() - margin - label_width;
+        // }
+
+        _labels[i]->m_line_points.push_back(_labels[i]->m_line_points[1]);
 
         if (_labels[i]->m_bLeft) {
             _labels[i]->m_line_points[2].x = margin;
@@ -365,14 +371,8 @@ void Label::render(Font *_font) {
 
     if (m_type == LABEL_LINE_TO_WINDOW_BORDER) {
         
-        // if there is coorner (meaning 0 and 1 are different)
-        if (m_line_points[0].x != m_line_points[1].x || 
-            m_line_points[0].y != m_line_points[1].y) {
-            // draw a line to the corner
-            line(m_line_points[0], m_line_points[1]);
-        }
         // draw a line to the text position
-        line(m_line_points[1], m_line_points[2]);
+        line(m_line_points);
 
         _font->setAngle(0.0f);
         if (m_bLeft) {
@@ -387,7 +387,7 @@ void Label::render(Font *_font) {
         else {
             _font->setAlign(vera::ALIGN_BOTTOM);
         }
-        _font->render( m_text, m_line_points[2] );
+        _font->render( m_text, m_line_points[ m_line_points.size() - 1] );
     }
     else {
         if (m_type == LABEL_CENTER) {

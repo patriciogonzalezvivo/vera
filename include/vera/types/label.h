@@ -68,7 +68,7 @@ private:
     glm::vec3       m_screenPos;
 
     // Screen position and line points
-    glm::vec2       m_line_points[3]; 
+    std::vector<glm::vec2> m_line_points; 
     bool            m_bLeft;
     bool            m_bTop;
 
