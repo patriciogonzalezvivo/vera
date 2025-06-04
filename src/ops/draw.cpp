@@ -1505,9 +1505,12 @@ void addLabel(std::function<std::string(void)> _func, Model* _model, LabelType _
     addLabel( new vera::Label(_func, _model, _type, _margin) );
 }
 
-void labelStraightLines(bool _straight) { scene->labelsStraightLines = _straight; }
 void labelScreenCenter(float _x, float _y) { scene->labelsScreenCenter = glm::vec2(_x, _y); }
 void labelScreenCenter(const glm::vec2& _center) { scene->labelsScreenCenter = _center; }
+void labelScreenCenter(const glm::vec3& _center) { 
+    Camera *cam = scene->activeCamera != nullptr ? getCamera() : getLastCamera();
+    labelScreenCenter( cam->worldToScreen(_center, getWorldMatrixPtr()) );
+}
 
 void labels() {
     if (scene->activeFont == nullptr)

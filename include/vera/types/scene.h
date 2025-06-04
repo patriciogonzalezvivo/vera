@@ -129,7 +129,6 @@ public:
     glm::vec2           labelsScreenCenter = glm::vec2(0.5f, 0.5f);
     float               labelsScreenMargin = 25.0f;
     float               labelsOcclusionMargin = 10.0f;
-    bool                labelsStraightLines = true;
     virtual void        printLabels();
     virtual void        clearLabels();
 

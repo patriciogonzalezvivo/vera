@@ -326,6 +326,7 @@ void setCamera(const std::string& _name);
 void setCamera(Camera& _camera);
 void setCamera(Camera* _camera);
 void resetCamera();
+
 Camera* getCamera();
 Camera* getLastCamera();
 Camera* getCamera(const std::string& _name);
@@ -375,9 +376,10 @@ void addLabel(std::function<std::string(void)> _func, Model* _model, LabelType _
 
 void labels();
 void cleanLabels();
-void labelStraightLines(bool _straight);
-void labelScreenCenter(const glm::vec2& _center);
+
 void labelScreenCenter(float _x, float _y);
+void labelScreenCenter(const glm::vec2& _center);
+void labelScreenCenter(const glm::vec3& _center);
 
 int labelAt(float _x, float _y);
 Label* label(size_t _index);

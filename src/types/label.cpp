@@ -206,16 +206,16 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font, 
 
     float occlution_length = getScene()->labelsOcclusionMargin * vera::getDisplayPixelRatio();
     float margin = getScene()->labelsScreenMargin * vera::getDisplayPixelRatio();
-    bool straightLine = true;
+    // bool straightLine = false;
 
     // NOTE: the original implementation at 
     // https://github.com/patriciogonzalezvivo/ofxLabels/blob/master/src/ofxLabels.cpp
     // have a screen center per label
     glm::vec2 screenCenter = glm::vec2(vera::getWindowWidth() * 0.5f, vera::getWindowHeight() * 0.5f);
-    if (_screenCenter != nullptr) {
-        screenCenter = *_screenCenter;
-        straightLine = false;
-    }
+    // if (_screenCenter != nullptr) {
+    //     screenCenter = *_screenCenter;
+    //     straightLine = false;
+    // }
 
     // Update the 2D screen position
     for (size_t i = 0; i < _labels.size(); i++) {
@@ -267,22 +267,21 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font, 
 
         // Is there space at that height on the screen
         bool isFreeSpace = false;
-        // if (straightLine) 
-        {
-            isFreeSpace = true;
-            for (int j = i - 1; j >= 0; j--) {
-                if (_labels[j]->bVisible && 
-                    _labels[i]->bEnabled &&
-                    _labels[j]->m_type == LABEL_LINE_TO_WINDOW_BORDER &&
-                    _labels[i]->m_bLeft == _labels[j]->m_bLeft) {
-                    float screen_distance = _labels[i]->m_screenPos.y - _labels[j]->m_line_points[2].y;
-                    if (abs(screen_distance) < label_height * 2.0) {
-                        isFreeSpace = false;
-                        break;
-                    }
-                }
-            }
-        }
+        // if (straightLine) {
+        //     isFreeSpace = true;
+        //     for (int j = i - 1; j >= 0; j--) {
+        //         if (_labels[j]->bVisible && 
+        //             _labels[i]->bEnabled &&
+        //             _labels[j]->m_type == LABEL_LINE_TO_WINDOW_BORDER &&
+        //             _labels[i]->m_bLeft == _labels[j]->m_bLeft) {
+        //             float screen_distance = _labels[i]->m_screenPos.y - _labels[j]->m_line_points[2].y;
+        //             if (abs(screen_distance) < label_height * 2.0) {
+        //                 isFreeSpace = false;
+        //                 break;
+        //             }
+        //         }
+        //     }
+        // }
 
         // line_pooints 0, 1, 2 are 2d screen positions
         //         Text
