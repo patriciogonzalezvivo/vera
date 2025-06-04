@@ -113,4 +113,8 @@ private:
     ProjectionType m_projectionType;
 };
 
+typedef std::shared_ptr<Camera>         CameraPtr;
+typedef std::shared_ptr<const Camera>   CameraConstPtr;
+typedef std::map<std::string, Camera*>  CamerasMap;
+
 }

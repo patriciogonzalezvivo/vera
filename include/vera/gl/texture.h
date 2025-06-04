@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <map>
 
 #include "gl.h"
 #include "textureProps.h"
@@ -56,4 +57,7 @@ protected:
     GLuint          m_id;
 };
 
+typedef std::shared_ptr<Texture>        TexturePtr;
+typedef std::shared_ptr<const Texture>  TextureConstPtr;
+typedef std::map<std::string, Texture*> TexturesMap;
 }

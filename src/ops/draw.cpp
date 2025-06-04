@@ -1506,8 +1506,7 @@ void labels() {
 
     Camera *cam = enabledCamera? getCamera() : getLastCamera();
 
-    for (size_t i = 0; i < scene->labels.size(); i++)
-        scene->labels[i]->update( cam, scene->activeFont );
+    Label::updateList( scene->labels, cam, scene->activeFont, &scene->labelsScreenCenter );
 
     if (enabledCamera)
         resetCamera();

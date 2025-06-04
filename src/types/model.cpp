@@ -48,7 +48,7 @@ void Model::clear() {
 
 void Model::addDefine(const std::string& _define, const std::string& _value) { 
     mainShader.addDefine(_define, _value); 
-    for (vera::ShaderMap::iterator it = gBuffersShaders.begin(); it != gBuffersShaders.end(); ++it) {
+    for (vera::ShadersMap::iterator it = gBuffersShaders.begin(); it != gBuffersShaders.end(); ++it) {
         if (it->second)
             it->second->addDefine(_define, _value);
     }
@@ -56,7 +56,7 @@ void Model::addDefine(const std::string& _define, const std::string& _value) {
 
 void Model::delDefine(const std::string& _define) { 
     mainShader.delDefine(_define);
-    for (vera::ShaderMap::iterator it = gBuffersShaders.begin(); it != gBuffersShaders.end(); ++it){
+    for (vera::ShadersMap::iterator it = gBuffersShaders.begin(); it != gBuffersShaders.end(); ++it){
         if (it->second)
             it->second->delDefine(_define);
     }
@@ -65,7 +65,7 @@ void Model::delDefine(const std::string& _define) {
 
 bool Model::setMaterial(Material* _material) {
     mainShader.mergeDefines(_material);
-    for (vera::ShaderMap::iterator it = gBuffersShaders.begin(); it != gBuffersShaders.end(); ++it) {
+    for (vera::ShadersMap::iterator it = gBuffersShaders.begin(); it != gBuffersShaders.end(); ++it) {
         if (it->second)
             it->second->mergeDefines(_material);
     }
@@ -133,7 +133,7 @@ void Model::setShader(const std::string& _fragStr, const std::string& _vertStr) 
 }
 
 void Model::setBufferShader(const std::string _name, const std::string& _fragStr, const std::string& _vertStr) {
-    ShaderMap::iterator it = gBuffersShaders.find(_name);
+    ShadersMap::iterator it = gBuffersShaders.find(_name);
 
     if (it == gBuffersShaders.end()) {
         gBuffersShaders[_name] = new Shader();

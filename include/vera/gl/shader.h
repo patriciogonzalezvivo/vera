@@ -105,4 +105,8 @@ protected:
     bool        m_needsReloading;
 };
 
+typedef std::shared_ptr<Shader>           ShaderPtr;
+typedef std::shared_ptr<const Shader>     ShaderConstPtr;
+typedef std::map<std::string, Shader*>    ShadersMap;
+
 }

@@ -89,4 +89,8 @@ protected:
     bool                    m_play = true;
 };
 
+typedef std::shared_ptr<TextureStream>          TextureStreamPtr;
+typedef std::shared_ptr<const TextureStream>    TextureStreamConstPtr;
+typedef std::map<std::string, TextureStream*>   TextureStreamsMap;
+
 }

@@ -12,8 +12,6 @@
 
 namespace vera {
 
-typedef std::map<std::string, Shader*>    ShaderMap;
-
 class Model : public Node {
 public:
     Model();
@@ -52,7 +50,7 @@ public:
 
 protected:
     Shader          mainShader;         // main pass shader
-    ShaderMap       gBuffersShaders;    // shaders use for gBuffers
+    ShadersMap       gBuffersShaders;    // shaders use for gBuffers
     
     Vbo*            m_model_vbo;
     Vbo*            m_bbox_vbo;
@@ -64,5 +62,9 @@ protected:
 
     friend class    Label;
 };
+
+typedef std::shared_ptr<Model>          ModelPtr;
+typedef std::shared_ptr<const Model>    ModelConstPtr;
+typedef std::map<std::string, Model*>   ModelsMap;
 
 }

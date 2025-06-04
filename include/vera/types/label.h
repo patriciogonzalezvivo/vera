@@ -47,10 +47,17 @@ public:
     virtual float       getMargin() const { return m_margin; }
     virtual std::string getText();
     
-    void update(Camera* _cam = nullptr, Font *_font = nullptr);
+    void updateVisibility(Camera* _cam = nullptr, float margin = 0.0f);
+    void updatePosition(Font *_font = nullptr, float margin = 0.0f);
+    void update(Camera* _cam = nullptr, Font *_font = nullptr, float margin = 0.0f);
+
+    static bool heightCheck (const Label* _a, const Label* _b);
+    static bool depthCheck (const Label* _a, const Label* _b);
+    static void updateList(std::vector<Label*>& _labels, Camera* _cam = nullptr, Font *_font = nullptr, const glm::vec2* _screenCenter = nullptr);
+
     void render(Font *_font = nullptr);
 
-    bool            bVisible;
+    bool            bVisible = true;
     bool            bEnabled = true;
 
 private:
@@ -59,7 +66,12 @@ private:
     std::string     m_text;
     BoundingBox     m_screenBox;
     glm::vec3       m_screenPos;
+
+    // Screen position and line points
     glm::vec2       m_line_points[3]; 
+    bool            m_bLeft;
+    bool            m_bTop;
+
     LabelType       m_type;
     float           m_margin;
 
@@ -67,4 +79,7 @@ private:
     glm::vec3*      m_worldPos;
 };
 
+typedef std::shared_ptr<Label>          LabelPtr;
+typedef std::shared_ptr<const Label>    LabelConstPtr;
+typedef std::vector<Label*>             LabelsList;
 }

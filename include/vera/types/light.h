@@ -1,5 +1,9 @@
 #pragma once
 
+#include <memory>
+#include <vector>
+#include <map>
+
 #include "node.h"
 #include "../gl/fbo.h"
 
@@ -61,5 +65,9 @@ protected:
     
     GLint               m_viewport[4];
 };
+
+typedef std::shared_ptr<Light>          LightPtr;
+typedef std::shared_ptr<const Light>    LightConstPtr;
+typedef std::map<std::string, Light*>   LightsMap;
 
 }

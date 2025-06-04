@@ -5,6 +5,7 @@
 #include "vera/ops/math.h"
 
 #include <iostream>
+#include <algorithm>
 
 #define SCREEN_MARGIN 25.0
 #define TEXT_MARGIN 10.0
@@ -90,8 +91,7 @@ std::string Label::getText() {
         return m_textFunc();
     return m_text;
 }
-
-void Label::update(Camera* _cam, Font *_font) { 
+void Label::updateVisibility(Camera* _cam, float margin) {
     // _cam->bChange
     if (_cam == nullptr)
         _cam = getCamera();
@@ -110,20 +110,25 @@ void Label::update(Camera* _cam, Font *_font) {
         m_screenPos.y *= vera::getWindowHeight();
         m_screenBox.set(m_screenPos);
     }
-
+    
     m_screenBox.expand(m_margin);
-
+    
     // Is in view? (depth and in viewport)
     if (m_screenPos.z >= 1.0  ||
-        m_screenBox.max.x < 0 || m_screenBox.min.x > vera::getWindowWidth() ||
-        m_screenBox.max.y < 0 || m_screenBox.min.y > vera::getWindowHeight() ) {
+        m_screenBox.max.x < margin || m_screenBox.min.x > vera::getWindowWidth() - margin ||
+        m_screenBox.max.y < margin || m_screenBox.min.y > vera::getWindowHeight() - margin) {
         bVisible = false;
         return;
     }
     else {
         bVisible = true;
     }
+}
 
+void Label::updatePosition(Font *_font, float margin) {
+    if (_font == nullptr)
+        _font = getFont();
+    
     if (m_type == LABEL_UP)
         m_screenPos.y -= m_screenBox.getHeight() * 0.5;
     else if (m_type == LABEL_DOWN)
@@ -138,16 +143,23 @@ void Label::update(Camera* _cam, Font *_font) {
         _font->setAlign(vera::ALIGN_LEFT);
         m_line_points[0] = m_screenPos;
         m_line_points[1] = m_screenPos;
+        m_line_points[2] = m_screenPos;
+
+        // this function doesn't compare the screen positions of other labels
+        // and never creates coorner on the lines. It just naively place labels
+        // at the left or right of the screen.
         float w = getWidth() * vera::getDisplayPixelRatio();
         if (m_screenPos.x < vera::getWindowWidth() * 0.5) {
-            m_line_points[0].x -= m_screenBox.getWidth();
-            m_line_points[1].x = w + TEXT_MARGIN;
             m_screenPos.x = 0.0;
+            m_line_points[0].x -= m_screenBox.getWidth();
+            m_line_points[1].x = m_line_points[0].x;
+            m_line_points[2].x = w + TEXT_MARGIN;
         }
         else {
-            m_line_points[0].x += m_screenBox.getWidth();
             m_screenPos.x = vera::getWindowWidth() - w;
-            m_line_points[1].x = m_screenPos.x - TEXT_MARGIN;
+            m_line_points[0].x += m_screenBox.getWidth();
+            m_line_points[1].x = m_line_points[0].x;
+            m_line_points[2].x = m_screenPos.x - TEXT_MARGIN;
         }
     }
 
@@ -157,25 +169,225 @@ void Label::update(Camera* _cam, Font *_font) {
         m_text = m_textFunc();
 
     if (m_text.size() > 0) {
-        if (_font == nullptr)
-            _font = getFont();
-
         set( _font->getBoundingBox( m_text, m_screenPos.x, m_screenPos.y) );
+    }
+
+}
+
+void Label::update(Camera* _cam, Font *_font, float margin) {
+    if (margin == 0.0f)
+        margin = getScene()->labelsScreenMargin * vera::getDisplayPixelRatio();
+
+    updateVisibility(_cam, margin);
+    if (!bVisible)
+        return;
+    updatePosition(_font, margin);
+}
+
+
+bool Label::heightCheck (const Label* _a, const Label* _b) {
+    return _a->m_screenPos.y < _b->m_screenPos.y;
+}
+
+bool Label::depthCheck (const Label* _a, const Label* _b) {
+    return _a->m_screenPos.z < _b->m_screenPos.z;
+}
+
+void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font, const glm::vec2* _screenCenter) {
+            
+    // Get elements
+    if (_cam == nullptr)
+        _cam = getCamera();
+
+    if (_font == nullptr)
+        _font = getFont();
+
+    float occlution_length = getScene()->labelsOcclusionMargin * vera::getDisplayPixelRatio();
+    float margin = getScene()->labelsScreenMargin * vera::getDisplayPixelRatio();
+    bool straightLine = true;
+
+    // NOTE: the original implementation at 
+    // https://github.com/patriciogonzalezvivo/ofxLabels/blob/master/src/ofxLabels.cpp
+    // have a screen center per label
+    glm::vec2 screenCenter = glm::vec2(vera::getWindowWidth() * 0.5f, vera::getWindowHeight() * 0.5f);
+    if (_screenCenter != nullptr) {
+        screenCenter = *_screenCenter;
+        straightLine = false;
+    }
+
+    // Update the 2D screen position
+    for (size_t i = 0; i < _labels.size(); i++) {
+        if (_labels[i] == nullptr || !_labels[i]->bEnabled)
+            continue;
+
+        _labels[i]->updateVisibility(_cam, margin);
+    }
+
+    // Account for depth collisions
+    std::sort(_labels.begin(), _labels.end(), depthCheck);
+    for (unsigned int i = 0; i < _labels.size(); i++) {
+        // Skip non visibles
+        if (!_labels[i]->bVisible)
+            continue;
+        
+        for (int j = i - 1; j >= 0; j--) {
+            if (_labels[j]->bVisible) {
+                
+                // You don't need the z value any more
+                _labels[i]->m_screenPos.z = 0;
+                
+                // Do they collide on screen space?
+                float screen_distance = length(_labels[i]->m_screenPos - _labels[j]->m_screenPos);
+                if ( screen_distance < occlution_length) {
+                    _labels[i]->bVisible = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Account for label collisions place
+    std::sort(_labels.begin(), _labels.end(), heightCheck);
+    std::vector<bool> bLeft = std::vector<bool>(_labels.size(), false);
+    for (unsigned int i = 0; i < _labels.size(); i++) {
+
+        // Skip non visibles
+        if (!_labels[i]->bVisible || !_labels[i]->bEnabled || _labels[i]->m_type != LABEL_LINE_TO_WINDOW_BORDER) {
+            continue;
+        }
+
+        const float label_width = _labels[i]->getWidth();// * vera::getDisplayPixelRatio();
+        const float label_height = _labels[i]->getHeight();// * vera::getDisplayPixelRatio();
+
+        // what boorder is closer: Right or Left / Top or Bottom
+        _labels[i]->m_bLeft =  _labels[i]->m_screenPos.x < screenCenter.x;
+        _labels[i]->m_bTop = _labels[i]->m_screenPos.y < screenCenter.y;
+
+        // Is there space at that height on the screen
+        bool isFreeSpace = false;
+        if (straightLine) {
+            isFreeSpace = true;
+            for (int j = i - 1; j >= 0; j--) {
+                if (_labels[j]->bVisible && 
+                    _labels[i]->bEnabled &&
+                    _labels[j]->m_type == LABEL_LINE_TO_WINDOW_BORDER &&
+                    _labels[i]->m_bLeft == _labels[j]->m_bLeft) {
+                    float screen_distance = _labels[i]->m_screenPos.y - _labels[j]->m_line_points[2].y;
+                    if (abs(screen_distance) < label_height * 2.0) {
+                        isFreeSpace = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // line_pooints 0, 1, 2 are 2d screen positions
+        //         Text
+        //     1------2
+        //    /
+        //   /
+        //  0
+        // +
+
+        // 0 is the screen position of the object associated with the label
+        _labels[i]->m_line_points[0] = _labels[i]->m_screenPos;
+        if (isFreeSpace) {
+            // 
+            _labels[i]->m_line_points[1] = _labels[i]->m_screenPos;
+        }
+        else {
+            // if there is no space offset diagonally
+            glm::vec2 fromFocus = _labels[i]->m_line_points[0] - screenCenter;
+            glm::vec2 fromFocusDir = glm::normalize(fromFocus);
+            _labels[i]->m_line_points[1] = _labels[i]->m_line_points[0] + fromFocus * 0.5f;
+            // add marging between the obect and the begining of the line
+            // This should be a parameter
+            _labels[i]->m_line_points[0] += fromFocusDir * 10.0f;
+        }
+
+        // it's the first marker inside margin area
+        if (_labels[i]->m_line_points[1].x < margin || _labels[i]->m_line_points[1].x > vera::getWindowWidth() - margin ||
+            _labels[i]->m_line_points[1].y < margin || _labels[i]->m_line_points[1].y > vera::getWindowHeight() - margin ) {
+            _labels[i]->bVisible = false;
+            continue;
+        }
+        
+        // if (_labels[i]->m_line_points[1].x < margin + label_width + HIGHLIGHT_WIDTH_MARGIN) {
+        //     _labels[i]->m_line_points[1].x = margin + label_width + HIGHLIGHT_WIDTH_MARGIN;
+        // }
+        
+        if (_labels[i]->m_line_points[1].x < margin + label_width) {
+            _labels[i]->m_line_points[1].x = margin + label_width;
+        }
+
+        // if (_labels[i]->m_line_points[1].x > vera::getWindowWidth() - margin - label_width - HIGHLIGHT_WIDTH_MARGIN) {
+        //     _labels[i]->m_line_points[1].x = vera::getWindowWidth() - margin - label_width - HIGHLIGHT_WIDTH_MARGIN;
+        // }
+
+        
+        if (_labels[i]->m_line_points[1].x > vera::getWindowWidth() - margin - label_width) {
+            _labels[i]->m_line_points[1].x = vera::getWindowWidth() - margin - label_width;
+        }
+
+        if (_labels[i]->m_bLeft) {
+            _labels[i]->m_line_points[2].x = margin;
+        }
+        else {
+            _labels[i]->m_line_points[2].x = vera::getWindowWidth() - margin;
+        }
+
+        // Marks on the screen
+        if (_labels[i]->m_line_points[2].x < margin || _labels[i]->m_line_points[2].x > vera::getWindowWidth() - margin ) {
+            _labels[i]->bVisible = false;
+            continue;
+        }
+
+        _labels[i]->m_line_points[2].y = _labels[i]->m_line_points[1].y;
+
+        for (int j = i - 1; j >= 0; j--) {
+            if (_labels[i]->m_bLeft == _labels[j]->m_bLeft) {
+                float screen_distance = _labels[i]->m_line_points[1].y - _labels[j]->m_line_points[1].y;
+                if (_labels[j]->bVisible && abs(screen_distance) < label_height * 3.0) {
+                    _labels[i]->bVisible = false;
+                    break;
+                }
+            }
+        }
     }
 }
 
 void Label::render(Font *_font) {
-    if (!bVisible)
+    if (!bVisible || !bEnabled)
         return;
 
     if (_font == nullptr)
         _font = getFont();
 
     if (m_type == LABEL_LINE_TO_WINDOW_BORDER) {
-        _font->setAlign(vera::ALIGN_MIDDLE);
-        _font->setAlign(vera::ALIGN_LEFT);
+        
+        // if there is coorner (meaning 0 and 1 are different)
+        if (m_line_points[0].x != m_line_points[1].x || 
+            m_line_points[0].y != m_line_points[1].y) {
+            // draw a line to the corner
+            line(m_line_points[0], m_line_points[1]);
+        }
+        // draw a line to the text position
+        line(m_line_points[1], m_line_points[2]);
+
         _font->setAngle(0.0f);
-        line(m_line_points[0], m_line_points[1]);
+        if (m_bLeft) {
+            _font->setAlign(vera::ALIGN_LEFT);
+        } else {
+            _font->setAlign(vera::ALIGN_RIGHT);
+        }
+        
+        if (m_bTop) {
+            _font->setAlign(vera::ALIGN_TOP);
+        }
+        else {
+            _font->setAlign(vera::ALIGN_BOTTOM);
+        }
+        _font->render( m_text, m_line_points[2] );
     }
     else {
         if (m_type == LABEL_CENTER) {
@@ -199,10 +411,10 @@ void Label::render(Font *_font) {
         }
         else 
             _font->setAngle(0.0f);
+            
+        if (m_worldPos != nullptr)
+            _font->render( m_text, m_screenPos.x, m_screenPos.y );
     }
-
-    if (m_worldPos != nullptr)
-        _font->render( m_text, m_screenPos.x, m_screenPos.y );
 }
 
 

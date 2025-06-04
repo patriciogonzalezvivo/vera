@@ -60,7 +60,8 @@ public:
 
 };
 
-typedef std::shared_ptr<Material> MaterialPtr;
-typedef std::shared_ptr<const Material> MaterialConstPtr;
+typedef std::shared_ptr<Material>           MaterialPtr;
+typedef std::shared_ptr<const Material>     MaterialConstPtr;
+typedef std::map<std::string, Material*>    MaterialsMap;
 
 }

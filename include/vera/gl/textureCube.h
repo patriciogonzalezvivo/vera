@@ -23,4 +23,8 @@ public:
     glm::vec3       SH[9];
 };
 
+typedef std::shared_ptr<TextureCube>            TextureCubePtr;
+typedef std::shared_ptr<const TextureCube>      TextureCubeConstPtr;
+typedef std::map<std::string, TextureCube*>     TextureCubesMap;
+
 }

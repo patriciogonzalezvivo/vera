@@ -1,7 +1,9 @@
 #pragma once
 
 #include <string>
+#include <memory>
 #include <vector>
+#include <map>
 #include "glm/glm.hpp"
 #include "vera/types/props.h"
 
@@ -65,4 +67,7 @@ private:
     int                 m_id;
 };
 
+typedef std::shared_ptr<Font>           FontPtr;
+typedef std::shared_ptr<const Font>     FontConstPtr;
+typedef std::map<std::string, Font*>    FontsMap;
 }

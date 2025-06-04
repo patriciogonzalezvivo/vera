@@ -23,21 +23,6 @@
 
 namespace vera {
 
-// Textures
-typedef std::map<std::string, Texture*>         TexturesMap;
-typedef std::map<std::string, TextureStream*>   TextureStreamsMap;
-typedef std::map<std::string, TextureCube*>     TextureCubesMap;
-
-// 3D Scene
-typedef std::map<std::string, Light*>           LightsMap;
-typedef std::map<std::string, Camera*>          CamerasMap;
-typedef std::map<std::string, Model*>           ModelsMap;
-typedef std::map<std::string, Material*>        MaterialsMap;
-typedef std::map<std::string, Shader*>          ShadersMap;
-
-typedef std::map<std::string, Font*>            FontsMap;
-typedef std::vector<Label*>                     LabelsList;
-
 class Scene {
 public:
     Scene();
@@ -141,7 +126,9 @@ public:
 
     // Labels
     LabelsList          labels;
-    glm::vec2           labelsScreenCenter = glm::vec2(0.5f, 0.5f);    
+    glm::vec2           labelsScreenCenter = glm::vec2(0.5f, 0.5f);
+    float               labelsScreenMargin = 25.0f;
+    float               labelsOcclusionMargin = 10.0f;
     bool                labelsStraightLines = true;
     virtual void        printLabels();
     virtual void        clearLabels();
