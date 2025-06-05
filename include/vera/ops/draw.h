@@ -364,6 +364,12 @@ void model(const Mesh& _mesh, Shader* _program = nullptr);
 // -----------------------------
 void addLabel(Label& _label);
 void addLabel(Label* _label);
+
+// Ephemeral labels
+void addLabel(const char* _text, glm::vec3 _position, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
+void addLabel(const std::string& _text, glm::vec3 _position, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
+
+// Anchor labels
 void addLabel(const char* _text, glm::vec3* _position, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
 void addLabel(const char* _text, Node* _node, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
 void addLabel(const char* _text, Model* _node, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
@@ -377,9 +383,9 @@ void addLabel(std::function<std::string(void)> _func, Model* _model, LabelType _
 void labels();
 void cleanLabels();
 
-void labelScreenCenter(float _x, float _y);
-void labelScreenCenter(const glm::vec2& _center);
-void labelScreenCenter(const glm::vec3& _center);
+void labelRadialCenter(float _x, float _y);
+void labelRadialCenter(const glm::vec2& _center);
+void labelRadialCenter(const glm::vec3& _center);
 
 int labelAt(float _x, float _y);
 Label* label(size_t _index);

@@ -19,7 +19,13 @@ enum LabelType {
 class Label : public BoundingBox {
 public:
     Label();
+    ~Label();
 
+    // Ephemeral labels
+    Label(const char* _text, glm::vec3 _position, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
+    Label(const std::string& _text, glm::vec3 _position, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
+    
+    // Anchored labels
     Label(const char* _text, glm::vec3* _position, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
     Label(const char* _text, Node* _node, LabelType _type = LABEL_CENTER, float _margin = 0.0f);
     Label(const char* _text, Model* _model, LabelType _type = LABEL_CENTER, float _margin = 0.0f );
@@ -50,33 +56,34 @@ public:
     void updateVisibility(Camera* _cam = nullptr, float margin = 0.0f);
     void updatePosition(Font *_font = nullptr, float margin = 0.0f);
     void update(Camera* _cam = nullptr, Font *_font = nullptr, float margin = 0.0f);
+    void render(Font *_font = nullptr);
 
     static bool heightCheck (const Label* _a, const Label* _b);
     static bool depthCheck (const Label* _a, const Label* _b);
-    static void updateList(std::vector<Label*>& _labels, Camera* _cam = nullptr, Font *_font = nullptr, const glm::vec2* _screenCenter = nullptr);
-
-    void render(Font *_font = nullptr);
+    static void updateList(std::vector<Label*>& _labels, Camera* _cam = nullptr, Font *_font = nullptr);
+    static void renderList(std::vector<Label*>& _labels, Font *_font = nullptr);
 
     bool            bVisible = true;
     bool            bEnabled = true;
-
-private:
+    
+    private:
     std::function<std::string(void)> m_textFunc;
-
+    
     std::string     m_text;
     BoundingBox     m_screenBox;
     glm::vec3       m_screenPos;
-
+    
     // Screen position and line points
     std::vector<glm::vec2> m_line_points; 
     bool            m_bLeft;
     bool            m_bTop;
-
+    
     LabelType       m_type;
-    float           m_margin;
-
+    float           m_margin = 15.0f;
+    
     BoundingBox*    m_bbox;
     glm::vec3*      m_worldPos;
+    bool            m_bEphemeral = false; // If true, the label will be removed after rendering
 };
 
 typedef std::shared_ptr<Label>          LabelPtr;

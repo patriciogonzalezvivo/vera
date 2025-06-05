@@ -1476,6 +1476,17 @@ void addLabel(Label* _label) {
     scene->labels.push_back( _label );
 }
 
+// Ephymeral Label
+void addLabel(const char* _text, glm::vec3 _position, LabelType _type, float _margin) {
+    glm::vec3 pos = getWorldMatrix() * glm::vec4(_position, 1.0f);
+    addLabel( new vera::Label(_text, pos, _type, _margin) );
+}
+void addLabel(const std::string& _text, glm::vec3 _position, LabelType _type, float _margin) {
+    glm::vec3 pos = getWorldMatrix() * glm::vec4(_position, 1.0f);
+    addLabel( new vera::Label(_text, pos, _type, _margin) );
+}
+
+//  Anchored Labels
 void addLabel(const char* _text, glm::vec3* _position, LabelType _type, float _margin) {
     addLabel( new vera::Label(_text, _position, _type, _margin) );
 }
@@ -1505,11 +1516,12 @@ void addLabel(std::function<std::string(void)> _func, Model* _model, LabelType _
     addLabel( new vera::Label(_func, _model, _type, _margin) );
 }
 
-void labelScreenCenter(float _x, float _y) { scene->labelsScreenCenter = glm::vec2(_x, _y); }
-void labelScreenCenter(const glm::vec2& _center) { scene->labelsScreenCenter = _center; }
-void labelScreenCenter(const glm::vec3& _center) { 
+void labelRadialCenter(float _x, float _y) { scene->labelsRadialCenter = glm::vec2(_x, _y); }
+void labelRadialCenter(const glm::vec2& _center) { scene->labelsRadialCenter = _center; }
+void labelRadialCenter(const glm::vec3& _center) { 
     Camera *cam = scene->activeCamera != nullptr ? getCamera() : getLastCamera();
-    labelScreenCenter( cam->worldToScreen(_center, getWorldMatrixPtr()) );
+    glm::vec2 center = cam->worldToScreen(_center, getWorldMatrixPtr());
+    labelRadialCenter( center );
 }
 
 void labels() {
@@ -1520,15 +1532,15 @@ void labels() {
 
     Camera *cam = enabledCamera? getCamera() : getLastCamera();
 
-    Label::updateList( scene->labels, cam, scene->activeFont, &scene->labelsScreenCenter );
+    Label::updateList( scene->labels, cam, scene->activeFont );
 
     if (enabledCamera)
         resetCamera();
 
     scene->activeFont->setEffect( EFFECT_NONE );
     scene->activeFont->setColor( fill_color );
-    for (size_t i = 0; i < scene->labels.size(); i++)
-        scene->labels[i]->render( scene->activeFont );
+    
+    Label::renderList( scene->labels, scene->activeFont );
 
     if (enabledCamera)
         setCamera(cam);

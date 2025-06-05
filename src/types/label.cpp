@@ -13,10 +13,34 @@
 namespace vera {
 
 Label::Label() : m_text(""), m_type(LABEL_CENTER), m_bbox(nullptr), m_worldPos(nullptr) { 
-
 }
 
-Label::Label(const char* _text, glm::vec3* _position, LabelType _type, float _margin) : m_bbox(nullptr){ 
+Label::~Label() {
+    // If not, we should delete the linked position if it was created by this label
+    if (m_bEphemeral && m_worldPos != nullptr) {
+        delete m_worldPos;
+    }
+}
+
+// Ephemeral labels
+Label::Label(const char* _text, glm::vec3 _position, LabelType _type, float _margin) {
+    setText(_text);
+    linkTo(new glm::vec3(_position));
+    setType(_type);
+    setMargin(_margin);
+    m_bEphemeral = true; // This label is created to be used only once, so it will be deleted after rendering
+}
+
+Label::Label(const std::string& _text, glm::vec3 _position, LabelType _type, float _margin) : m_bbox(nullptr){
+    setText(_text);
+    linkTo(new glm::vec3(_position));
+    setType(_type);
+    setMargin(_margin);
+    m_bEphemeral = true; // This label is created to be used only once, so it will be deleted after rendering
+}
+
+// Anchored labels
+Label::Label(const char* _text, glm::vec3* _position, LabelType _type, float _margin) : m_bbox(nullptr) { 
     setText(_text);
     linkTo(_position);
     setType(_type);
@@ -195,7 +219,7 @@ bool Label::depthCheck (const Label* _a, const Label* _b) {
     return _a->m_screenPos.z < _b->m_screenPos.z;
 }
 
-void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font, const glm::vec2* _screenCenter) {
+void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font) {
             
     // Get elements
     if (_cam == nullptr)
@@ -206,16 +230,11 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font, 
 
     float occlution_length = getScene()->labelsOcclusionMargin * vera::getDisplayPixelRatio();
     float margin = getScene()->labelsScreenMargin * vera::getDisplayPixelRatio();
-    // bool straightLine = false;
 
     // NOTE: the original implementation at 
     // https://github.com/patriciogonzalezvivo/ofxLabels/blob/master/src/ofxLabels.cpp
     // have a screen center per label
-    glm::vec2 screenCenter = glm::vec2(vera::getWindowWidth() * 0.5f, vera::getWindowHeight() * 0.5f);
-    // if (_screenCenter != nullptr) {
-    //     screenCenter = *_screenCenter;
-    //     straightLine = false;
-    // }
+    glm::vec2 radialCenter = getScene()->labelsRadialCenter * glm::vec2(vera::getWindowWidth(), vera::getWindowHeight());
 
     // Update the 2D screen position
     for (size_t i = 0; i < _labels.size(); i++) {
@@ -262,26 +281,8 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font, 
         const float label_height = _labels[i]->getHeight();// * vera::getDisplayPixelRatio();
 
         // what boorder is closer: Right or Left / Top or Bottom
-        _labels[i]->m_bLeft =  _labels[i]->m_screenPos.x < screenCenter.x;
-        _labels[i]->m_bTop = _labels[i]->m_screenPos.y < screenCenter.y;
-
-        // Is there space at that height on the screen
-        bool isFreeSpace = false;
-        // if (straightLine) {
-        //     isFreeSpace = true;
-        //     for (int j = i - 1; j >= 0; j--) {
-        //         if (_labels[j]->bVisible && 
-        //             _labels[i]->bEnabled &&
-        //             _labels[j]->m_type == LABEL_LINE_TO_WINDOW_BORDER &&
-        //             _labels[i]->m_bLeft == _labels[j]->m_bLeft) {
-        //             float screen_distance = _labels[i]->m_screenPos.y - _labels[j]->m_line_points[2].y;
-        //             if (abs(screen_distance) < label_height * 2.0) {
-        //                 isFreeSpace = false;
-        //                 break;
-        //             }
-        //         }
-        //     }
-        // }
+        _labels[i]->m_bLeft =  _labels[i]->m_screenPos.x < radialCenter.x;
+        _labels[i]->m_bTop = _labels[i]->m_screenPos.y < radialCenter.y;
 
         // line_pooints 0, 1, 2 are 2d screen positions
         //         Text
@@ -291,47 +292,31 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font, 
         //  0
         // +
 
-        // 0 is the screen position of the object associated with the label
         _labels[i]->m_line_points.clear();
+
+        // 0 is the screen position of the object associated with the label
         _labels[i]->m_line_points.push_back(_labels[i]->m_screenPos);
-        if (isFreeSpace) {
-            _labels[i]->m_line_points.push_back(_labels[i]->m_line_points[0]);
-        }
-        else {
-            // if there is no space offset diagonally
-            glm::vec2 fromFocus = _labels[i]->m_line_points[0] - screenCenter;
+
+        // 1 Offset diagonally from a custom screen center
+        glm::vec2 fromFocus = _labels[i]->m_line_points[0] - radialCenter;
+        _labels[i]->m_line_points.push_back( _labels[i]->m_line_points[0] + fromFocus * 0.5f );
+        
+        // add marging between the obect and the begining of the line
+        // This should be a parameter
+        float dist = glm::length(_labels[i]->m_line_points[1] - _labels[i]->m_line_points[0]);
+        if (margin < dist * 0.5f) {
             glm::vec2 fromFocusDir = glm::normalize(fromFocus);
-            _labels[i]->m_line_points.push_back( _labels[i]->m_line_points[0] + fromFocus * 0.5f );
-
-            // // add marging between the obect and the begining of the line
-            // // This should be a parameter
-            // _labels[i]->m_line_points[0] += fromFocusDir * _labels[i]->m_margin;
-        }
-
-        // it's the first marker inside margin area
-        if (_labels[i]->m_line_points[1].x < margin || _labels[i]->m_line_points[1].x > vera::getWindowWidth() - margin ||
-            _labels[i]->m_line_points[1].y < margin || _labels[i]->m_line_points[1].y > vera::getWindowHeight() - margin ) {
-            _labels[i]->bVisible = false;
-            continue;
+            _labels[i]->m_line_points[0] += fromFocusDir * _labels[i]->m_margin;
         }
         
-        // // if (_labels[i]->m_line_points[1].x < margin + label_width + HIGHLIGHT_WIDTH_MARGIN) {
-        // //     _labels[i]->m_line_points[1].x = margin + label_width + HIGHLIGHT_WIDTH_MARGIN;
-        // // }
-        
-        // if (_labels[i]->m_line_points[1].x < margin + label_width) {
-        //     _labels[i]->m_line_points[1].x = margin + label_width;
+        // // it's the first marker inside margin area
+        // if (_labels[i]->m_line_points[1].x < margin || _labels[i]->m_line_points[1].x > vera::getWindowWidth() - margin ||
+        //     _labels[i]->m_line_points[1].y < margin || _labels[i]->m_line_points[1].y > vera::getWindowHeight() - margin ) {
+        //     _labels[i]->bVisible = false;
+        //     continue;
         // }
 
-        // // if (_labels[i]->m_line_points[1].x > vera::getWindowWidth() - margin - label_width - HIGHLIGHT_WIDTH_MARGIN) {
-        // //     _labels[i]->m_line_points[1].x = vera::getWindowWidth() - margin - label_width - HIGHLIGHT_WIDTH_MARGIN;
-        // // }
-
-        
-        // if (_labels[i]->m_line_points[1].x > vera::getWindowWidth() - margin - label_width) {
-        //     _labels[i]->m_line_points[1].x = vera::getWindowWidth() - margin - label_width;
-        // }
-
+        // 3 the final point
         _labels[i]->m_line_points.push_back(_labels[i]->m_line_points[1]);
 
         if (_labels[i]->m_bLeft) {
@@ -341,23 +326,23 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font, 
             _labels[i]->m_line_points[2].x = vera::getWindowWidth() - margin;
         }
 
-        // Marks on the screen
-        if (_labels[i]->m_line_points[2].x < margin || _labels[i]->m_line_points[2].x > vera::getWindowWidth() - margin ) {
-            _labels[i]->bVisible = false;
-            continue;
-        }
+        // // Marks on the screen
+        // if (_labels[i]->m_line_points[2].x < margin || _labels[i]->m_line_points[2].x > vera::getWindowWidth() - margin ) {
+        //     _labels[i]->bVisible = false;
+        //     continue;
+        // }
 
         _labels[i]->m_line_points[2].y = _labels[i]->m_line_points[1].y;
 
-        for (int j = i - 1; j >= 0; j--) {
-            if (_labels[i]->m_bLeft == _labels[j]->m_bLeft) {
-                float screen_distance = _labels[i]->m_line_points[1].y - _labels[j]->m_line_points[1].y;
-                if (_labels[j]->bVisible && abs(screen_distance) < label_height * 3.0) {
-                    _labels[i]->bVisible = false;
-                    break;
-                }
-            }
-        }
+        // for (int j = i - 1; j >= 0; j--) {
+        //     if (_labels[i]->m_bLeft == _labels[j]->m_bLeft) {
+        //         float screen_distance = _labels[i]->m_line_points[1].y - _labels[j]->m_line_points[1].y;
+        //         if (_labels[j]->bVisible && abs(screen_distance) < label_height * 3.0) {
+        //             _labels[i]->bVisible = false;
+        //             break;
+        //         }
+        //     }
+        // }
     }
 }
 
@@ -416,5 +401,29 @@ void Label::render(Font *_font) {
     }
 }
 
+void Label::renderList(std::vector<Label*>& _labels, Font *_font) {
+    if (_labels.size() == 0)
+        return;
+
+    // Sort by depth
+    std::sort(_labels.begin(), _labels.end(), depthCheck);
+
+    // Render all labels
+    for (size_t i = 0; i < _labels.size(); i++) {
+        if (_labels[i] == nullptr || !_labels[i]->bEnabled)
+            continue;
+
+        _labels[i]->render(_font);
+        
+        // If the label is ephemeral, remove it from the list
+        if (_labels[i]->m_bEphemeral) {
+            delete _labels[i];
+            _labels[i] = nullptr;
+        }
+    }
+
+    // Remove null elements
+    _labels.erase(std::remove(_labels.begin(), _labels.end(), nullptr), _labels.end());
+}
 
 };
