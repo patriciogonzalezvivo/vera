@@ -126,9 +126,7 @@ public:
 
     // Labels
     LabelsList          labels;
-    glm::vec2           labelsRadialCenter = glm::vec2(0.5f, 0.5f);
-    float               labelsScreenMargin = 10.0f;
-    float               labelsOcclusionMargin = 10.0f;
+    LabelSettings       labelSettings;
     virtual void        printLabels();
     virtual void        clearLabels();
 

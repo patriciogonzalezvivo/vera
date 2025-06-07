@@ -74,10 +74,20 @@ public:
     bool        contains(const float& _x, const float& _y, const float& _z) const { return containsX(_x) && containsY(_y) && containsZ(_z); }
     bool        contains(const glm::vec3& _v) const { return containsX(_v.x) && containsY(_v.y) && containsZ(_v.z); }
 
-    bool        intersects(const BoundingBox& _b) const {  return (min.x <= _b.max.x && max.x >= _b.min.x) && (min.y <= _b.max.y && max.y >= _b.min.y) && (min.z <= _b.max.z && max.z >= _b.min.z); }
+    bool        intersects(const BoundingBox& _b) const {  
+        // check if any area of the bounding boxes overlap
+        if( min.x > _b.max.x || max.x < _b.min.x ) return false; // no overlap in x-axis
+        if( min.y > _b.max.y || max.y < _b.min.y ) return false; // no overlap in y-axis
+        if( min.z > _b.max.z || max.z < _b.min.z ) return false; // no overlap in z-axis
+        return true; // overlap exists
+     }
     bool        intersects(const BoundingBox* _b) const {
         if( _b ) {
-            return (min.x <= _b->max.x && max.x >= _b->min.x) && (min.y <= _b->max.y && max.y >= _b->min.y) && (min.z <= _b->max.z && max.z >= _b->min.z);
+            // check if any area of the bounding boxes overlap
+            if( min.x > _b->max.x || max.x < _b->min.x ) return false; // no overlap in x-axis
+            if( min.y > _b->max.y || max.y < _b->min.y ) return false; // no overlap in y-axis
+            if( min.z > _b->max.z || max.z < _b->min.z ) return false; // no overlap in z-axis
+            return true; // overlap exists
         }
         return false;
     }

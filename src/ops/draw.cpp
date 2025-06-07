@@ -1572,8 +1572,10 @@ void addLabel(std::function<std::string(void)> _func, Model* _model, LabelType _
     addLabel( new vera::Label(_func, _model, _type, _margin) );
 }
 
-void labelRadialCenter(float _x, float _y) { scene->labelsRadialCenter = glm::vec2(_x, _y); }
-void labelRadialCenter(const glm::vec2& _center) { scene->labelsRadialCenter = _center; }
+LabelSettings& labelSettings() { return scene->labelSettings; }
+
+void labelRadialCenter(float _x, float _y) { labelSettings().radialCenter = glm::vec2(_x, _y); }
+void labelRadialCenter(const glm::vec2& _center) { labelSettings().radialCenter = _center; }
 void labelRadialCenter(const glm::vec3& _center) { 
     Camera *cam = scene->activeCamera != nullptr ? getCamera() : getLastCamera();
     glm::vec2 center = cam->worldToScreen(_center, getWorldMatrixPtr());

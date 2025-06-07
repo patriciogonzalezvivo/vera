@@ -1889,8 +1889,8 @@ float fonsTextBounds(FONScontext* stash,
     if (bounds) {
         bounds[0] = minx;
         bounds[1] = miny;
-        bounds[2] = maxx;
-        bounds[3] = maxy;
+        bounds[2] = maxx - minx;
+        bounds[3] = maxy - miny;
     }
 
     return advance;

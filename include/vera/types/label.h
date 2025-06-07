@@ -16,6 +16,18 @@ enum LabelType {
     LABEL_LINE_TO_WINDOW_BORDER
 };
 
+struct LabelSettings {
+    glm::vec4   lineColor        = glm::vec4(1.0f);
+    glm::vec4   textColor        = glm::vec4(1.0f);
+    
+    glm::vec2   radialCenter    = glm::vec2(0.5f, 0.5f);
+    float       screenMargin    = 10.0f;
+    float       occlusionMargin = 10.0f;
+
+    float       lineBorderWidth = 10.0f;
+    float       lineWidth       = 1.0f;
+};
+
 class Label : public BoundingBox {
 public:
     Label();

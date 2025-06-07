@@ -402,6 +402,7 @@ void addLabel(std::function<std::string(void)> _func, Model* _model, LabelType _
 void labels();
 void cleanLabels();
 
+LabelSettings& labelSettings();
 void labelRadialCenter(float _x, float _y);
 void labelRadialCenter(const glm::vec2& _center);
 void labelRadialCenter(const glm::vec3& _center);

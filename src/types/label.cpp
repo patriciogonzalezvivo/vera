@@ -117,6 +117,8 @@ std::string Label::getText() {
     return m_text;
 }
 void Label::updateVisibility(Camera* _cam, float margin) {
+    m_bVisible = true;
+
     // _cam->bChange
     if (_cam == nullptr)
         _cam = getCamera();
@@ -143,10 +145,6 @@ void Label::updateVisibility(Camera* _cam, float margin) {
         m_screenBox.max.x < margin || m_screenBox.min.x > vera::getWindowWidth() - margin ||
         m_screenBox.max.y < margin || m_screenBox.min.y > vera::getWindowHeight() - margin) {
         m_bVisible = false;
-        return;
-    }
-    else {
-        m_bVisible = true;
     }
 }
 
@@ -211,7 +209,8 @@ void Label::updateFont(Font *_font) {
             _font->setAlign(vera::ALIGN_TOP);
         else
             _font->setAlign(vera::ALIGN_BOTTOM);
-    } else {
+    }
+    else {
         if (m_type == LABEL_CENTER) {
             _font->setAlign(vera::ALIGN_CENTER);
             _font->setAlign(vera::ALIGN_MIDDLE);
@@ -255,14 +254,14 @@ void Label::updateBoundingBox(Font *_font) {
     if (m_text.size() > 0)
         set( textBoundingBox(m_text, screenPos, _font) );
 
-    expand(getScene()->labelsOcclusionMargin);
+    expand(m_margin);
     min.z = 0.0f;
     max.z = 0.0f;
 }
 
 void Label::update(Camera* _cam, Font *_font, float margin) {
     if (margin == 0.0f)
-        margin = getScene()->labelsScreenMargin * vera::getDisplayPixelRatio();
+        margin = labelSettings().screenMargin * vera::getDisplayPixelRatio();
 
     updateVisibility(_cam, margin);
     if (!m_bVisible)
@@ -298,7 +297,7 @@ bool Label::collides(std::vector<Label*>& _labels, size_t _index) {
         if (i == _index || _labels[i] == nullptr || !_labels[i]->m_bVisible)
             continue;
 
-        if (_labels[_index]->intersects((const BoundingBox*)_labels[i]))
+        if (_labels[i]->intersects((const BoundingBox*)_labels[_index]))
             return true;
     }
 
@@ -314,14 +313,14 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font) 
     if (_font == nullptr)
         _font = getFont();
 
-    float occlution_length = getScene()->labelsOcclusionMargin * vera::getDisplayPixelRatio();
-    float margin = getScene()->labelsScreenMargin * vera::getDisplayPixelRatio();
+    float occlution_margin = labelSettings().occlusionMargin * vera::getDisplayPixelRatio();
+    float margin = labelSettings().screenMargin * vera::getDisplayPixelRatio();
     const BoundingBox window = BoundingBox(margin, margin, vera::getWindowWidth() - margin * 2.0f, vera::getWindowHeight() - margin * 2.0f);
 
     // NOTE: the original implementation at 
     // https://github.com/patriciogonzalezvivo/ofxLabels/blob/master/src/ofxLabels.cpp
     // have a screen center per label
-    glm::vec2 radialCenter = getScene()->labelsRadialCenter * glm::vec2(vera::getWindowWidth(), vera::getWindowHeight());
+    glm::vec2 radialCenter = labelSettings().radialCenter * glm::vec2(vera::getWindowWidth(), vera::getWindowHeight());
 
     // Update the 2D screen position
     for (size_t i = 0; i < _labels.size(); i++) {
@@ -346,7 +345,7 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font) 
                 
                 // Do they collide on screen space?
                 float screen_distance = length(_labels[i]->m_screenPos - _labels[j]->m_screenPos);
-                if ( screen_distance < occlution_length) {
+                if ( screen_distance < occlution_margin) {
                     _labels[i]->m_bVisible = false;
                     break;
                 }
@@ -358,6 +357,7 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font) 
     std::sort(_labels.begin(), _labels.end(), _heightCheck);
     std::vector<bool> bLeft = std::vector<bool>(_labels.size(), false);
     for (unsigned int i = 0; i < _labels.size(); i++) {
+        _labels[i]->m_line_points.clear();
 
         // Skip non visibles
         if (!_labels[i]->m_bVisible || !_labels[i]->bEnabled || _labels[i]->m_type != LABEL_LINE_TO_WINDOW_BORDER) {
@@ -379,8 +379,6 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font) 
         //  0
         // +
 
-        _labels[i]->m_line_points.clear();
-
         // 0 is the screen position of the object associated with the label
         _labels[i]->m_line_points.push_back(_labels[i]->m_screenPos);
 
@@ -388,13 +386,12 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font) 
         glm::vec2 fromFocus = _labels[i]->m_line_points[0] - radialCenter;
         _labels[i]->m_line_points.push_back( _labels[i]->m_line_points[0] + fromFocus * 0.5f );
         
-        // add marging between the obect and the begining of the line
+        // add marging between the object and the begining of the line
         // This should be a parameter
         float dist = glm::length(_labels[i]->m_line_points[1] - _labels[i]->m_line_points[0]);
         glm::vec2 fromFocusDir = glm::normalize(fromFocus);
-        if (margin < dist * 0.5f) {
+        if (margin < dist * 0.5f)
             _labels[i]->m_line_points[0] += fromFocusDir * _labels[i]->m_margin;
-        }
 
         // if it's outside the window, exit;
         if (!window.contains(_labels[i]->m_line_points[0])) {
@@ -402,20 +399,20 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font) 
             continue;
         }
 
+        // update the bounding box
         _labels[i]->updateBoundingBox(_font);
 
+        // if it collides with other labels, march the tip of the line until it finds a free space
         while (collides(_labels, i)) {
-            if (!window.contains(_labels[i]->m_line_points[1])) {
+            std::cout << _labels[i]->m_text << " collides" << std::endl;
+
+            // we went to far
+            if (!window.contains(_labels[i]->m_line_points[1]))
                 break;
-            }
 
-            // if it collides march the tip of the line until it finds a free space
-            _labels[i]->m_line_points[1] += fromFocusDir * margin;
+            std::cout << _labels[i]->m_text << " collides with other labels, moving the line point 1" << std::endl;
+            _labels[i]->m_line_points[1] += fromFocusDir * _labels[i]->m_margin;
             _labels[i]->updateBoundingBox(_font);
-        }
-
-        if (!_labels[i]->m_bVisible) {
-            continue;
         }
 
         // if m_line_points[1] is out of the screen clamp it to the screen
@@ -440,39 +437,58 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font) 
             _labels[i]->m_line_points[2].y = _labels[i]->m_line_points[1].y;
         }
 
-        if (!_labels[i]->m_bVisible) {
+        // skip the last step if the label is not visible
+        if (!_labels[i]->m_bVisible)
             continue;
-        }
 
         _labels[i]->updateBoundingBox(_font);
-
         _labels[i]->m_bVisible = !collides(_labels, i);
+        if (_labels[i]->m_bVisible)
+            _labels[i]->m_bVisible = !_labels[i]->contains(glm::vec2(_labels[i]->m_screenPos));
     }
 }
 
 void Label::render(Font *_font) {
-    if (!m_bVisible || !bEnabled)
+    
+    if (!m_bVisible || !bEnabled) {
+        noFill();
+        stroke(0.5f, 0.0f, 0.0f, 1.0f);
+        line(m_line_points);
         return;
-
+    }
+    
     if (_font == nullptr)
         _font = getFont();
 
+    const BoundingBox bbox = BoundingBox((const BoundingBox*)this);
+    glm::vec4 lineColor = labelSettings().lineColor;
+    glm::vec4 textColor = labelSettings().textColor;
+    const bool lineBorder = labelSettings().lineWidth == labelSettings().lineBorderWidth;
+    
     if (m_type == LABEL_LINE_TO_WINDOW_BORDER) {
-        
-        
-
         if (m_line_points.size() < 3) {
+            strokeWeight(10.0f);
+            stroke(getBackground());
+            line(m_line_points);
+
             // draw a line to the text position
+            strokeWeight(1.0f);
+            stroke(1.0f);
             line(m_line_points);
         }
 
         noStroke();
-        const BoundingBox bbox = BoundingBox((const BoundingBox*)this);
+        
         fill( getBackground() );
         rect(bbox);
-        stroke(1.0f);
         
         if (m_line_points.size() >= 3) {
+            strokeWeight(10.0f);
+            stroke(getBackground());
+            line(m_line_points);
+
+            strokeWeight(1.0f);
+            stroke(1.0f);
             line(m_line_points);
         }
 
@@ -489,9 +505,6 @@ void Label::render(Font *_font) {
 void Label::renderList(std::vector<Label*>& _labels, Font *_font) {
     if (_labels.size() == 0)
         return;
-
-    // Sort by depth
-    std::sort(_labels.begin(), _labels.end(), _depthCheck);
 
     // Render all labels
     for (size_t i = 0; i < _labels.size(); i++) {
