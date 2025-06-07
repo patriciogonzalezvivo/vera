@@ -26,6 +26,9 @@ bool        shaderChange    = true;
 HorizontalAlign shapeHAlign = ALIGN_CENTER;
 VerticalAlign   shapeVAlign = ALIGN_MIDDLE;
 
+glm::vec4   background_color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+bool        background_enabled = true;
+
 glm::vec4   fill_color      = glm::vec4(1.0f);
 Shader*     fill_shader     = nullptr;
 bool        fill_enabled    = true;
@@ -243,7 +246,6 @@ Shader* getSplineShader() {
     return spline_shader;
 }
 
-
 Shader* getFillShader() {
     if (fill_shader == nullptr) {
         fill_shader = new Shader();
@@ -254,9 +256,33 @@ Shader* getFillShader() {
     return fill_shader;
 }
 
+void background() { clear(background_color); }
+void background( int _brightness ) {
+    background( glm::vec4(_brightness / 255.0f, _brightness / 255.0f, _brightness / 255.0f, 1.0f) );
+}
+void background( int _red, int _green, int _blue) {
+    background( glm::vec4(_red / 255.0f, _green / 255.0f, _blue / 255.0f, 1.0f) );
+}
+
+void background( int _red, int _green, int _blue, int _alpha) {
+    background( glm::vec4(_red / 255.0f, _green / 255.0f, _blue / 255.0f, _alpha / 255.0f) );
+}
+void background( float _brightness ) { background( glm::vec4(_brightness, _brightness, _brightness, 1.0f) ); }
+void background( float _red, float _green, float _blue) { background( glm::vec4(_red, _green, _blue, 1.0f) ); }
+void background( float _red, float _green, float _blue, float _alpha) { background( glm::vec4(_red, _green, _blue, _alpha) ); }
+void background( const glm::vec3& _color ) { background( glm::vec4(_color, 1.0f) ); }
+void background( const glm::vec4& _color ) {
+    background_enabled = true;
+    clear(_color);
+}
+
+bool getBackgroundEnabled() { return background_enabled; }
+glm::vec4 getBackground() { return background_color; }
+
 void clear( float _brightness ) { clear( glm::vec4(_brightness, _brightness, _brightness, 1.0f) ); }
 void clear( const glm::vec3& _color ) { clear( glm::vec4(_color, 1.0f) ); }
 void clear( const glm::vec4& _color ) {
+    background_color = _color;
     glClearColor(_color.r, _color.g, _color.b, _color.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     // if (scene->activeCamera != nullptr || getDepthTest())
@@ -688,9 +714,28 @@ void rect(float _x, float _y, float _w, float _h, Shader* _program) {
         triangles(tris, _program);
     }
 
-    if (stroke_enabled) {
+    if (stroke_enabled)
         line(coorners, _program);
+}
+
+void rect(const BoundingBox& _bbox, Shader* _program) {
+    if (_program == nullptr)
+        _program = getFillShader();
+
+    std::vector<glm::vec2> coorners = { glm::vec2(_bbox.min.x, _bbox.min.y), 
+                                        glm::vec2(_bbox.max.x, _bbox.min.y), 
+                                        glm::vec2(_bbox.max.x, _bbox.max.y), 
+                                        glm::vec2(_bbox.min.x, _bbox.max.y),
+                                        glm::vec2(_bbox.min.x, _bbox.min.y) };
+
+    if (fill_enabled) {
+        std::vector<glm::vec2> tris = {     coorners[0], coorners[1], coorners[2],
+                                            coorners[2], coorners[3], coorners[0] };
+        triangles(tris, _program);
     }
+
+    if (stroke_enabled)
+        line(coorners, _program);
 }
 
 // CIRCLES
@@ -1066,19 +1111,45 @@ void textSize(float _size, Font* _font) {
 float textWidth(const std::string& _text, Font* _font) {
     if (_font == nullptr)
         _font = getFont();
-    return _font->getBoundingBox(_text).z * getDisplayPixelRatio();
+    return _font->getBoundingBox(_text).z * getDisplayPixelRatio() * pd;
 }
 
 float textHeight(Font* _font) {
     if (_font == nullptr)
         _font = getFont();
-    return _font->getHeight() * getDisplayPixelRatio();
+    return _font->getHeight() * getDisplayPixelRatio() * pd;
 }
 
 float textHeight(const std::string& _text, Font* _font) {
     if (_font == nullptr)
         _font = getFont();
-    return _font->getBoundingBox(_text).w * getDisplayPixelRatio();
+    return _font->getBoundingBox(_text).w * getDisplayPixelRatio() * pd;
+}
+
+BoundingBox textBoundingBox(const std::string& _text, float _x, float _y, Font* _font) { 
+    return textBoundingBox(_text, glm::vec2(_x, _y), _font);
+}
+
+BoundingBox textBoundingBox(const std::string& _text, const glm::vec2& _pos, Font* _font) {
+    if (_font == nullptr)
+        _font = getFont();
+    glm::vec4 bbox = _font->getBoundingBox(_text);
+    return BoundingBox(_pos.x + bbox.x, _pos.y + bbox.y, bbox.z * pd, bbox.w * pd);
+}
+
+void text(const std::string& _text, const glm::vec2& _pos, Font* _font) { text(_text, _pos.x, _pos.y, _font); }
+void text(const std::string& _text, float _x, float _y, Font* _font) {
+    if (_font == nullptr)
+        _font = getFont();
+    _font->setColor( fill_color );
+
+    glm::vec4 pos = getProjectionViewWorldMatrix() * glm::vec4(_x, _y, 0.0f, 1.0f);
+    pos.x /= pos.w;
+    pos.y /= pos.w;
+    pos.x = (pos.x + 1.0f) * 0.5f * vera::getViewport().z;
+    pos.y = (1.0f-pos.y) * 0.5f * vera::getViewport().w;
+
+    _font->render(_text, pos.x, pos.y);
 }
 
 void text(const std::string& _text, const glm::vec3& _pos, Font* _font) { 
@@ -1100,21 +1171,6 @@ void text(const std::string& _text, const glm::vec3& _pos, Font* _font) {
     _font->render(_text, screenPos.x, screenPos.y);
 }
 
-void text(const std::string& _text, const glm::vec2& _pos, Font* _font) { text(_text, _pos.x, _pos.y, _font); }
-void text(const std::string& _text, float _x, float _y, Font* _font) {
-    if (_font == nullptr)
-        _font = getFont();
-    _font->setColor( fill_color );
-
-    glm::vec4 pos = getProjectionViewWorldMatrix() * glm::vec4(_x, _y, 0.0f, 1.0f);
-    pos.x /= pos.w;
-    pos.y /= pos.w;
-    pos.x = (pos.x + 1.0f) * 0.5f * vera::getViewport().z;
-    pos.y = (1.0f-pos.y) * 0.5f * vera::getViewport().w;
-
-    _font->render(_text, pos.x, pos.y);
-}
-
 void textHighlight(const std::string& _text, const glm::vec2& _pos, const glm::vec4& _bg, Font* _font) { textHighlight(_text, _pos.x, _pos.y, _bg, _font); }
 void textHighlight(const std::string& _text, float _x , float _y, const glm::vec4& _bg, Font* _font) {
     if (_font == nullptr)
@@ -1130,7 +1186,7 @@ void textHighlight(const std::string& _text, float _x , float _y, const glm::vec
     HorizontalAlign style_rect_halign = shapeHAlign;
     VerticalAlign   style_rect_valign = shapeVAlign;
 
-    BoundingBox bbox = BoundingBox(_font->getBoundingBox(_text, _x, _y));
+    BoundingBox bbox = textBoundingBox(_text, _x, _y, _font);
     bbox.expand(4.0f);
 
     fill(_bg);
@@ -1138,8 +1194,8 @@ void textHighlight(const std::string& _text, float _x , float _y, const glm::vec
 
     shapeHAlign = ALIGN_CENTER;
     shapeVAlign = ALIGN_MIDDLE;
-    rect(bbox.getCenter().x, bbox.getCenter().y, bbox.getWidth() * pd * 1.05, bbox.getHeight() * pd * 1.25);
-
+    rect(bbox);
+    // rect(bbox.getCenter().x, bbox.getCenter().y, bbox.getWidth() * pd * 1.05, bbox.getHeight() * pd * 1.25);
     
     // restore style
     fill_enabled = style_fill;

@@ -22,6 +22,14 @@ bool intersection(  const glm::vec2 &_line1Start, const glm::vec2 &_line1End,
                     const glm::vec2 &_line2Start, const glm::vec2 &_line2End,
                     glm::vec2 &_intersection );
 
+bool intersection( const glm::vec2& _lineStart, const glm::vec2& _lineEnd, 
+                    const BoundingBox& _bbox,
+                    glm::vec2 &_intersection );
+
+bool intersection( const std::vector<glm::vec2>& _polygon, 
+                    const BoundingBox& _bbox, 
+                    std::vector<glm::vec2>& _intersections );
+
 
 // 3D
 //

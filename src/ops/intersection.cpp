@@ -78,6 +78,44 @@ bool intersection(  const glm::vec2 &_line1Start, const glm::vec2 &_line1End,
     return false;
 };
 
+bool intersection( const glm::vec2& _lineStart, const glm::vec2& _lineEnd, const BoundingBox& _bbox, glm::vec2 &_intersection ) {
+
+    glm::vec2 p1 = _lineStart;
+    glm::vec2 p2 = _lineEnd;
+
+    // Check if the line is completely outside the bounding box
+    if (p1.x < _bbox.min.x && p2.x < _bbox.min.x) return false;
+    if (p1.x > _bbox.max.x && p2.x > _bbox.max.x) return false;
+    if (p1.y < _bbox.min.y && p2.y < _bbox.min.y) return false;
+    if (p1.y > _bbox.max.y && p2.y > _bbox.max.y) return false;
+
+    // Check intersection with each edge of the bounding box
+    glm::vec2 topLeft(_bbox.min.x, _bbox.max.y);
+    glm::vec2 topRight(_bbox.max.x, _bbox.max.y);
+    glm::vec2 bottomLeft(_bbox.min.x, _bbox.min.y);
+    glm::vec2 bottomRight(_bbox.max.x, _bbox.min.y);
+
+    return intersection(p1, p2, topLeft, topRight, _intersection) ||
+           intersection(p1, p2, topRight, bottomRight, _intersection) ||
+           intersection(p1, p2, bottomRight, bottomLeft, _intersection) ||
+           intersection(p1, p2, bottomLeft, topLeft, _intersection);
+}
+
+bool intersection( const std::vector<glm::vec2>& _polygon, const BoundingBox& _bbox, std::vector<glm::vec2>& _intersections ) {
+    _intersections.clear();
+
+    for (size_t i = 0; i < _polygon.size(); ++i) {
+        glm::vec2 p1 = _polygon[i];
+        glm::vec2 p2 = _polygon[(i + 1) % _polygon.size()];
+
+        glm::vec2 intersectionPoint;
+        if (intersection(p1, p2, _bbox, intersectionPoint)) {
+            _intersections.push_back(intersectionPoint);
+        }
+    }
+
+    return !_intersections.empty(); // Return true if any intersections were found
+}
 
 
 /************** Ray ************/

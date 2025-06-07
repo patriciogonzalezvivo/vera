@@ -60,6 +60,19 @@ void clear( float _brightness );
 void clear( const glm::vec3& _color );
 void clear( const glm::vec4& _color );
 
+void background();
+void background( int _brightness );
+void background( int _red, int _green, int _blue);
+void background( int _red, int _green, int _blue, int _alpha);
+void background( float _brightness );
+void background( float _red, float _green, float _blue);
+void background( float _red, float _green, float _blue, float _alpha);
+void background( const glm::vec3& _color );
+void background( const glm::vec4& _color );
+
+bool getBackgroundEnabled();
+glm::vec4 getBackground();
+
 void fill( float _brightness );
 void fill( float _red, float _green, float _blue);
 void fill( float _red, float _green, float _blue, float _alpha);
@@ -152,6 +165,7 @@ void rectAlign(HorizontalAlign _align);
 void rectAlign(VerticalAlign _align);
 void rect(float _x, float _y, float _w, float _h, Shader* _program = nullptr);
 void rect(const glm::vec2& _pos, const glm::vec2& _size, Shader* _program = nullptr);
+void rect(const BoundingBox& _bbox, Shader* _program = nullptr);
 
 // quad()
 // square()s
@@ -262,6 +276,11 @@ void textSize(float _size, Font* _font = nullptr);
 float textWidth(const std::string& _text, Font* _font = nullptr);
 float textHeight(Font* _font = nullptr);
 float textHeight(const std::string& _text, Font* _font = nullptr);
+
+BoundingBox textBoundingBox(const std::string& _text, float _x, float _y, Font* _font = nullptr);
+BoundingBox textBoundingBox(const std::string& _text, const glm::vec2& _pos, Font* _font = nullptr);
+BoundingBox textBoundingBox(const std::string& _text, const glm::vec3& _pos, Font* _font = nullptr);
+void text(const std::string& _text, const glm::vec2& _pos, float _angle = 0.0f, Font* _font = nullptr);
 void text(const std::string& _text, const glm::vec3& _pos, Font* _font = nullptr);
 void text(const std::string& _text, const glm::vec2& _pos, Font* _font = nullptr );
 void text(const std::string& _text, float _x, float _y, Font* _font = nullptr);

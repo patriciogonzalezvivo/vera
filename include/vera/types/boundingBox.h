@@ -17,10 +17,25 @@ public:
     BoundingBox(const glm::vec2 & _center) { set(_center); }
     BoundingBox(const glm::vec3 & _center) { set(_center); }
     BoundingBox(const glm::vec4 & _b) { set(_b); }
+    BoundingBox(const BoundingBox& _b) { set(_b); }
+    BoundingBox(const BoundingBox* _b) { set(_b); }
+    BoundingBox(const float& _x, const float& _y, const float& _width, const float& _height) {
+        set(glm::vec4(_x, _y, _x + _width, _y + _height));
+    }
     
     void        set(const glm::vec2& _center) { set(glm::vec3(_center, 0.0f)); }
     void        set(const glm::vec3& _center) { min = _center; max = _center; }
     void        set(const glm::vec4& _b) { min.x = _b.x; min.y = _b.y; max.x = _b.z; max.y = _b.w; }
+    void        set(const BoundingBox& _b) { min = _b.min; max = _b.max; }
+    void        set(const BoundingBox* _b) {
+        if( _b ) {
+            min = _b->min;
+            max = _b->max;
+        } else {
+            min = glm::vec3(std::numeric_limits<float>::max());
+            max = glm::vec3(std::numeric_limits<float>::min());
+        }
+    }
     void        operator = (const glm::vec4& _b) { set(_b); }
 
     float       getWidth() const { return fabs(max.x - min.x); }
@@ -60,7 +75,13 @@ public:
     bool        contains(const glm::vec3& _v) const { return containsX(_v.x) && containsY(_v.y) && containsZ(_v.z); }
 
     bool        intersects(const BoundingBox& _b) const {  return (min.x <= _b.max.x && max.x >= _b.min.x) && (min.y <= _b.max.y && max.y >= _b.min.y) && (min.z <= _b.max.z && max.z >= _b.min.z); }
-    // bool        intersects(const BoundingBox& _b) const { return (min.x < _b.max.x) && (max.x > _b.min.x) && (min.y < _b.max.y) && (max.y > _b.min.y) && (min.z < _b.max.z) && (max.z > _b.min.z) && *this != _b; }
+    bool        intersects(const BoundingBox* _b) const {
+        if( _b ) {
+            return (min.x <= _b->max.x && max.x >= _b->min.x) && (min.y <= _b->max.y && max.y >= _b->min.y) && (min.z <= _b->max.z && max.z >= _b->min.z);
+        }
+        return false;
+    }
+
     // bool        operator==(const BoundingBox& _b) const { return (max.x == _b.max.x && max.y == _b.max.y && max.z == _b.max.z && min.x == _b.min.x && min.y == _b.min.y && min.z == _b.min.z); }
     // bool        operator!=(const BoundingBox& _b) const { return (max.x != _b.max.x) || (max.y != _b.max.y) || (max.z != _b.max.z) || (min.x != _b.min.x) || (min.y != _b.min.y) || (min.z != _b.min.z); }
 

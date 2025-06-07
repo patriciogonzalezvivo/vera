@@ -46,8 +46,8 @@ void App::loop(double _time, App* _app) {
         _app->m_framebuffer.bind();
     }
 
-    if (_app->m_backgroundEnabled)
-        clear(_app->m_backgroundColor);
+    if (vera::getBackgroundEnabled())
+        vera::background();
 
     if (vera::getWindowStyle() == vera::LENTICULAR) {
         vera::renderQuilt([&](const vera::QuiltProperties& quilt, glm::vec4& viewport, int &viewIndex) {
@@ -270,16 +270,6 @@ void App::run(WindowProperties _properties) {
     close();
 
 #endif
-}
-
-void App::background() { background(m_backgroundColor); }
-void App::background( float _brightness ) { background(glm::vec3(_brightness)); }
-void App::background( const glm::vec3& _color ) { background(glm::vec4(_color, 1.0f)); }
-void App::background( const glm::vec4& _color ) {
-    m_backgroundColor = _color;
-    if (!bPostSetup)
-        m_backgroundEnabled = true;
-    clear(m_backgroundColor);
 }
 
 void App::save(const std::string& _path, bool _exitAfterSave) { 

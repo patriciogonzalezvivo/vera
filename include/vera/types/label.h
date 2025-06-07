@@ -55,18 +55,21 @@ public:
     
     void updateVisibility(Camera* _cam = nullptr, float margin = 0.0f);
     void updatePosition(Font *_font = nullptr, float margin = 0.0f);
+    void updateFont(Font *_font = nullptr);
+    void updateBoundingBox(Font *_font = nullptr);
+    
     void update(Camera* _cam = nullptr, Font *_font = nullptr, float margin = 0.0f);
     void render(Font *_font = nullptr);
 
-    static bool heightCheck (const Label* _a, const Label* _b);
-    static bool depthCheck (const Label* _a, const Label* _b);
+    static bool collides(std::vector<Label*>& _labels, size_t _index);
     static void updateList(std::vector<Label*>& _labels, Camera* _cam = nullptr, Font *_font = nullptr);
     static void renderList(std::vector<Label*>& _labels, Font *_font = nullptr);
-
-    bool            bVisible = true;
+    
     bool            bEnabled = true;
     
     private:
+    static bool _heightCheck (const Label* _a, const Label* _b);
+    static bool _depthCheck (const Label* _a, const Label* _b);
     std::function<std::string(void)> m_textFunc;
     
     std::string     m_text;
@@ -84,6 +87,7 @@ public:
     BoundingBox*    m_bbox;
     glm::vec3*      m_worldPos;
     bool            m_bEphemeral = false; // If true, the label will be removed after rendering
+    bool            m_bVisible = true;
 };
 
 typedef std::shared_ptr<Label>          LabelPtr;
