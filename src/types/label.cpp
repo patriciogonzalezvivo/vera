@@ -304,6 +304,39 @@ bool Label::collides(std::vector<Label*>& _labels, size_t _index) {
     return false;
 }
 
+bool Label::updateOnBorderPosition(const BoundingBox& window, float margin, Font* _font) {
+    // if m_line_points[1] is out of the screen clamp it to the screen
+    // if (m_line_points[1].x < margin || m_line_points[1].x > vera::getWindowWidth() - margin ||
+    //     m_line_points[1].y < margin || m_line_points[1].y > vera::getWindowHeight() - margin) 
+    if (!window.contains(m_line_points[1])) {
+        glm::vec2 clamped = m_line_points[1];
+        if (intersection(m_line_points[0], m_line_points[1], window, clamped)) {
+            m_line_points[1] = clamped;
+        }
+        updateBoundingBox(_font);
+        return true;
+    }
+    else {
+
+        if (m_line_points.size() == 2) {
+            m_line_points.push_back(m_line_points[1]);
+        }
+
+        // update the 3 and the final point
+        if (m_bLeft) {
+            m_line_points[2].x = margin;
+        }
+        else {
+            m_line_points[2].x = vera::getWindowWidth() - margin;
+        }
+
+        m_line_points[2].y = m_line_points[1].y;
+        updateBoundingBox(_font);
+    }
+    
+    return false;
+}
+
 void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font) {
             
     // Get elements
@@ -316,6 +349,7 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font) 
     float occlution_margin = labelSettings().occlusionMargin * vera::getDisplayPixelRatio();
     float margin = labelSettings().screenMargin * vera::getDisplayPixelRatio();
     const BoundingBox window = BoundingBox(margin, margin, vera::getWindowWidth() - margin * 2.0f, vera::getWindowHeight() - margin * 2.0f);
+    const bool dynamicDisplacementOnBorder = labelSettings().dynamicDisplacementOnBorder;
 
     // NOTE: the original implementation at 
     // https://github.com/patriciogonzalezvivo/ofxLabels/blob/master/src/ofxLabels.cpp
@@ -400,48 +434,17 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font) 
         }
 
         // update the bounding box
-        _labels[i]->updateBoundingBox(_font);
+        _labels[i]->updateOnBorderPosition(window, margin, _font);
 
         // if it collides with other labels, march the tip of the line until it finds a free space
-        while (collides(_labels, i)) {
-            std::cout << _labels[i]->m_text << " collides" << std::endl;
-
-            // we went to far
-            if (!window.contains(_labels[i]->m_line_points[1]))
-                break;
-
-            std::cout << _labels[i]->m_text << " collides with other labels, moving the line point 1" << std::endl;
-            _labels[i]->m_line_points[1] += fromFocusDir * _labels[i]->m_margin;
-            _labels[i]->updateBoundingBox(_font);
-        }
-
-        // if m_line_points[1] is out of the screen clamp it to the screen
-        if (_labels[i]->m_line_points[1].x < margin || _labels[i]->m_line_points[1].x > vera::getWindowWidth() - margin ||
-            _labels[i]->m_line_points[1].y < margin || _labels[i]->m_line_points[1].y > vera::getWindowHeight() - margin) {
-            glm::vec2 clamped = _labels[i]->m_line_points[1];
-            if (intersection(_labels[i]->m_line_points[0], _labels[i]->m_line_points[1], window, clamped)) {
-                _labels[i]->m_line_points[1] = clamped;
+        if (dynamicDisplacementOnBorder) {
+            while (collides(_labels, i)) {
+                _labels[i]->m_line_points[1] += fromFocus * 0.1f;//* _labels[i]->m_margin;
+                if (_labels[i]->updateOnBorderPosition(window, margin, _font))
+                    break;
             }
         }
-        else {
-            // 3 the final point
-            _labels[i]->m_line_points.push_back(_labels[i]->m_line_points[1]);
-    
-            if (_labels[i]->m_bLeft) {
-                _labels[i]->m_line_points[2].x = margin;
-            }
-            else {
-                _labels[i]->m_line_points[2].x = vera::getWindowWidth() - margin;
-            }
-    
-            _labels[i]->m_line_points[2].y = _labels[i]->m_line_points[1].y;
-        }
 
-        // skip the last step if the label is not visible
-        if (!_labels[i]->m_bVisible)
-            continue;
-
-        _labels[i]->updateBoundingBox(_font);
         _labels[i]->m_bVisible = !collides(_labels, i);
         if (_labels[i]->m_bVisible)
             _labels[i]->m_bVisible = !_labels[i]->contains(glm::vec2(_labels[i]->m_screenPos));
@@ -451,9 +454,9 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font) 
 void Label::render(Font *_font) {
     
     if (!m_bVisible || !bEnabled) {
-        noFill();
-        stroke(0.5f, 0.0f, 0.0f, 1.0f);
-        line(m_line_points);
+        // noFill();
+        // stroke(0.5f, 0.0f, 0.0f, 1.0f);
+        // line(m_line_points);
         return;
     }
     

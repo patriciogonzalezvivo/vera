@@ -26,6 +26,8 @@ struct LabelSettings {
 
     float       lineBorderWidth = 10.0f;
     float       lineWidth       = 1.0f;
+
+    bool        dynamicDisplacementOnBorder = false; // If true, the label will be displaced to avoid occlusion on the border of the screen
 };
 
 class Label : public BoundingBox {
@@ -67,6 +69,7 @@ public:
     
     void updateVisibility(Camera* _cam = nullptr, float margin = 0.0f);
     void updatePosition(Font *_font = nullptr, float margin = 0.0f);
+    bool updateOnBorderPosition(const BoundingBox& window, float margin = 0.0f, Font *_font = nullptr);
     void updateFont(Font *_font = nullptr);
     void updateBoundingBox(Font *_font = nullptr);
     
