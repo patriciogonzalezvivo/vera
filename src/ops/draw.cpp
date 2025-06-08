@@ -239,7 +239,7 @@ Shader* getStrokeShader() {
 Shader* getSplineShader() {
     if (spline_shader == nullptr) {
         spline_shader = new Shader();
-        spline_shader->setSource( getDefaultSrc(FRAG_FILL), getDefaultSrc(VERT_FILL) );
+        spline_shader->setSource( getDefaultSrc(FRAG_SPLINE), getDefaultSrc(VERT_SPLINE) );
         addShader("spline", spline_shader);
     }
     
@@ -509,7 +509,8 @@ void line(const std::vector<glm::vec3>& _positions, Shader* _program) {
 
     if (stroke_weight > 0.0f && stroke_weight <= 1.0f) {
         if (_program == nullptr)
-            _program = getSplineShader();
+            _program = getStrokeShader();
+            // _program = getSplineShader();
 
         shader(_program);
         _program->setUniform("u_color", stroke_color);
@@ -536,7 +537,6 @@ void line(const std::vector<glm::vec3>& _positions, Shader* _program) {
 
         glm::vec3 normal = glm::normalize( _positions[1] - _positions[0] );
         normal = glm::vec3( normal.y, -normal.x, 0.0f );
-
         mesh.addVertex( _positions[0] );
         mesh.addVertex( _positions[0] );
         mesh.addNormal( normal );
@@ -559,7 +559,8 @@ void line(const std::vector<glm::vec3>& _positions, Shader* _program) {
 
         Vbo vbo = Vbo(mesh);
         if (_program == nullptr)
-            _program = getStrokeShader();
+            _program = getSplineShader();
+            // _program = getStrokeShader();
 
         model(vbo, _program);
     }
