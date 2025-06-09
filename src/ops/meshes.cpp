@@ -39,116 +39,152 @@ glm::vec4 norm( glm::vec3 _normal ) {
 }
 
 const glm::vec3 UP_NORMAL = glm::vec3(0.0f, 0.0f, 1.0f);
+
+Mesh lineMesh(std::vector<glm::vec2> _points, float _width) {
+    Mesh mesh;
+    mesh.setDrawMode(TRIANGLE_STRIP);
+
+    glm::vec3 normal = glm::normalize( glm::vec3(_points[1], 0.0f) - glm::vec3(_points[0], 0.0f) );
+    normal = glm::vec3( normal.y, -normal.x, 0.0f );
+    normal *= _width * 0.5;
+
+    mesh.addVertex( glm::vec3(_points[0], 0.0f) + normal );
+    mesh.addVertex( glm::vec3(_points[0], 0.0f) - normal );
+    // mesh.addTexCoord( glm::vec2(0.0f, 0.0f) );
+    // mesh.addTexCoord( glm::vec2(1.0f, 0.0f) );
+
+    for (int i = 1; i < _points.size(); i++) {
+        glm::vec3 normal = glm::normalize( glm::vec3(_points[i], 0.0f) - glm::vec3(_points[i-1], 0.0f) );
+        normal = glm::vec3( normal.y, -normal.x, 0.0f );
+        normal *= _width * 0.5;
+        mesh.addVertex( glm::vec3(_points[i], 0.0f) + normal );
+        mesh.addVertex( glm::vec3(_points[i], 0.0f) - normal );
+
+        // float pct = (float)i/(float)_positions.size();
+        // mesh.addTexCoord( glm::vec2(0.0f, pct) );
+        // mesh.addTexCoord( glm::vec2(1.0f, pct) );
+    }
+
+    return mesh;
+}
+
+
+Mesh lineMesh(std::vector<glm::vec3> _points) {
+    Mesh mesh;
+    mesh.setDrawMode(TRIANGLES);
+    
+    glm::vec3 n;                // Right normal to segment between previous and current m_points
+    glm::vec3 n_n;              // Right normal to segment between current and next m_points
+    glm::vec3 n_right;          // Right "normal" at current point, scaled for miter joint
+    
+    glm::vec3 v_p;              // Previous point coordinates
+    glm::vec3 v = _points[0];   // Current point coordinates
+    glm::vec3 v_n = _points[1]; // Next point coordinates
+    
+    //  prev and next positions are send to displace the vertices
+    // dynamically on screen space
+
+    // we need to calculate a fake previous point for the first segment
+    v_p = v - glm::normalize(v_n - v) * 0.1f; 
+
+    mesh.addVertex( v );
+    mesh.addNormal( v_n );
+    mesh.addColor(  glm::vec4( v_p, 1.0f ) );
+    mesh.addTexCoord( glm::vec2(1.0,0.0) );
+    
+    mesh.addVertex( v);
+    mesh.addNormal( v_n );
+    mesh.addColor(  glm::vec4( v_p, 1.0f ) );
+    mesh.addTexCoord( glm::vec2(0.0,0.0) );
+    
+    // Loop over intermediate m_points in the polyline
+    //
+    for (unsigned int i = 1; i < _points.size() - 1; i++) {
+        v_p = v;
+        v = v_n;
+        v_n = _points[i + 1];
+        
+        // prev and next positions are send to displace the vertices
+        // dynamically on screen space
+        mesh.addVertex( v );
+        mesh.addNormal( v_n );
+        mesh.addColor(  glm::vec4( v_p, 1.0f ) );
+        mesh.addTexCoord( glm::vec2(1.0, (float)i / (float)_points.size()) );
+        
+        mesh.addVertex( v );
+        mesh.addNormal( v_n );
+        mesh.addColor( glm::vec4( v_p, 1.0f) );
+        mesh.addTexCoord( glm::vec2(0.0, (float)i / (float)_points.size()) );
+    }
+    
+    for (unsigned int i = 0; i < _points.size() - 2; i++) {
+        mesh.addIndex(2*i+3);
+        mesh.addIndex(2*i+2);
+        mesh.addIndex(2*i);
+        
+        mesh.addIndex(2*i);
+        mesh.addIndex(2*i+1);
+        mesh.addIndex(2*i+3);
+    }
+
+    return mesh;
+}
+
 Mesh lineMesh(std::vector<glm::vec3> _points, float _width) {
     Mesh mesh;
     mesh.setDrawMode(TRIANGLES);
     
-    glm::vec3 normi;             // Right normal to segment between previous and current m_points
-    glm::vec3 normip1;           // Right normal to segment between current and next m_points
-    glm::vec3 rightNorm;         // Right "normal" at current point, scaled for miter joint
+    glm::vec3 n;                // Right normal to segment between previous and current m_points
+    glm::vec3 n_n;              // Right normal to segment between current and next m_points
+    glm::vec3 n_right;          // Right "normal" at current point, scaled for miter joint
     
-    glm::vec3 im1;                   // Previous point coordinates
-    glm::vec3 i0 = _points[0];    // Current point coordinates
-    glm::vec3 ip1 = _points[1];   // Next point coordinates
+    glm::vec3 v_p;              // Previous point coordinates
+    glm::vec3 v = _points[0];   // Current point coordinates
+    glm::vec3 v_n = _points[1]; // Next point coordinates
     
-    normip1.x = ip1.y - i0.y;
-    normip1.y = i0.x - ip1.x;
-    normip1.z = 0.;
+    // We calculate the right normal to the first segment
+    n_n.x = v_n.y - v.y;
+    n_n.y = v.x - v_n.x;
+    n_n.z = 0.;
     
-    normip1 = glm::normalize(normip1);
-    rightNorm = normip1;
+    n_n = glm::normalize(n_n);
+    n_right = n_n * _width;
+
+    mesh.addVertex(v + n_right);
+    mesh.addNormal(UP_NORMAL);
+    mesh.addTexCoord(glm::vec2(1.0,0.0));
     
-    if (_width == 0.0) {
-        mesh.addVertex( i0 );
-        //        mesh.addNormal( rightNorm );
-        mesh.addNormal( ip1 );
-        mesh.addColor( norm(rightNorm) );
-        mesh.addTexCoord( glm::vec2(1.0,0.0) );
-        
-        mesh.addVertex( i0);
-        //        mesh.addNormal( -rightNorm );
-        mesh.addNormal( ip1 );
-        mesh.addColor( norm(-rightNorm) );
-        mesh.addTexCoord( glm::vec2(0.0,0.0) );
-    }
-    else {
-        rightNorm *= _width;
-        mesh.addVertex(i0 + rightNorm);
-        mesh.addNormal(UP_NORMAL);
-        mesh.addTexCoord(glm::vec2(1.0,0.0));
-        
-        mesh.addVertex(i0 - rightNorm);
-        mesh.addNormal(UP_NORMAL);
-        mesh.addTexCoord(glm::vec2(0.0,0.0));
-    }
+    mesh.addVertex(v - n_right);
+    mesh.addNormal(UP_NORMAL);
+    mesh.addTexCoord(glm::vec2(0.0,0.0));
     
     
     // Loop over intermediate m_points in the polyline
     //
     for (unsigned int i = 1; i < _points.size() - 1; i++) {
-        im1 = i0;
-        i0 = ip1;
-        ip1 = _points[ i + 1];
+        v_p = v;
+        v = v_n;
+        v_n = _points[i + 1];
+
+        // Calculate the right normal to the segment between previous and current m_points
+
+        n = n_n;
+        n_n.x = v_n.y - v.y;
+        n_n.y = v.x - v_n.x;
+        n_n.z = 0.0f;
+        n_n = glm::normalize(n_n);
         
-        normi = normip1;
-        normip1.x = ip1.y - i0.y;
-        normip1.y = i0.x - ip1.x;
-        normip1.z = 0.0f;
-        normip1 = glm::normalize(normip1);
+        n_right = n + n_n;
+        n_right *= sqrtf(2.0 / (1.0 + glm::dot(n,n_n) )) * _width * 0.5;
+
+        mesh.addVertex( v + n_right );
+        mesh.addNormal( UP_NORMAL );
+        mesh.addTexCoord( glm::vec2(1.0, (float)i / (float)_points.size()) );
         
-        rightNorm = normi + normip1;
-        
-        if (_width == 0.0) {
-            float scale = sqrtf(2.0 / (1.0 + glm::dot(normi,normip1) )) * 0.5;
-            rightNorm *= scale;
-            mesh.addVertex( i0 );
-//            mesh.addNormal( rightNorm );
-            mesh.addNormal( ip1 );
-            mesh.addColor( norm(rightNorm) );
-            mesh.addTexCoord( glm::vec2(1.0, (float)i / (float)_points.size()) );
-            
-            mesh.addVertex( i0 );
-//            mesh.addNormal( -rightNorm );
-            mesh.addNormal( ip1 );
-            mesh.addColor( norm(-rightNorm) );
-            mesh.addTexCoord( glm::vec2(0.0, (float)i / (float)_points.size()) );
-        }
-        else {
-            float scale = sqrtf(2.0 / (1.0 + glm::dot(normi,normip1) )) * _width * 0.5;
-            rightNorm *= scale;
-            mesh.addVertex( i0 + rightNorm );
-            mesh.addNormal( UP_NORMAL );
-            mesh.addTexCoord( glm::vec2(1.0, (float)i / (float)_points.size()) );
-            
-            mesh.addVertex( i0 - rightNorm );
-            mesh.addNormal( UP_NORMAL );
-            mesh.addTexCoord( glm::vec2(0.0, (float)i / (float)_points.size()) );
-        }
+        mesh.addVertex( v - n_right );
+        mesh.addNormal( UP_NORMAL );
+        mesh.addTexCoord( glm::vec2(0.0, (float)i / (float)_points.size()) );
     }
-    
-//    if (_width == 0.0) {
-//        mesh.addVertex( ip1 );
-//        //        mesh.addNormal( normip1 );
-//        mesh.addNormal( ip2 );
-//        mesh.addColor( norm(normip1) );
-//        mesh.addTexCoord( glm::vec2(1.0,1.0) );
-//
-//        mesh.addVertex( ip1 );
-//        //        mesh.addNormal( -normip1 );
-//        mesh.addNormal( ip2 );
-//        mesh.addColor( norm(-normip1) );
-//        mesh.addTexCoord( glm::vec2(0.0,1.0) );
-//    }
-//    else {
-//        normip1 *= _width;
-//        mesh.addVertex(ip1 + normip1);
-//        mesh.addNormal(UP_NORMAL);
-//        mesh.addTexCoord(glm::vec2(1.0,1.0));
-//
-//        mesh.addVertex(ip1 - normip1);
-//        mesh.addNormal(UP_NORMAL);
-//        mesh.addTexCoord(glm::vec2(0.0,1.0));
-//    }
     
     for (unsigned int i = 0; i < _points.size() - 2; i++) {
         mesh.addIndex(2*i+3);

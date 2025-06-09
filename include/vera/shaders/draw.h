@@ -195,10 +195,10 @@ void main(void) {
     
     gl_Position = u_modelViewProjectionMatrix * v_position;
 
-    // #ifdef MODEL_VERTEX_NORMAL
-    // vec2 pixel = 1.0/u_resolution;
-    // gl_Position.xy += v_normal.xy * u_strokeWeight  * pixel * 100.0;
-    // #endif 
+    #ifdef MODEL_VERTEX_NORMAL
+    vec2 pixel = 1.0/u_resolution;
+    gl_Position.xy += v_normal.xy * u_strokeWeight  * pixel * 100.0;
+    #endif 
 }
 )";
 
@@ -278,7 +278,7 @@ void main(void) {
 
 // --- SPLINE
 
-const std::string spline_vert = R"(
+const std::string spline_2d_vert = R"(
 #ifdef GL_ES
 precision mediump float;
 #endif
@@ -331,7 +331,7 @@ void main(void) {
 }
 )";
 
-const std::string spline_frag = R"(
+const std::string spline_2d_frag = R"(
 #ifdef GL_ES
 precision mediump float;
 #endif
@@ -365,7 +365,7 @@ void main(void) {
 }
 )";
 
-const std::string spline_vert_300 = R"(
+const std::string spline_2d_vert_300 = R"(
 #ifdef GL_ES
 precision mediump float;
 #endif
@@ -391,7 +391,7 @@ void main(void) {
 }
 )";
 
-const std::string spline_frag_300 = R"(
+const std::string spline_2d_frag_300 = R"(
 #ifdef GL_ES
 precision mediump float;
 #endif
@@ -405,6 +405,135 @@ void main(void) {
 )";
 
 
+const std::string spline_3d_vert = R"(
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+
+uniform mat4    u_viewMatrix;
+uniform mat4    u_modelMatrix;
+uniform mat4    u_modelViewMatrix;
+uniform mat4    u_modelViewProjectionMatrix;
+
+uniform vec4    u_color;
+uniform vec2    u_resolution;
+uniform vec3    u_camera;
+uniform float   u_cameraDistance;
+
+uniform float   u_strokeWeight;
+
+attribute vec4  a_position;
+attribute vec4  a_color;
+attribute vec3  a_normal;
+attribute vec2  a_texcoord;
+
+varying vec4    v_position;
+varying vec2    v_texcoord;
+
+const float u_scale = 1.0;
+
+vec2 fix(vec4 i) {
+    vec2 res = i.xy / i.w;
+    return res;
+}
+
+vec3 extrudeNormal(vec2 p0, vec2 p1) {
+    vec2 dir = normalize(p1 - p0);
+    return vec3(-dir.y, dir.x, 0.0);
+}
+
+void main(void) {
+    
+    vec4 position_prev = a_color;
+    vec4 position_curr = a_position;
+    vec4 position_next = vec4(a_normal.xyz, 1.0);
+
+    v_texcoord = a_texcoord;
+
+    vec2 pixel = 1.0 / u_resolution;
+    float aspect = u_resolution.x / u_resolution.y;
+    float side = v_texcoord.x * 2.0 - 1.0;
+    float width = (u_strokeWeight + u_cameraDistance) * 5.0 * side;
+
+    // into clip space
+    position_prev = u_modelViewProjectionMatrix * position_prev;
+    position_curr = u_modelViewProjectionMatrix * position_curr;
+    position_next = u_modelViewProjectionMatrix * position_next;
+
+    // into NDC space [-1 .. 1]
+    vec2 screen_pos_prev = fix(position_prev);
+    vec2 screen_pos_curr = fix(position_curr);
+    vec2 screen_pos_next = fix(position_next);
+
+    // calculate the extrude normals
+    vec3 n1 = extrudeNormal(screen_pos_prev, screen_pos_curr);
+    vec3 n2 = extrudeNormal(screen_pos_curr, screen_pos_next);
+
+    position_curr.xy += normalize(n1.xy + n2.xy) * width * pixel;
+
+    gl_Position = position_curr;
+}
+)";
+
+const std::string spline_3d_frag = R"(
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+#ifdef HAVE_TEXTURE
+uniform sampler2D u_tex0;
+#endif
+
+uniform vec4    u_color;
+
+varying vec4    v_position;
+varying vec2    v_texcoord;
+
+void main(void) {
+    vec4 color = u_color;
+    gl_FragColor = color;
+}
+)";
+
+const std::string spline_3d_vert_300 = R"(
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform mat4    u_modelViewProjectionMatrix;
+in      vec4    a_position;
+out     vec2    v_texcoord;
+
+#ifdef MODEL_VERTEX_NORMAL
+in      vec3    a_normal;
+out     vec3    v_normal;
+#endif
+
+void main(void) {
+    v_texcoord = a_position.xy;
+    v_position = a_position;
+
+#ifdef MODEL_VERTEX_NORMAL
+    v_normal = a_normal;
+#endif
+
+    gl_Position = u_modelViewProjectionMatrix * v_position;
+}
+)";
+
+const std::string spline_3d_frag_300 = R"(
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec4    u_color;
+out     vec4    fragColor;
+
+void main(void) {
+    fragColor = u_color;
+}
+)";
 
 
 // --- FILL

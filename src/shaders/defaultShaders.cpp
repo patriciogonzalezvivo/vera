@@ -127,17 +127,30 @@ std::string getDefaultSrc( DefaultShaders _type ) {
             rta += fill_frag_300;
     }
 
-    else if (_type == VERT_SPLINE) {
+    else if (_type == VERT_SPLINE_2D) {
         if (versionNumber < 130)
-            rta += spline_vert;
+            rta += spline_2d_vert;
         else if (versionNumber >= 130) 
-            rta += spline_vert_300;
+            rta += spline_2d_vert_300;
     }
-    else if (_type == FRAG_SPLINE) {
+    else if (_type == FRAG_SPLINE_2D) {
         if (versionNumber < 130)
-            rta += spline_frag;
+            rta += spline_2d_frag;
         else if (versionNumber >= 130) 
-            rta += spline_frag_300;
+            rta += spline_2d_frag_300;
+    }
+
+    else if (_type == VERT_SPLINE_3D) {
+        if (versionNumber < 130)
+            rta += spline_3d_vert;
+        else if (versionNumber >= 130) 
+            rta += spline_3d_vert_300;
+    }
+    else if (_type == FRAG_SPLINE_3D) {
+        if (versionNumber < 130)
+            rta += spline_3d_frag;
+        else if (versionNumber >= 130) 
+            rta += spline_3d_frag_300;
     }
 
     else if (_type == VERT_STROKE) {

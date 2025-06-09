@@ -9,7 +9,9 @@
 namespace vera {
 
 Mesh lineMesh(const glm::vec3 &_a, const glm::vec3 &_b);
-Mesh lineMesh(std::vector<glm::vec3> _points, float _width = 1.0f);
+Mesh lineMesh(std::vector<glm::vec2> _points, float _width = 1.0f);
+Mesh lineMesh(std::vector<glm::vec3> _points);
+Mesh lineMesh(std::vector<glm::vec3> _points, float _width);
 
 Mesh crossMesh(const glm::vec3 &_pos, float _width);
 

@@ -37,7 +37,8 @@ glm::vec4   stroke_color    = glm::vec4(1.0f);
 float       stroke_weight   = 1.0f;
 bool        stroke_enabled  = true;
 Shader*     stroke_shader   = nullptr;
-Shader*     spline_shader   = nullptr;
+Shader*     spline_2d_shader   = nullptr;
+Shader*     spline_3d_shader   = nullptr;
 
 // POINTS
 float       points_size     = 10.0f;
@@ -236,14 +237,24 @@ Shader* getStrokeShader() {
     return stroke_shader;
 }
 
-Shader* getSplineShader() {
-    if (spline_shader == nullptr) {
-        spline_shader = new Shader();
-        spline_shader->setSource( getDefaultSrc(FRAG_SPLINE), getDefaultSrc(VERT_SPLINE) );
-        addShader("spline", spline_shader);
+Shader* getSpline2DShader() {
+    if (spline_2d_shader == nullptr) {
+        spline_2d_shader = new Shader();
+        spline_2d_shader->setSource( getDefaultSrc(FRAG_SPLINE_2D), getDefaultSrc(VERT_SPLINE_2D) );
+        addShader("spline_2d", spline_2d_shader);
     }
     
-    return spline_shader;
+    return spline_2d_shader;
+}
+
+Shader* getSpline3DShader() {
+    if (spline_3d_shader == nullptr) {
+        spline_3d_shader = new Shader();
+        spline_3d_shader->setSource( getDefaultSrc(FRAG_SPLINE_3D), getDefaultSrc(VERT_SPLINE_3D) );
+        addShader("spline_3d", spline_3d_shader);
+    }
+    
+    return spline_3d_shader;
 }
 
 Shader* getFillShader() {
@@ -438,7 +449,6 @@ void line(const std::vector<glm::vec2>& _positions, Shader* _program) {
     
     if (stroke_weight > 0.0f && stroke_weight <= 1.0f) {
         if (_program == nullptr)
-            // _program = getFillShader();
             _program = getStrokeShader();
        
         shader(_program);
@@ -461,35 +471,11 @@ void line(const std::vector<glm::vec2>& _positions, Shader* _program) {
     #endif
     }
     else {
-        Mesh mesh;
-        mesh.setDrawMode(TRIANGLE_STRIP);
-
-        glm::vec3 normal = glm::normalize( glm::vec3(_positions[1], 0.0f) - glm::vec3(_positions[0], 0.0f) );
-        normal = glm::vec3( normal.y, -normal.x, 0.0f );
-        normal *= stroke_weight * 0.5;
-
-        mesh.addVertex( glm::vec3(_positions[0], 0.0f) + normal );
-        mesh.addVertex( glm::vec3(_positions[0], 0.0f) - normal );
-        // mesh.addTexCoord( glm::vec2(0.0f, 0.0f) );
-        // mesh.addTexCoord( glm::vec2(1.0f, 0.0f) );
-    
-        for (int i = 1; i < _positions.size(); i++) {
-            glm::vec3 normal = glm::normalize( glm::vec3(_positions[i], 0.0f) - glm::vec3(_positions[i-1], 0.0f) );
-            normal = glm::vec3( normal.y, -normal.x, 0.0f );
-            normal *= stroke_weight * 0.5;
-            mesh.addVertex( glm::vec3(_positions[i], 0.0f) + normal );
-            mesh.addVertex( glm::vec3(_positions[i], 0.0f) - normal );
-
-            // float pct = (float)i/(float)_positions.size();
-            // mesh.addTexCoord( glm::vec2(0.0f, pct) );
-            // mesh.addTexCoord( glm::vec2(1.0f, pct) );
-        }
-
-        Vbo vbo = Vbo(mesh);
-
+        // Create a mesh for the line
+        Mesh mesh = vera::lineMesh(_positions, stroke_weight);
+        Vbo vbo = Vbo( mesh );
         if (_program == nullptr)
-            _program = getStrokeShader();
-
+            _program = getSpline2DShader();
         model(vbo, _program);
     }
 };
@@ -510,7 +496,6 @@ void line(const std::vector<glm::vec3>& _positions, Shader* _program) {
     if (stroke_weight > 0.0f && stroke_weight <= 1.0f) {
         if (_program == nullptr)
             _program = getStrokeShader();
-            // _program = getSplineShader();
 
         shader(_program);
         _program->setUniform("u_color", stroke_color);
@@ -532,37 +517,11 @@ void line(const std::vector<glm::vec3>& _positions, Shader* _program) {
         #endif
     }
     else {
-        Mesh mesh;
-        mesh.setDrawMode(TRIANGLE_STRIP);
-
-        glm::vec3 normal = glm::normalize( _positions[1] - _positions[0] );
-        normal = glm::vec3( normal.y, -normal.x, 0.0f );
-        mesh.addVertex( _positions[0] );
-        mesh.addVertex( _positions[0] );
-        mesh.addNormal( normal );
-        mesh.addNormal( -normal );
-        // mesh.addTexCoord( glm::vec2(0.0f, 0.0f) );
-        // mesh.addTexCoord( glm::vec2(1.0f, 0.0f) );
-    
-        for (int i = 1; i < _positions.size(); i++) {
-            glm::vec3 normal = glm::normalize(_positions[i] - _positions[i-1]);
-            normal = glm::vec3( normal.y, -normal.x, 0.0f );
-            mesh.addVertex( _positions[i] );
-            mesh.addVertex( _positions[i] );
-            mesh.addNormal( normal );
-            mesh.addNormal( -normal );
-
-            // float pct = (float)i/(float)_positions.size();
-            // mesh.addTexCoord( glm::vec2(0.0f, pct) );
-            // mesh.addTexCoord( glm::vec2(1.0f, pct) );
-        }
-
-        Vbo vbo = Vbo(mesh);
-        if (_program == nullptr)
-            _program = getSplineShader();
-            // _program = getStrokeShader();
-
-        model(vbo, _program);
+        Mesh mesh = vera::lineMesh(_positions);
+        Vbo vbo = Vbo( mesh );
+        // if (_program == nullptr)
+        //     _program = getSpline3DShader();
+        model(vbo, getSpline3DShader());
     }
 };
 
@@ -1296,7 +1255,8 @@ void shader(const std::string& _name) {
 
 void shader(Shader& _program) { shader(&_program); }
 void shader(Shader* _program) {
-    if (shaderPtr != fill_shader || shaderPtr != stroke_shader || shaderPtr != spline_shader || shaderPtr != points_shader) {
+    if (shaderPtr != fill_shader || shaderPtr != points_shader || shaderPtr != stroke_shader || 
+        shaderPtr != spline_2d_shader || shaderPtr != spline_3d_shader ) {
         shaderPtr = _program; 
         shaderChange = true;
     }
@@ -1316,7 +1276,7 @@ void shader(Shader* _program) {
 
     if (_program == fill_shader)
         _program->setUniform("u_color", fill_color);
-    else if (_program == stroke_shader || _program == spline_shader) {
+    else if (_program == stroke_shader || _program == spline_2d_shader || _program == spline_3d_shader) {
         _program->setUniform("u_color", stroke_color);
         _program->setUniform("u_strokeWeight", stroke_weight);
     }

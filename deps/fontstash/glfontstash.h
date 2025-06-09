@@ -778,8 +778,7 @@ void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, f
     GLFONS_LOAD_STASH
 
     if (buffer->interleavedArray.size() == 0) {
-        std::cout << "Error: Invalid layout index for transform.interleavedArray = 0; offset = " << stash->offset << 
-        "; nbGLyph = " << stash->nbGlyph << std::endl;
+        // std::cout << "Error: Invalid layout index for transform.interleavedArray = 0; offset = " << stash->offset << "; nbGLyph = " << stash->nbGlyph << std::endl;
         return;
     }
     
