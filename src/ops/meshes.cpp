@@ -50,8 +50,8 @@ Mesh lineMesh(std::vector<glm::vec2> _points, float _width) {
 
     mesh.addVertex( glm::vec3(_points[0], 0.0f) + normal );
     mesh.addVertex( glm::vec3(_points[0], 0.0f) - normal );
-    // mesh.addTexCoord( glm::vec2(0.0f, 0.0f) );
-    // mesh.addTexCoord( glm::vec2(1.0f, 0.0f) );
+    mesh.addTexCoord( glm::vec2(0.0f, 0.0f) );
+    mesh.addTexCoord( glm::vec2(1.0f, 0.0f) );
 
     for (int i = 1; i < _points.size(); i++) {
         glm::vec3 normal = glm::normalize( glm::vec3(_points[i], 0.0f) - glm::vec3(_points[i-1], 0.0f) );
@@ -60,9 +60,9 @@ Mesh lineMesh(std::vector<glm::vec2> _points, float _width) {
         mesh.addVertex( glm::vec3(_points[i], 0.0f) + normal );
         mesh.addVertex( glm::vec3(_points[i], 0.0f) - normal );
 
-        // float pct = (float)i/(float)_positions.size();
-        // mesh.addTexCoord( glm::vec2(0.0f, pct) );
-        // mesh.addTexCoord( glm::vec2(1.0f, pct) );
+        float pct = (float)i/(float)_points.size();
+        mesh.addTexCoord( glm::vec2(0.0f, pct) );
+        mesh.addTexCoord( glm::vec2(1.0f, pct) );
     }
 
     return mesh;

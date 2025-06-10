@@ -519,9 +519,9 @@ void line(const std::vector<glm::vec3>& _positions, Shader* _program) {
     else {
         Mesh mesh = vera::lineMesh(_positions);
         Vbo vbo = Vbo( mesh );
-        // if (_program == nullptr)
-        //     _program = getSpline3DShader();
-        model(vbo, getSpline3DShader());
+        if (_program == nullptr)
+            _program = getSpline3DShader();
+        model(vbo, _program);
     }
 };
 
@@ -708,20 +708,21 @@ void circleResolution(int _resolution) {
     }
 }
 
-void circle(const glm::vec2& _pos, float _radius, Shader* _program) { circle(_pos.x, _pos.y, _radius, _program); }
-void circle(float _x, float _y, float _radius, Shader* _program) {
+void circle(float _x, float _y, float _radius, Shader* _program) { circle(glm::vec2(_x, _y), _radius, _program); }
+void circle(const glm::vec2& _pos, float _radius, Shader* _program) {
     if (cached_circle_coorners.size() == 0)
         circleResolution();
     
     const int numSegments = cached_circle_coorners.size();
     const float angleStep = TWO_PI / (float)numSegments;
+    const float radius = _radius;
 
     if (fill_enabled) {
         std::vector<glm::vec2> tris;
         for (int i = 0; i < numSegments; i++) {
-            tris.push_back( glm::vec2(_x, _y) );
-            tris.push_back( cached_circle_coorners[i] * _radius + glm::vec2(_x, _y) );
-            tris.push_back( cached_circle_coorners[(i + 1) % numSegments] * _radius + glm::vec2(_x, _y) );
+            tris.push_back( _pos );
+            tris.push_back( cached_circle_coorners[i] * radius + _pos );
+            tris.push_back( cached_circle_coorners[(i + 1) % numSegments] * radius + _pos );
         }
         triangles(tris, _program);
     }
@@ -729,7 +730,7 @@ void circle(float _x, float _y, float _radius, Shader* _program) {
     if (stroke_enabled) {
         std::vector<glm::vec2> lines;
         for (int i = 0; i < numSegments; i++) {
-            lines.push_back( cached_circle_coorners[i] * _radius + glm::vec2(_x, _y) );
+            lines.push_back( cached_circle_coorners[i] * radius + _pos );
         }
         lines.push_back( lines[0] ); // close the circle
         line(lines, _program);
@@ -1071,19 +1072,19 @@ void textSize(float _size, Font* _font) {
 float textWidth(const std::string& _text, Font* _font) {
     if (_font == nullptr)
         _font = getFont();
-    return _font->getBoundingBox(_text).z * getDisplayPixelRatio() * pd;
+    return _font->getBoundingBox(_text).z;
 }
 
 float textHeight(Font* _font) {
     if (_font == nullptr)
         _font = getFont();
-    return _font->getHeight() * getDisplayPixelRatio() * pd;
+    return _font->getHeight() * getDisplayPixelRatio();
 }
 
 float textHeight(const std::string& _text, Font* _font) {
     if (_font == nullptr)
         _font = getFont();
-    return _font->getBoundingBox(_text).w * getDisplayPixelRatio() * pd;
+    return _font->getBoundingBox(_text).w * getDisplayPixelRatio();
 }
 
 BoundingBox textBoundingBox(const std::string& _text, float _x, float _y, Font* _font) { 
@@ -1094,7 +1095,7 @@ BoundingBox textBoundingBox(const std::string& _text, const glm::vec2& _pos, Fon
     if (_font == nullptr)
         _font = getFont();
     glm::vec4 bbox = _font->getBoundingBox(_text);
-    return BoundingBox(_pos.x + bbox.x, _pos.y + bbox.y, bbox.z * pd, bbox.w * pd);
+    return BoundingBox(_pos.x + bbox.x, _pos.y + bbox.y, bbox.z * getDisplayPixelRatio(), bbox.w * getDisplayPixelRatio());
 }
 
 void text(const std::string& _text, const glm::vec2& _pos, Font* _font) { text(_text, _pos.x, _pos.y, _font); }

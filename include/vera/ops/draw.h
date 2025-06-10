@@ -280,9 +280,9 @@ float textHeight(const std::string& _text, Font* _font = nullptr);
 BoundingBox textBoundingBox(const std::string& _text, float _x, float _y, Font* _font = nullptr);
 BoundingBox textBoundingBox(const std::string& _text, const glm::vec2& _pos, Font* _font = nullptr);
 BoundingBox textBoundingBox(const std::string& _text, const glm::vec3& _pos, Font* _font = nullptr);
-void text(const std::string& _text, const glm::vec2& _pos, float _angle = 0.0f, Font* _font = nullptr);
-void text(const std::string& _text, const glm::vec3& _pos, Font* _font = nullptr);
+
 void text(const std::string& _text, const glm::vec2& _pos, Font* _font = nullptr );
+void text(const std::string& _text, const glm::vec3& _pos, Font* _font = nullptr);
 void text(const std::string& _text, float _x, float _y, Font* _font = nullptr);
 void textHighlight(const std::string& _text, const glm::vec2& _pos, const glm::vec4& _bg = glm::vec4(0.0, 0.0, 0.0, 1.0), Font* _font = nullptr);
 void textHighlight(const std::string& _text, float _x, float _y, const glm::vec4& _bg = glm::vec4(0.0, 0.0, 0.0, 1.0), Font* _font = nullptr);

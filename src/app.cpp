@@ -187,8 +187,8 @@ void App::run(WindowProperties _properties) {
             _app->update();
             updateGL();
 
-            if (_app->m_backgroundEnabled)
-                clear(_app->m_backgroundColor);
+            if (getBackgroundEnabled())
+                background();
 
             Camera* cam = getCamera();
 
