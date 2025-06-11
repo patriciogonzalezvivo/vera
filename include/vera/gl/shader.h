@@ -7,6 +7,7 @@
 #include "texture.h"
 #include "defines.h"
 #include "textureCube.h"
+#include "uniform.h"
 
 #include "glm/glm.hpp"
 
@@ -82,6 +83,8 @@ public:
     void    setUniformDepthTexture(const std::string& _name, const Fbo* _fbo, size_t _texLoc);
     void    setUniformTextureCube(const std::string& _name, const TextureCube* _tex, size_t _texLoc);
 
+    void    updateUniforms();
+
     void    detach(GLenum type);
 
     size_t  textureIndex;
@@ -90,19 +93,22 @@ protected:
     GLuint      compileShader(const std::string& _src, GLenum _type, bool _verbose);
     GLint       getUniformLocation(const std::string& _uniformName) const;
 
-    std::string m_defineStack;
-    std::string m_fragmentSource;
-    std::string m_vertexSource;
+    UniformDataMap      m_uniforms;
+    UniformTextureMap   m_textures;
 
-    std::string m_previousFragmentSource;
-    std::string m_previousVertexSource;
+    std::string         m_defineStack;
+    std::string         m_fragmentSource;
+    std::string         m_vertexSource;
 
-    GLuint      m_program;
-    GLuint      m_fragmentShader;
-    GLuint      m_vertexShader;
+    std::string         m_previousFragmentSource;
+    std::string         m_previousVertexSource;
 
-    ShaderErrorResolve m_error_screen;
-    bool        m_needsReloading;
+    GLuint              m_program;
+    GLuint              m_fragmentShader;
+    GLuint              m_vertexShader;
+
+    ShaderErrorResolve  m_error_screen;
+    bool                m_needsReloading;
 };
 
 typedef std::shared_ptr<Shader>           ShaderPtr;

@@ -183,7 +183,9 @@ void Shader::use() {
     if (!inUse()) {
         glUseProgram(getProgram());
     }
-        
+    
+    // updateUniforms();
+
     textureIndex = 0;
 }
 
@@ -395,114 +397,136 @@ GLint Shader::getUniformLocation(const std::string& _uniformName) const {
 }
 
 void Shader::setUniform(const std::string& _name, int _x) {
+    m_uniforms[_name] = UniformData(_x);
     if (inUse()) {
         glUniform1i(getUniformLocation(_name), _x);
     }
 }
 
 void Shader::setUniform(const std::string& _name, int _x, int _y) {
+    m_uniforms[_name] = UniformData(_x, _y);
     if (inUse()) {
         glUniform2i(getUniformLocation(_name), _x, _y);
     }
 }
 
 void Shader::setUniform(const std::string& _name, int _x, int _y, int _z) {
+    m_uniforms[_name] = UniformData(_x, _y, _z);
     if (inUse()) {
         glUniform3i(getUniformLocation(_name), _x, _y, _z);
     }
 }
 
 void Shader::setUniform(const std::string& _name, int _x, int _y, int _z, int _w) {
+    m_uniforms[_name] = UniformData(_x, _y, _z, _w);
     if (inUse()) {
         glUniform4i(getUniformLocation(_name), _x, _y, _z, _w);
     }
 }
 
 void Shader::setUniform(const std::string& _name, const int *_array, size_t _size) {
+    m_uniforms[_name] = UniformData(_array, _size);
     GLint loc = getUniformLocation(_name);
     if (inUse()) {
-        if (_size == 1) {
-            glUniform1i(loc, _array[0]);
-        }
-        else if (_size == 2) {
-            glUniform2i(loc, _array[0], _array[1]);
-        }
-        else if (_size == 3) {
-            glUniform3i(loc, _array[0], _array[1], _array[2]);
-        }
-        else if (_size == 4) {
-            glUniform4i(loc, _array[0], _array[1], _array[2], _array[3]);
-        }
-        else {
-            std::cerr << "Passing matrix uniform as array, not supported yet" << std::endl;
+        switch (_size) {
+            case 1:
+                glUniform1i(loc, _array[0]);
+                break;
+            case 2:
+                glUniform2i(loc, _array[0], _array[1]);
+                break;
+            case 3:
+                glUniform3i(loc, _array[0], _array[1], _array[2]);
+                break;
+            case 4:
+                glUniform4i(loc, _array[0], _array[1], _array[2], _array[3]);
+                break;
+            default:
+                std::cerr << "Passing matrix uniform as array, not supported yet" << std::endl;
         }
     }
 }
 
 void Shader::setUniform(const std::string& _name, float _x) {
+    m_uniforms[_name] = UniformData(_x);
     if (inUse()) {
         glUniform1f(getUniformLocation(_name), _x);
     }
 }
 
 void Shader::setUniform(const std::string& _name, float _x, float _y) {
+    m_uniforms[_name] = UniformData(_x, _y);
     if (inUse()) {
         glUniform2f(getUniformLocation(_name), _x, _y);
     }
 }
 
 void Shader::setUniform(const std::string& _name, float _x, float _y, float _z) {
+    m_uniforms[_name] = UniformData(_x, _y, _z);
     if (inUse()) {
         glUniform3f(getUniformLocation(_name), _x, _y, _z);
     }
 }
 
 void Shader::setUniform(const std::string& _name, float _x, float _y, float _z, float _w) {
+    m_uniforms[_name] = UniformData(_x, _y, _z, _w);
     if (inUse()) {
         glUniform4f(getUniformLocation(_name), _x, _y, _z, _w);
     }
 }
 
 void Shader::setUniform(const std::string& _name, const float *_array, size_t _size) {
+    m_uniforms[_name] = UniformData(_array, _size);
     GLint loc = getUniformLocation(_name);
     if (inUse()) {
-        if (_size == 1) {
-            glUniform1f(loc, _array[0]);
-        }
-        else if (_size == 2) {
-            glUniform2f(loc, _array[0], _array[1]);
-        }
-        else if (_size == 3) {
-            glUniform3f(loc, _array[0], _array[1], _array[2]);
-        }
-        else if (_size == 4) {
-            glUniform4f(loc, _array[0], _array[1], _array[2], _array[2]);
-        }
-        else {
-            std::cerr << "Passing matrix uniform as array, not supported yet" << std::endl;
+        switch (_size) {
+            case 1:
+                glUniform1f(loc, _array[0]);
+                break;
+            case 2:
+                glUniform2f(loc, _array[0], _array[1]);
+                break;
+            case 3:
+                glUniform3f(loc, _array[0], _array[1], _array[2]);
+                break;
+            case 4:
+                glUniform4f(loc, _array[0], _array[1], _array[2], _array[3]);
+                break;
+            case 9:
+                glUniformMatrix3fv(loc, 1, GL_FALSE, _array);
+                break;
+            case 16:
+                glUniformMatrix4fv(loc, 1, GL_FALSE, _array);
+                break;
+            default:
+                std::cerr << "Not supported yet arrays of " << _size << std::endl;
         }
     }
 }
 
 void Shader::setUniform(const std::string& _name, const glm::vec2 *_array, size_t _size) {
+    m_uniforms[_name] = UniformData(_array, _size);
     if (inUse()) {
         glUniform2fv(getUniformLocation(_name), _size, glm::value_ptr(_array[0]));
     }
 }
 
 void Shader::setUniform(const std::string& _name, const glm::vec3 *_array, size_t _size) {
+    m_uniforms[_name] = UniformData(_array, _size);
     if (inUse()) {
         glUniform3fv(getUniformLocation(_name), _size, glm::value_ptr(_array[0]));
     }
 }
 
 void Shader::setUniform(const std::string& _name, const glm::vec4 *_array, size_t _size) {
+    m_uniforms[_name] = UniformData(_array, _size);
     if (inUse()) {
         glUniform4fv(getUniformLocation(_name), _size, glm::value_ptr(_array[0]));
     }
 }
 
 void Shader::setUniformTexture(const std::string& _name, GLuint _textureId, size_t _texLoc) {
+    m_textures[_name] = UniformTexture(UniformTextureType::TEXTURE_2D, _textureId, _texLoc);
     if (inUse()) {
         glActiveTexture(GL_TEXTURE0 + _texLoc);
         glBindTexture(GL_TEXTURE_2D, _textureId);
@@ -535,6 +559,7 @@ void  Shader::setUniformDepthTexture(const std::string& _name, const Fbo* _fbo) 
 }
 
 void Shader::setUniformTextureCube(const std::string& _name, const TextureCube* _tex, size_t _texLoc) {
+    m_textures[_name] = UniformTexture(UniformTextureType::TEXTURE_CUBE, _tex->getTextureId(), _texLoc);
     if (inUse()) {
         glActiveTexture(GL_TEXTURE0 + _texLoc);
         glBindTexture(GL_TEXTURE_CUBE_MAP, _tex->getTextureId());
@@ -561,6 +586,67 @@ void Shader::setUniform(const std::string& _name, const glm::mat3& _value, bool 
 void Shader::setUniform(const std::string& _name, const glm::mat4& _value, bool _transpose) {
     if (inUse()) {
         glUniformMatrix4fv(getUniformLocation(_name), 1, _transpose, &_value[0][0]);
+    }
+}
+
+void Shader::updateUniforms() {
+    for (UniformDataMap::iterator it = m_uniforms.begin(); it != m_uniforms.end(); ++it) {
+        GLint loc = getUniformLocation(it->first);
+        if (loc == -1) continue;
+
+        if (it->second.bInt) {
+            switch (it->second.size) {
+                case 1:
+                    glUniform1i(loc, static_cast<GLint>(it->second.value[0]));
+                    break;
+                case 2:
+                    glUniform2i(loc,
+                        static_cast<GLint>(it->second.value[0]),
+                        static_cast<GLint>(it->second.value[1]));
+                    break;
+                case 3:
+                    glUniform3i(loc,
+                        static_cast<GLint>(it->second.value[0]),
+                        static_cast<GLint>(it->second.value[1]),
+                        static_cast<GLint>(it->second.value[2]));
+                    break;
+                case 4:
+                    glUniform4i(loc,
+                        static_cast<GLint>(it->second.value[0]),
+                        static_cast<GLint>(it->second.value[1]),
+                        static_cast<GLint>(it->second.value[2]),
+                        static_cast<GLint>(it->second.value[3]));
+                    break;
+                default:
+                    // For arrays larger than 4, use glUniform1iv
+                    glUniform1iv(loc, it->second.size, reinterpret_cast<const GLint*>(it->second.value.data()));
+                    break;
+            }
+        }
+        else if (it->second.size == 1) {
+            glUniform1f(loc, it->second.value[0]);
+        }
+        else if (it->second.size == 2) {
+            glUniform2f(loc, it->second.value[0], it->second.value[1]);
+        }
+        else if (it->second.size == 3) {
+            glUniform3f(loc, it->second.value[0], it->second.value[1], it->second.value[2]);
+        }
+        else if (it->second.size == 4) {
+            glUniform4f(loc, it->second.value[0], it->second.value[1], it->second.value[2], it->second.value[3]);
+        }
+    }
+
+    for (UniformTextureMap::iterator it = m_textures.begin(); it != m_textures.end(); ++it) {
+        GLint loc = getUniformLocation(it->first);
+        if (loc == -1) continue;
+        glActiveTexture(GL_TEXTURE0 + it->second.texLoc);
+        if (it->second.type == UniformTextureType::TEXTURE_2D) {
+            glBindTexture(GL_TEXTURE_2D, it->second.id);
+        } else if (it->second.type == UniformTextureType::TEXTURE_CUBE) {
+            glBindTexture(GL_TEXTURE_CUBE_MAP, it->second.id);
+        }
+        glUniform1i(loc, it->second.texLoc);
     }
 }
 

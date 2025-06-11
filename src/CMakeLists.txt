@@ -53,6 +53,7 @@ set(VERA_SOURCES
     ${SOURCE_FOLDER}/gl/textureStreamMMAL.cpp
     ${SOURCE_FOLDER}/gl/textureStreamAudio.cpp 
     ${SOURCE_FOLDER}/gl/textureStreamSequence.cpp
+    ${SOURCE_FOLDER}/gl/uniform.cpp
     ${SOURCE_FOLDER}/gl/vertexLayout.cpp 
     ${SOURCE_FOLDER}/io/gltf.cpp
     ${SOURCE_FOLDER}/io/obj.cpp
