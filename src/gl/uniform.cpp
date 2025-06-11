@@ -103,34 +103,20 @@ UniformData::UniformData(const glm::vec4& _value) {
     bInt = false;
 }
 
-UniformData::UniformData(const glm::vec2 *_array, size_t _size) {
-    size = (_size > 4) ? 4 : _size;
-    for (size_t i = 0; i < size; ++i) {
-        value[i * 2]     = _array[i].x;
-        value[i * 2 + 1] = _array[i].y;
-    }
+UniformData::UniformData(const glm::mat3& _value, bool _transpose) {
+    size = 9;
     bInt = false;
+    bTranspose = _transpose;
+    for (size_t i = 0; i < size; ++i)
+        value[i] = reinterpret_cast<const float*>(&_value)[i];
 }
 
-UniformData::UniformData(const glm::vec3 *_array, size_t _size) {
-    size = (_size > 4) ? 4 : _size;
-    for (size_t i = 0; i < size; ++i) {
-        value[i * 3]     = _array[i].x;
-        value[i * 3 + 1] = _array[i].y;
-        value[i * 3 + 2] = _array[i].z;
-    }
+UniformData::UniformData(const glm::mat4& _value, bool _transpose ) {
+    size = 16;
     bInt = false;
-}
-
-UniformData::UniformData(const glm::vec4 *_array, size_t _size) {
-    size = (_size > 4) ? 4 : _size;
-    for (size_t i = 0; i < size; ++i) {
-        value[i * 4]     = _array[i].x;
-        value[i * 4 + 1] = _array[i].y;
-        value[i * 4 + 2] = _array[i].z;
-        value[i * 4 + 3] = _array[i].w;
-    }
-    bInt = false;
+    bTranspose = _transpose;
+    for (size_t i = 0; i < size; ++i)
+        value[i] = reinterpret_cast<const float*>(&_value)[i];
 }
 
 };

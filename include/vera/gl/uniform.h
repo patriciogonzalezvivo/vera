@@ -7,7 +7,7 @@
 
 namespace vera {
 
-typedef std::array<float, 4> UniformValue;
+typedef std::array<float, 16> UniformValue;
 
 struct UniformData {
     UniformData();
@@ -24,13 +24,13 @@ struct UniformData {
     UniformData(const glm::vec2& _value);
     UniformData(const glm::vec3& _value);
     UniformData(const glm::vec4& _value);
-    UniformData(const glm::vec2 *_array, size_t _size);
-    UniformData(const glm::vec3 *_array, size_t _size);
-    UniformData(const glm::vec4 *_array, size_t _size);
+    UniformData(const glm::mat3& _value, bool _transpose = false);
+    UniformData(const glm::mat4& _value, bool _transpose = false);
 
     UniformValue                        value;
     size_t                              size    = 0;
     bool                                bInt    = false;
+    bool                                bTranspose = false;
 };
 
 typedef std::map<std::string, UniformData>  UniformDataMap;
