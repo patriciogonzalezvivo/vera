@@ -1497,7 +1497,7 @@ void addLabel(Label* _label) {
 // Ephymeral Label
 void addLabel(const char* _text, glm::vec3 _position, LabelType _type, float _margin) {
     glm::vec3 pos = getWorldMatrix() * glm::vec4(_position, 1.0f);
-    addLabel( new vera::Label(_text, pos, _type, _margin) );
+    addLabel( new vera::Label(std::string(_text), pos, _type, _margin) );
 }
 void addLabel(const std::string& _text, glm::vec3 _position, LabelType _type, float _margin) {
     glm::vec3 pos = getWorldMatrix() * glm::vec4(_position, 1.0f);
