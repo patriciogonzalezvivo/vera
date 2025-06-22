@@ -1174,42 +1174,42 @@ void textHighlight(const std::string& _text, float _x , float _y, const glm::vec
 
 // SHADER
 //
-Shader loadShader(const std::string& _fragFile, const std::string& _vertFile) {
-    Shader s;
-    s.setSource(loadGlslFrom(_fragFile), loadGlslFrom(_vertFile));
+Shader* loadShader(const std::string& _fragFile, const std::string& _vertFile) {
+    Shader* s = new Shader();
+    s->setSource(loadGlslFrom(_fragFile), loadGlslFrom(_vertFile));
     return s;
 }
 
-Shader createShader(const std::string& _fragSrc, const std::string& _vertSrc) {
-    Shader s;
+Shader* createShader(const std::string& _fragSrc, const std::string& _vertSrc) {
+    Shader* s = new Shader();
     // s.addDefine("MODEL_VERTEX_COLOR", "v_color");
     // s.addDefine("MODEL_VERTEX_NORMAL", "v_normal");
     // s.addDefine("MODEL_VERTEX_TEXCOORD", "v_texcoord");
     // s.addDefine("MODEL_VERTEX_TANGENT", "v_tangent");
 
     if (!_fragSrc.empty() && _vertSrc.empty())
-        s.setSource(_fragSrc, getDefaultSrc(VERT_DEFAULT_SCENE));
+        s->setSource(_fragSrc, getDefaultSrc(VERT_DEFAULT_SCENE));
     else if (_fragSrc.empty())
-        s.setSource(getDefaultSrc(FRAG_DEFAULT_SCENE), getDefaultSrc(VERT_DEFAULT_SCENE));
+        s->setSource(getDefaultSrc(FRAG_DEFAULT_SCENE), getDefaultSrc(VERT_DEFAULT_SCENE));
     else
-        s.setSource(_fragSrc, _vertSrc);
+        s->setSource(_fragSrc, _vertSrc);
 
     return s;
 }
 
-Shader createShader(DefaultShaders _frag, DefaultShaders _vert) {
-    Shader s;
+Shader* createShader(DefaultShaders _frag, DefaultShaders _vert) {
+    Shader* s = new Shader();
     // s.addDefine("MODEL_VERTEX_COLOR", "v_color");
     // s.addDefine("MODEL_VERTEX_NORMAL", "v_normal");
     // s.addDefine("MODEL_VERTEX_TEXCOORD", "v_texcoord");
     // s.addDefine("MODEL_VERTEX_TANGENT", "v_tangent");
-    s.setSource(getDefaultSrc(_frag), getDefaultSrc(_vert));
+    s->setSource(getDefaultSrc(_frag), getDefaultSrc(_vert));
     return s;
 }
 
-void addShader(const std::string& _name, Shader* _shader) { scene->shaders[_name] = _shader; }
-void addShader(const std::string& _name, Shader& _shader) { addShader(_name, &_shader); }
-void addShader(const std::string& _name, const std::string& _frag, const std::string& _vert) {
+Shader* addShader(const std::string& _name, Shader* _shader) { scene->shaders[_name] = _shader; return _shader; }
+Shader* addShader(const std::string& _name, Shader& _shader) { return addShader(_name, &_shader); }
+Shader* addShader(const std::string& _name, const std::string& _frag, const std::string& _vert) {
     scene->shaders[_name] = new Shader();
 
     std::string vertSrc = _vert;
@@ -1229,33 +1229,23 @@ void addShader(const std::string& _name, const std::string& _frag, const std::st
     }
 
     scene->shaders[_name]->setSource(fragSrc, vertSrc);
+
+    return scene->shaders[_name];
 }
 
-Shader* getShader(const std::string& _name) {
+void resetShader() { shaderPtr = nullptr; }
+
+Shader* shader(const std::string& _name) {
     ShadersMap::iterator it = scene->shaders.find(_name);
-    if (it != scene->shaders.end())
-        return it->second;
+    if (it != scene->shaders.end()) {
+        return shader(it->second);
+    }
     return nullptr;
 }
 
-Shader* getShader() { return shaderPtr; }
-std::vector<std::string> getShaderNames() {
-    std::vector<std::string> names;
-    for (const auto& pair : scene->shaders) {
-        names.push_back(pair.first);
-    }
-    return names;
-}
-void resetShader() { shaderPtr = nullptr; }
-
-void shader(const std::string& _name) {
-    Shader* shdr = getShader(_name);
-    if (shdr)
-        shader(shdr);
-}
-
-void shader(Shader& _program) { shader(&_program); }
-void shader(Shader* _program) {
+Shader* shader() { return shaderPtr; }
+Shader* shader(Shader& _program) { return shader(&_program); }
+Shader* shader(Shader* _program) {
     if (shaderPtr != fill_shader || shaderPtr != points_shader || shaderPtr != stroke_shader || 
         shaderPtr != spline_2d_shader || shaderPtr != spline_3d_shader ) {
         shaderPtr = _program; 
@@ -1358,6 +1348,8 @@ void shader(Shader* _program) {
             }
         } 
     }
+
+    return _program;
 }
 
 void addTexture(const std::string& _name, const std::string& _filename, bool _vFlip, TextureFilter _filter, TextureWrap _wrap) {

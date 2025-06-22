@@ -290,16 +290,14 @@ void textHighlight(const std::string& _text, float _x, float _y, const glm::vec4
 
 // SHADERS
 // -----------------------------
-Shader  loadShader(const std::string& _fragFile, const std::string& _vertFile);
-Shader  createShader(const std::string& _fragSrc = "", const std::string& _vertSrc = "");
-Shader  createShader(DefaultShaders _frag, DefaultShaders _vert);
+Shader* loadShader(const std::string& _fragFile, const std::string& _vertFile);
+Shader* createShader(const std::string& _fragSrc = "", const std::string& _vertSrc = "");
+Shader* createShader(DefaultShaders _frag, DefaultShaders _vert);
 
-void    addShader(const std::string& _name, Shader& _shader);
-void    addShader(const std::string& _name, Shader* _shader);
-void    addShader(const std::string& _name, const std::string& _fragSrc = "", const std::string& _vertSrc = "");
+Shader* addShader(const std::string& _name, Shader& _shader);
+Shader* addShader(const std::string& _name, Shader* _shader);
+Shader* addShader(const std::string& _name, const std::string& _fragSrc = "", const std::string& _vertSrc = "");
 
-Shader* getShader();
-Shader* getShader(const std::string& _name);
 std::vector<std::string> getShaderNames();
 Shader* getPointShader();
 Shader* getStrokeShader();
@@ -307,9 +305,12 @@ Shader* getSpline2DShader();
 Shader* getSpline3DShader();
 Shader* getFillShader();
 void    resetShader();
-void    shader(Shader& _shader);
-void    shader(Shader* _shader);
-void    shader(const std::string& _name);
+
+Shader* shader(Shader& _shader);
+Shader* shader(Shader* _shader);
+Shader* shader(const std::string& _name);
+Shader* shader();
+
 
 // TEXTURES
 // -----------------------------
