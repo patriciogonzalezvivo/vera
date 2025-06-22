@@ -1207,6 +1207,14 @@ Shader* createShader(DefaultShaders _frag, DefaultShaders _vert) {
     return s;
 }
 
+std::vector<std::string> getShaderNames() {
+    std::vector<std::string> names;
+    for (ShadersMap::iterator it = scene->shaders.begin(); it != scene->shaders.end(); ++it) {
+        names.push_back(it->first);
+    }
+    return names;
+}
+
 Shader* addShader(const std::string& _name, Shader* _shader) { scene->shaders[_name] = _shader; return _shader; }
 Shader* addShader(const std::string& _name, Shader& _shader) { return addShader(_name, &_shader); }
 Shader* addShader(const std::string& _name, const std::string& _frag, const std::string& _vert) {
@@ -1368,21 +1376,14 @@ void addTexture(const std::string& _name, const vera::Image& _image, TextureFilt
         delete tex;
 }
 
-Texture* getTexture(const std::string& _name) {
+Texture* texture(const std::string _name, const std::string _uniform_name) {
     vera::TexturesMap::iterator it = scene->textures.find(_name);
     if (it != scene->textures.end())
-        return it->second;
-    else
-        return nullptr;
+        return texture(it->second, _uniform_name);
+    return nullptr;
 }
-
-void texture(const std::string _name, const std::string _uniform_name) {
-    vera::TexturesMap::iterator it = scene->textures.find(_name);
-    if (it != scene->textures.end())
-        texture(it->second, _uniform_name);
-}
-void texture(Texture& _texture, const std::string _uniform_name) { texture(&_texture, _uniform_name); }
-void texture(Texture* _texture, const std::string _uniform_name) {
+Texture* texture(Texture& _texture, const std::string _uniform_name) { return texture(&_texture, _uniform_name); }
+Texture* texture(Texture* _texture, const std::string _uniform_name) {
     if (shaderPtr == nullptr)
         shaderPtr = getFillShader();
     
@@ -1393,6 +1394,8 @@ void texture(Texture* _texture, const std::string _uniform_name) {
     shaderPtr->setUniformTexture(uniform_name, _texture, shaderPtr->textureIndex );
     shaderPtr->setUniform(uniform_name + "Resolution", (float)_texture->getWidth(), (float)_texture->getHeight());
     shaderPtr->textureIndex++;
+
+    return _texture;
 }
 
 // void loadModel( const std::string& _filename ) {

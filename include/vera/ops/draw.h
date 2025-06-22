@@ -299,11 +299,6 @@ Shader* addShader(const std::string& _name, Shader* _shader);
 Shader* addShader(const std::string& _name, const std::string& _fragSrc = "", const std::string& _vertSrc = "");
 
 std::vector<std::string> getShaderNames();
-Shader* getPointShader();
-Shader* getStrokeShader();
-Shader* getSpline2DShader();
-Shader* getSpline3DShader();
-Shader* getFillShader();
 void    resetShader();
 
 Shader* shader(Shader& _shader);
@@ -316,10 +311,9 @@ Shader* shader();
 // -----------------------------
 void    addTexture(const std::string& _name, const std::string& _filename, bool _vFlip = false, TextureFilter _filter = LINEAR, TextureWrap _wrap = REPEAT);
 void    addTexture(const std::string& _name, const vera::Image& _image, TextureFilter _filter = LINEAR, TextureWrap _wrap = REPEAT);
-Texture* getTexture(const std::string& _name);
-void    texture(Texture& _texture, const std::string _uniform_name = "");
-void    texture(Texture* _texture, const std::string _uniform_name = "");
-void    texture(const std::string _name, const std::string _uniform_name = "");
+Texture* texture(Texture& _texture, const std::string _uniform_name = "");
+Texture* texture(Texture* _texture, const std::string _uniform_name = "");
+Texture* texture(const std::string _name, const std::string _uniform_name = "");
 // textureMode()
 // textureWrap()
 
