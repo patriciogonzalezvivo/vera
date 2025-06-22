@@ -158,21 +158,22 @@ void resetCamera() {
     setDepthTest(false);
 };
 
-void addCamera(Camera& _camera, const std::string& _name) { addCamera(&_camera, _name); }
-void addCamera(Camera* _camera, const std::string& _name) { main_scene->cameras[_name] = _camera; }
-
-Camera* getCamera(const std::string& _name) {
-    CamerasMap::iterator it = main_scene->cameras.find(_name);
-    if (it != main_scene->cameras.end())
-        return it->second;
-    else
-        return nullptr;
-}
+void addCamera(const std::string& _name, Camera& _camera) { addCamera(_name, &_camera); }
+void addCamera(const std::string& _name, Camera* _camera) { main_scene->cameras[_name] = _camera; }
 
 void perspective(float _fovy, float _aspect, float _near, float _far) {
-    Camera* cam = createCamera("perspective");
-    cam->setProjection( PERSPECTIVE );
-    // cam->setProjection( glm::perspective(_fovy, _aspect, _near, _far) );
+    Camera* cam;
+
+    CamerasMap::iterator it = main_scene->cameras.find("perspective");
+    if (it != main_scene->cameras.end()) {
+        cam = it->second;
+    }
+    else {
+        cam = new Camera();
+        main_scene->cameras["perspective"] = cam;
+        cam->setProjection( PERSPECTIVE );
+    }
+    
     cam->setAspect(_aspect);
     cam->setFOV(_fovy);
     cam->setClipping(_near, _far);
@@ -180,41 +181,52 @@ void perspective(float _fovy, float _aspect, float _near, float _far) {
 }
 
 void ortho(float _left, float _right, float _bottom, float _top,  float _near, float _far) {
-    Camera* cam = createCamera("ortho");
+    Camera* cam;
+
+    CamerasMap::iterator it = main_scene->cameras.find("ortho");
+    if (it != main_scene->cameras.end()) {
+        cam = it->second;
+    }
+    else {
+        cam = new Camera();
+        main_scene->cameras["ortho"] = cam;
+        cam->setProjection( ORTHO );
+    }
+
     cam->setProjection( glm::ortho(  _left , _right, _bottom, _top, _near, _top) );
     main_scene->activeCamera = cam;
 }
 
-glm::mat4 getProjectionViewWorldMatrix() {
+glm::mat4 projectionViewWorldMatrix() {
     if (main_scene->activeCamera)
         return main_scene->activeCamera->getProjectionViewMatrix() * matrix_world; 
     else
         return getFlippedOrthoMatrix() * matrix_world;
 }
 
-const glm::mat4& getProjectionViewMatrix() {
+const glm::mat4& projectionViewMatrix() {
     if (main_scene->activeCamera)
         return main_scene->activeCamera->getProjectionViewMatrix(); 
     else
         return getFlippedOrthoMatrix();
 }
 
-const glm::mat4& getProjectionMatrix() {
+const glm::mat4& projectionMatrix() {
     if (main_scene->activeCamera)
         return main_scene->activeCamera->getProjectionMatrix(); 
     else
         return getFlippedOrthoMatrix();
 }
 
-const glm::mat4& getViewMatrix() {
+const glm::mat4& viewMatrix() {
     if (main_scene->activeCamera)
         return main_scene->activeCamera->getViewMatrix(); 
     else
         return getFlippedOrthoMatrix();
 }
 
-const glm::mat4& getWorldMatrix() { return matrix_world; }
-glm::mat4* getWorldMatrixPtr() { return &matrix_world; }
+const glm::mat4& worldMatrix() { return matrix_world; }
+glm::mat4* worldMatrixPtr() { return &matrix_world; }
 
 Shader* pointShader() {
     if (points_shader == nullptr) {
@@ -648,8 +660,8 @@ void triangles(const std::vector<glm::vec3>& _positions, Shader* _program) {
 
 void rectAlign(VerticalAlign _align) { shapeVAlign = _align; }
 void rectAlign(HorizontalAlign _align) { shapeHAlign = _align; }
-VerticalAlign getRectVerticalAlign() { return shapeVAlign; }
-HorizontalAlign getRectHorizontalAlign() { return shapeHAlign; }
+VerticalAlign rectVerticalAlign() { return shapeVAlign; }
+HorizontalAlign rectHorizontalAlign() { return shapeHAlign; }
 
 void rect(const glm::vec2& _pos, const glm::vec2& _size, Shader* _program) { rect(_pos.x, _pos.y, _size.x, _size.y, _program); }
 void rect(float _x, float _y, float _w, float _h, Shader* _program) {
@@ -796,7 +808,7 @@ void sphere(float _radius, int _res, Shader* _program) {
 
 // IMAGE
 // 
-Vbo* getBillboard() { return billboard_vbo; }
+Vbo* billboard() { return billboard_vbo; }
 
 Image loadImage(const std::string& _name) {
     Image img;
@@ -1115,7 +1127,7 @@ void text(const std::string& _text, float _x, float _y, Font* _font) {
         _font = font();
     _font->setColor( fill_color );
 
-    glm::vec4 pos = getProjectionViewWorldMatrix() * glm::vec4(_x, _y, 0.0f, 1.0f);
+    glm::vec4 pos = projectionViewWorldMatrix() * glm::vec4(_x, _y, 0.0f, 1.0f);
     pos.x /= pos.w;
     pos.y /= pos.w;
     pos.x = (pos.x + 1.0f) * 0.5f * vera::getViewport().z;
@@ -1130,7 +1142,7 @@ void text(const std::string& _text, const glm::vec3& _pos, Font* _font) {
 
     Camera* cam = main_scene->activeCamera;
 
-    glm::vec3 screenPos = cam->worldToScreen(_pos, getWorldMatrixPtr());
+    glm::vec3 screenPos = cam->worldToScreen(_pos, worldMatrixPtr());
     screenPos.x *= vera::getViewport().z;
     screenPos.y *= vera::getViewport().w;
 
@@ -1488,17 +1500,15 @@ Scene* scene() { return main_scene; }
 void lights() { lights_enabled = true; }
 void noLights() { lights_enabled = false; }
 
-Light* createLight(const std::string& _name) {
-    Light* light = new Light();
-    addLight(light, _name);
-    return light;
+Light* createLight() {
+    return new Light();
 }
 
-void addLight(Light& _light, const std::string& _name) { 
+void addLight(const std::string& _name, Light& _light) { 
     main_scene->lights[_name] = &_light; 
 }
 
-void addLight(Light* _light, const std::string& _name) { 
+void addLight(const std::string& _name, Light* _light) { 
     main_scene->lights[_name] = _light;
 }
 
@@ -1511,11 +1521,11 @@ void addLabel(Label* _label) {
 
 // Ephymeral Label
 void addLabel(const char* _text, glm::vec3 _position, LabelType _type, float _margin) {
-    glm::vec3 pos = getWorldMatrix() * glm::vec4(_position, 1.0f);
+    glm::vec3 pos = worldMatrix() * glm::vec4(_position, 1.0f);
     addLabel( new vera::Label(std::string(_text), pos, _type, _margin) );
 }
 void addLabel(const std::string& _text, glm::vec3 _position, LabelType _type, float _margin) {
-    glm::vec3 pos = getWorldMatrix() * glm::vec4(_position, 1.0f);
+    glm::vec3 pos = worldMatrix() * glm::vec4(_position, 1.0f);
     addLabel( new vera::Label(_text, pos, _type, _margin) );
 }
 
@@ -1555,7 +1565,7 @@ void labelRadialCenter(float _x, float _y) { labelSettings().radialCenter = glm:
 void labelRadialCenter(const glm::vec2& _center) { labelSettings().radialCenter = _center; }
 void labelRadialCenter(const glm::vec3& _center) { 
     Camera *cam = main_scene->activeCamera != nullptr ? main_scene->activeCamera : main_scene->lastCamera;
-    glm::vec2 center = cam->worldToScreen(_center, getWorldMatrixPtr());
+    glm::vec2 center = cam->worldToScreen(_center, worldMatrixPtr());
     labelRadialCenter( center );
 }
 

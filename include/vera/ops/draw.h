@@ -22,6 +22,9 @@
 #define EGL_EGLEXT_PROTOTYPES
 #endif
 
+// This drawing interface is inspired by Processing (https://processing.org/) and p5.js (https://p5js.org/)
+//
+
 namespace vera {
 
 #ifndef CIRCLE_RESOLUTION
@@ -95,12 +98,12 @@ const glm::vec4& getStrokeColor();
 void resetMatrix();
 void applyMatrix(const glm::mat3& _mat );
 void applyMatrix(const glm::mat4& _mat );
-glm::mat4 getProjectionViewWorldMatrix();
-const glm::mat4& getProjectionViewMatrix();
-const glm::mat4& getProjectionMatrix();
-const glm::mat4& getViewMatrix();
-const glm::mat4& getWorldMatrix();
-glm::mat4* getWorldMatrixPtr();
+glm::mat4 projectionViewWorldMatrix();
+const glm::mat4& projectionViewMatrix();
+const glm::mat4& projectionMatrix();
+const glm::mat4& viewMatrix();
+const glm::mat4& worldMatrix();
+glm::mat4* worldMatrixPtr();
 
 void rotate(float _rad);
 void rotateX(float _rad);
@@ -174,8 +177,8 @@ void circle(float _x, float _y, float _r, Shader* _program = nullptr);
 void circle(const glm::vec2& _pos, float _r, Shader* _program = nullptr);
 // ellipse()
 
-HorizontalAlign getRectHorizontalAlign();
-VerticalAlign   getRectVerticalAlign();
+HorizontalAlign rectHorizontalAlign();
+VerticalAlign   rectVerticalAlign();
 
 // 3D Primitives
 void plane(Shader* _program = nullptr);
@@ -222,7 +225,7 @@ void image(const Fbo &_fbo, float _x, float _y, float _width = 0, float _height 
 void image(const Fbo *_fbo, float _x, float _y, float _width = 0, float _height = 0);
 void imageDepth(const Fbo &_fbo, float _x, float _y, float _width = 0, float _height = 0, float _far = 100.0f, float _near = 0.001f);
 void imageDepth(const Fbo *_fbo, float _x, float _y, float _width = 0, float _height = 0, float _far = 100.0f, float _near = 0.001f);
-Vbo* getBillboard();
+Vbo* billboard();
 
 // tint(v1, v2, v3, [alpha])
 // tint(value)
@@ -272,10 +275,10 @@ Font* font(const std::string& _name);
 
 Font* textFont(const std::string& _name);
 Font* textFont(const std::string& _name, float _size);
-void textAlign(HorizontalAlign _align, Font* _font = nullptr);
-void textAlign(VerticalAlign _align, Font* _font = nullptr);
-void textAngle(float _angle, Font* _font = nullptr);
-void textSize(float _size, Font* _font = nullptr);
+void  textAlign(HorizontalAlign _align, Font* _font = nullptr);
+void  textAlign(VerticalAlign _align, Font* _font = nullptr);
+void  textAngle(float _angle, Font* _font = nullptr);
+void  textSize(float _size, Font* _font = nullptr);
 float textWidth(const std::string& _text, Font* _font = nullptr);
 float textHeight(Font* _font = nullptr);
 float textHeight(const std::string& _text, Font* _font = nullptr);
@@ -348,9 +351,9 @@ void perspective(float _fovy, float _aspect, float _near, float _far);
 void ortho(float _left, float _right, float _bottom, float _top,  float _near, float _far);
 
 // frustum()
-Camera* createCamera(const std::string& _name = "unnamed");
-void addCamera(Camera& _camera, const std::string& _name = "unnamed");
-void addCamera(Camera* _camera, const std::string& _name = "unnamed");
+Camera* createCamera();
+void addCamera(const std::string& _name, Camera& _camera);
+void addCamera(const std::string& _name, Camera* _camera);
 
 void setCamera(const std::string& _name);
 void setCamera(Camera& _camera);
@@ -371,9 +374,10 @@ void resetCamera();
 // spotLight()
 void lights();
 void noLights();
-Light* createLight(const std::string& _name = "default");
-void addLight(Light& _light, const std::string& _name = "default");
-void addLight(Light* _light, const std::string& _name = "default");
+
+Light* createLight();
+void addLight(const std::string& _name, Light& _light);
+void addLight(const std::string& _name, Light* _light);
 
 // MATERIAL
 // -----------------------------

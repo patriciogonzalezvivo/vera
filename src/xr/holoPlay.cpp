@@ -143,7 +143,7 @@ void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _
         quilt_shader.setUniformTexture("u_scene", &quilt_fbo, 0);
         quilt_shader.setUniform("u_resolution", float(vera::getWindowWidth()), float(vera::getWindowHeight()) );
         quilt_shader.setUniform("u_modelViewProjectionMatrix", glm::mat4(1.));
-        vera::getBillboard()->render( &quilt_shader );
+        vera::billboard()->render( &quilt_shader );
     }
 }
 

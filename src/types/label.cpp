@@ -124,7 +124,7 @@ void Label::updateVisibility(Camera* _cam, float margin) {
         _cam = scene()->activeCamera;
 
     if (m_bbox) {
-        m_screenBox = _cam->worldToScreen(*m_bbox, getWorldMatrixPtr());
+        m_screenBox = _cam->worldToScreen(*m_bbox, worldMatrixPtr());
         m_screenBox.min.x *= vera::getWindowWidth(); 
         m_screenBox.max.x *= vera::getWindowWidth();
         m_screenBox.min.y *= vera::getWindowHeight(); 
@@ -132,7 +132,7 @@ void Label::updateVisibility(Camera* _cam, float margin) {
         m_screenPos = m_screenBox.getCenter();
     }
     else {
-        m_screenPos = _cam->worldToScreen(m_worldPos, getWorldMatrixPtr());
+        m_screenPos = _cam->worldToScreen(m_worldPos, worldMatrixPtr());
         m_screenPos.x *= vera::getWindowWidth();
         m_screenPos.y *= vera::getWindowHeight();
         m_screenBox.set(m_screenPos);
