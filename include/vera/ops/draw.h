@@ -253,12 +253,14 @@ Vbo* getBillboard();
 
 // FONT
 // -----------------------------
-Font* getFont();
-Font* getFont(const std::string& _name);
 
-Font* loadFont(const std::string& _file, const std::string& _name = "default");
-void  addFont(Font& _font, const std::string _name);
-void  addFont(Font* _font, const std::string _name);
+Font* loadFont(const std::string& _file);
+void  addFont(const std::string _name, Font& _font);
+void  addFont(const std::string _name, Font* _font);
+void  addFont(const std::string _name, const std::string& _file);
+
+Font* font();
+Font* font(const std::string& _name);
 
 // TEXT
 // -----------------------------
@@ -269,6 +271,7 @@ void  addFont(Font* _font, const std::string _name);
 // textWrap()
 
 Font* textFont(const std::string& _name);
+Font* textFont(const std::string& _name, float _size);
 void textAlign(HorizontalAlign _align, Font* _font = nullptr);
 void textAlign(VerticalAlign _align, Font* _font = nullptr);
 void textAngle(float _angle, Font* _font = nullptr);
@@ -298,7 +301,7 @@ Shader* addShader(const std::string& _name, Shader& _shader);
 Shader* addShader(const std::string& _name, Shader* _shader);
 Shader* addShader(const std::string& _name, const std::string& _fragSrc = "", const std::string& _vertSrc = "");
 
-std::vector<std::string> getShaderNames();
+std::vector<std::string> listShaders();
 void    resetShader();
 
 Shader* shader(Shader& _shader);
@@ -311,9 +314,19 @@ Shader* shader();
 // -----------------------------
 void    addTexture(const std::string& _name, const std::string& _filename, bool _vFlip = false, TextureFilter _filter = LINEAR, TextureWrap _wrap = REPEAT);
 void    addTexture(const std::string& _name, const vera::Image& _image, TextureFilter _filter = LINEAR, TextureWrap _wrap = REPEAT);
+
+Texture* texture(const std::string _name);
+Texture* texture(const std::string _name, const std::string _uniform_name);
 Texture* texture(Texture& _texture, const std::string _uniform_name = "");
 Texture* texture(Texture* _texture, const std::string _uniform_name = "");
-Texture* texture(const std::string _name, const std::string _uniform_name = "");
+
+// texture(Image& _image);
+// texture(Image* _image);
+// textire(Fbo& _fbo);
+// texture(Fbo* _fbo);
+// texture(TextureStream& _stream);
+// texture(TextureStream* _stream); 
+
 // textureMode()
 // textureWrap()
 
@@ -324,27 +337,29 @@ Texture* texture(const std::string _name, const std::string _uniform_name = "");
 
 // SCENE
 // -----------------------------
-void setScene(Scene& scene);
-void setScene(Scene* scene);
-Scene* getScene();
+void scene(Scene& scene);
+void scene(Scene* scene);
+Scene* scene();
 
 // CAMERA
 // -----------------------------
 // camera()
 void perspective(float _fovy, float _aspect, float _near, float _far);
 void ortho(float _left, float _right, float _bottom, float _top,  float _near, float _far);
+
 // frustum()
 Camera* createCamera(const std::string& _name = "unnamed");
 void addCamera(Camera& _camera, const std::string& _name = "unnamed");
 void addCamera(Camera* _camera, const std::string& _name = "unnamed");
+
 void setCamera(const std::string& _name);
 void setCamera(Camera& _camera);
 void setCamera(Camera* _camera);
 void resetCamera();
 
-Camera* getCamera();
-Camera* getLastCamera();
-Camera* getCamera(const std::string& _name);
+// Camera* getCamera();
+// Camera* getLastCamera();
+// Camera* getCamera(const std::string& _name);
 
 // LIGHT
 // -----------------------------

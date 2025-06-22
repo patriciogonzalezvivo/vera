@@ -66,7 +66,7 @@ int         sphere_resolution = 0;
 float       sphere_radius    = 0.0f;
 
 // 3D Scene
-Scene*      scene           = new Scene();
+Scene*      main_scene           = new Scene();
 
 bool        lights_enabled  = false;
 
@@ -78,9 +78,9 @@ std::stack<glm::mat4> matrix_stack;
 void print(const std::string& _text) { std::cout << _text << std::endl; }
 void frameRate(int _fps) { setFps(_fps); }
 
-void flagChange() { scene->flagChange(); }
-bool haveChanged()  { return scene->haveChange(); }
-void resetChange() { scene->resetChange(); }
+void flagChange() { main_scene->flagChange(); }
+bool haveChanged()  { return main_scene->haveChange(); }
+void resetChange() { main_scene->resetChange(); }
 
 float displayDensity() { return getDisplayPixelRatio(); }
 float pixelDensity() { return pd; }
@@ -117,10 +117,10 @@ void pop() {
 // 
 Camera* createCamera(const std::string& _name) {
     Camera* cam;
-    CamerasMap::iterator it = scene->cameras.find(_name);
-    if (it == scene->cameras.end()) {
+    CamerasMap::iterator it = main_scene->cameras.find(_name);
+    if (it == main_scene->cameras.end()) {
         cam = new Camera();
-        scene->cameras[_name] = cam;
+        main_scene->cameras[_name] = cam;
     }
     else 
         cam = it->second;
@@ -131,8 +131,8 @@ Camera* createCamera(const std::string& _name) {
 }
 
 void setCamera(const std::string& _name) {
-    CamerasMap::iterator it = scene->cameras.find(_name);
-    if (it != scene->cameras.end()) {
+    CamerasMap::iterator it = main_scene->cameras.find(_name);
+    if (it != main_scene->cameras.end()) {
         setCamera(it->second);
     }
     else {
@@ -142,29 +142,28 @@ void setCamera(const std::string& _name) {
 
 void setCamera(Camera& _camera) { setCamera(&_camera); }
 void setCamera(Camera* _camera) {
-    scene->activeCamera = _camera;
+    main_scene->activeCamera = _camera;
 
-    if (scene->activeCamera)
-        scene->activeCamera->begin();
+    if (main_scene->activeCamera)
+        main_scene->activeCamera->begin();
 };
 
 void resetCamera() {
-    if (scene->activeCamera) {
-        scene->activeCamera->end();
-        scene->lastCamera = scene->activeCamera;
+    if (main_scene->activeCamera) {
+        main_scene->activeCamera->end();
+        main_scene->lastCamera = main_scene->activeCamera;
     }
 
-    scene->activeCamera = nullptr;
+    main_scene->activeCamera = nullptr;
     setDepthTest(false);
 };
 
 void addCamera(Camera& _camera, const std::string& _name) { addCamera(&_camera, _name); }
-void addCamera(Camera* _camera, const std::string& _name) { scene->cameras[_name] = _camera; }
-Camera* getCamera() { return scene->activeCamera; }
-Camera* getLastCamera() { return scene->lastCamera; }
+void addCamera(Camera* _camera, const std::string& _name) { main_scene->cameras[_name] = _camera; }
+
 Camera* getCamera(const std::string& _name) {
-    CamerasMap::iterator it = scene->cameras.find(_name);
-    if (it != scene->cameras.end())
+    CamerasMap::iterator it = main_scene->cameras.find(_name);
+    if (it != main_scene->cameras.end())
         return it->second;
     else
         return nullptr;
@@ -177,39 +176,39 @@ void perspective(float _fovy, float _aspect, float _near, float _far) {
     cam->setAspect(_aspect);
     cam->setFOV(_fovy);
     cam->setClipping(_near, _far);
-    scene->activeCamera = cam;
+    main_scene->activeCamera = cam;
 }
 
 void ortho(float _left, float _right, float _bottom, float _top,  float _near, float _far) {
     Camera* cam = createCamera("ortho");
     cam->setProjection( glm::ortho(  _left , _right, _bottom, _top, _near, _top) );
-    scene->activeCamera = cam;
+    main_scene->activeCamera = cam;
 }
 
 glm::mat4 getProjectionViewWorldMatrix() {
-    if (scene->activeCamera)
-        return scene->activeCamera->getProjectionViewMatrix() * matrix_world; 
+    if (main_scene->activeCamera)
+        return main_scene->activeCamera->getProjectionViewMatrix() * matrix_world; 
     else
         return getFlippedOrthoMatrix() * matrix_world;
 }
 
 const glm::mat4& getProjectionViewMatrix() {
-    if (scene->activeCamera)
-        return scene->activeCamera->getProjectionViewMatrix(); 
+    if (main_scene->activeCamera)
+        return main_scene->activeCamera->getProjectionViewMatrix(); 
     else
         return getFlippedOrthoMatrix();
 }
 
 const glm::mat4& getProjectionMatrix() {
-    if (scene->activeCamera)
-        return scene->activeCamera->getProjectionMatrix(); 
+    if (main_scene->activeCamera)
+        return main_scene->activeCamera->getProjectionMatrix(); 
     else
         return getFlippedOrthoMatrix();
 }
 
 const glm::mat4& getViewMatrix() {
-    if (scene->activeCamera)
-        return scene->activeCamera->getViewMatrix(); 
+    if (main_scene->activeCamera)
+        return main_scene->activeCamera->getViewMatrix(); 
     else
         return getFlippedOrthoMatrix();
 }
@@ -217,7 +216,7 @@ const glm::mat4& getViewMatrix() {
 const glm::mat4& getWorldMatrix() { return matrix_world; }
 glm::mat4* getWorldMatrixPtr() { return &matrix_world; }
 
-Shader* getPointShader() {
+Shader* pointShader() {
     if (points_shader == nullptr) {
         points_shader = new Shader();
         points_shader->setSource( getDefaultSrc(FRAG_POINTS), getDefaultSrc(VERT_POINTS) );
@@ -227,7 +226,7 @@ Shader* getPointShader() {
     return points_shader;
 }
 
-Shader* getStrokeShader() {
+Shader* strokeShader() {
     if (stroke_shader == nullptr) {
         stroke_shader = new Shader();
         stroke_shader->setSource( getDefaultSrc(FRAG_STROKE), getDefaultSrc(VERT_STROKE) );
@@ -237,7 +236,7 @@ Shader* getStrokeShader() {
     return stroke_shader;
 }
 
-Shader* getSpline2DShader() {
+Shader* spline2DShader() {
     if (spline_2d_shader == nullptr) {
         spline_2d_shader = new Shader();
         spline_2d_shader->setSource( getDefaultSrc(FRAG_SPLINE_2D), getDefaultSrc(VERT_SPLINE_2D) );
@@ -247,7 +246,7 @@ Shader* getSpline2DShader() {
     return spline_2d_shader;
 }
 
-Shader* getSpline3DShader() {
+Shader* spline3DShader() {
     if (spline_3d_shader == nullptr) {
         spline_3d_shader = new Shader();
         spline_3d_shader->setSource( getDefaultSrc(FRAG_SPLINE_3D), getDefaultSrc(VERT_SPLINE_3D) );
@@ -257,7 +256,7 @@ Shader* getSpline3DShader() {
     return spline_3d_shader;
 }
 
-Shader* getFillShader() {
+Shader* fillShader() {
     if (fill_shader == nullptr) {
         fill_shader = new Shader();
         fill_shader->setSource( getDefaultSrc(FRAG_FILL), getDefaultSrc(VERT_FILL) );
@@ -296,7 +295,7 @@ void clear( const glm::vec4& _color ) {
     background_color = _color;
     glClearColor(_color.r, _color.g, _color.b, _color.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-    // if (scene->activeCamera != nullptr || getDepthTest())
+    // if (main_scene->activeCamera != nullptr || getDepthTest())
     //     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     // else
     //     glClear(GL_COLOR_BUFFER_BIT );
@@ -313,7 +312,7 @@ void fill( const glm::vec4& _color ) {
     fill_enabled = true;
 
     if (shaderPtr == nullptr || shaderPtr != fill_shader)
-        shaderPtr = getFillShader();
+        shaderPtr = fillShader();
 }
 
 const glm::vec4& getStrokeColor() { return stroke_color; }
@@ -327,7 +326,7 @@ void stroke( const glm::vec4& _color ) {
     stroke_enabled = true;
 
     if (shaderPtr == nullptr || shaderPtr != fill_shader)
-        shaderPtr = getFillShader();
+        shaderPtr = fillShader();
 }
 void strokeWeight( float _weight) {
     stroke_weight = _weight * pd;
@@ -341,7 +340,7 @@ void pointShape( PointShape _shape) { points_shape = _shape; }
 //
 void points(const std::vector<glm::vec2>& _positions, Shader* _program) {
     if (_program == nullptr)
-        _program = getPointShader();
+        _program = pointShader();
     
     shader(_program);
 
@@ -368,7 +367,7 @@ void points(const std::vector<glm::vec2>& _positions, Shader* _program) {
 
 void points(const std::vector<glm::vec3>& _positions, Shader* _program) {
     if (_program == nullptr) 
-        _program = getPointShader();
+        _program = pointShader();
     
     shader(_program);
 
@@ -449,7 +448,7 @@ void line(const std::vector<glm::vec2>& _positions, Shader* _program) {
     
     if (stroke_weight > 0.0f && stroke_weight <= 1.0f) {
         if (_program == nullptr)
-            _program = getStrokeShader();
+            _program = strokeShader();
        
         shader(_program);
         _program->setUniform("u_color", stroke_color);
@@ -475,7 +474,7 @@ void line(const std::vector<glm::vec2>& _positions, Shader* _program) {
         Mesh mesh = vera::lineMesh(_positions, stroke_weight);
         Vbo vbo = Vbo( mesh );
         if (_program == nullptr)
-            _program = getSpline2DShader();
+            _program = spline2DShader();
         model(vbo, _program);
     }
 };
@@ -495,7 +494,7 @@ void line(const std::vector<glm::vec3>& _positions, Shader* _program) {
 
     if (stroke_weight > 0.0f && stroke_weight <= 1.0f) {
         if (_program == nullptr)
-            _program = getStrokeShader();
+            _program = strokeShader();
 
         shader(_program);
         _program->setUniform("u_color", stroke_color);
@@ -520,7 +519,7 @@ void line(const std::vector<glm::vec3>& _positions, Shader* _program) {
         Mesh mesh = vera::lineMesh(_positions);
         Vbo vbo = Vbo( mesh );
         if (_program == nullptr)
-            _program = getSpline3DShader();
+            _program = spline3DShader();
         model(vbo, _program);
     }
 };
@@ -607,7 +606,7 @@ void triangle(const glm::vec3& _center, glm::vec3 _up, float _radius, Shader* _p
 
 void triangles(const std::vector<glm::vec2>& _positions, Shader* _program) {
     if (_program == nullptr)
-        _program = getFillShader();
+        _program = fillShader();
 
     shader(_program);
 
@@ -628,7 +627,7 @@ void triangles(const std::vector<glm::vec2>& _positions, Shader* _program) {
 
 void triangles(const std::vector<glm::vec3>& _positions, Shader* _program) {
     if (_program == nullptr)
-        _program = getFillShader();
+        _program = fillShader();
 
     shader(_program);
 
@@ -680,7 +679,7 @@ void rect(float _x, float _y, float _w, float _h, Shader* _program) {
 
 void rect(const BoundingBox& _bbox, Shader* _program) {
     if (_program == nullptr)
-        _program = getFillShader();
+        _program = fillShader();
 
     std::vector<glm::vec2> coorners = { glm::vec2(_bbox.min.x, _bbox.min.y), 
                                         glm::vec2(_bbox.max.x, _bbox.min.y), 
@@ -808,41 +807,41 @@ Image loadImage(const std::string& _name) {
 void image(const Image &_img) { image(&_img); }
 void image(const Image *_img) {
     std::string name = _img->getFilePath();
-    TexturesMap::iterator it = scene->textures.find( name );
-    if (it == scene->textures.end())
-        scene->textures[ name ] = new Texture();
-    scene->textures[ name ]->load( _img );
-    image( scene->textures[ name ] );
+    TexturesMap::iterator it = main_scene->textures.find( name );
+    if (it == main_scene->textures.end())
+        main_scene->textures[ name ] = new Texture();
+    main_scene->textures[ name ]->load( _img );
+    image( main_scene->textures[ name ] );
 }
 
 void image(const Image &_img, float _x, float _y, float _width, float _height) { image(&_img, _x, _y, _width, _height); }
 void image(const Image *_img, float _x, float _y, float _width, float _height) {
     std::string name = _img->getFilePath();
-    TexturesMap::iterator it = scene->textures.find( name );
-    if (it == scene->textures.end())
-        scene->textures[ name ] = new Texture();
-    scene->textures[ name ]->load( _img );
-    image( scene->textures[ name ], _x, _y, _width, _height );
+    TexturesMap::iterator it = main_scene->textures.find( name );
+    if (it == main_scene->textures.end())
+        main_scene->textures[ name ] = new Texture();
+    main_scene->textures[ name ]->load( _img );
+    image( main_scene->textures[ name ], _x, _y, _width, _height );
 }
 
 void image(const std::string &_path) {
-    TexturesMap::iterator it = scene->textures.find( _path );
-    if (it == scene->textures.end()) {
+    TexturesMap::iterator it = main_scene->textures.find( _path );
+    if (it == main_scene->textures.end()) {
         Texture* tex = new Texture();
         tex->load( _path );
-        scene->textures[ _path ] = tex;
+        main_scene->textures[ _path ] = tex;
     }
-    image( scene->textures[ _path ] );
+    image( main_scene->textures[ _path ] );
 }
 
 void image(const std::string &_path, float _x, float _y, float _width, float _height) {
-    TexturesMap::iterator it = scene->textures.find( _path );
-    if (it == scene->textures.end()) {
+    TexturesMap::iterator it = main_scene->textures.find( _path );
+    if (it == main_scene->textures.end()) {
         Texture* tex = new Texture();
         tex->load( _path );
-        scene->textures[ _path ] = tex;
+        main_scene->textures[ _path ] = tex;
     }
-    image( scene->textures[ _path ], _x, _y, _width, _height );
+    image( main_scene->textures[ _path ], _x, _y, _width, _height );
 }
 
 
@@ -1007,61 +1006,73 @@ void imageDepth(const Fbo *_fbo, float _x, float _y, float _width, float _height
 
 // FONT
 //
-Font* getDefaultFont() { return scene->getDefaultFont(); }
-Font* loadFont(const std::string& _file, const std::string& _name) {
-    scene->addFont(_name, _file);
-    return scene->fonts[_name];
+Font* loadFont(const std::string& _file) {
+    Font* newFont = new Font();
+    newFont->load( _file );
+    return newFont;
 }
-void  addFont(Font& _font, const std::string _name) { addFont(&_font, _name); }
-void  addFont(Font* _font, const std::string _name) { scene->fonts[_name] = _font; }
 
-Font* getFont() { 
-    if (!scene->activeFont)
-        scene->activeFont = scene->getDefaultFont();
-
-    return scene->activeFont; 
+void  addFont(const std::string _name, Font& _font) { addFont(_name, &_font); }
+void  addFont(const std::string _name, Font* _font) { main_scene->fonts[_name] = _font; }
+void  addFont(const std::string _name, const std::string& _file) { 
+    main_scene->addFont(_name, _file);
 }
-Font* getFont(const std::string& _name) { 
-    FontsMap::iterator it = scene->fonts.find(_name);
-    if (it != scene->fonts.end())
+
+Font* font() { 
+    if (!main_scene->activeFont)
+        main_scene->activeFont = main_scene->getDefaultFont();
+
+    return main_scene->activeFont;
+}
+
+Font* font(const std::string& _name) { 
+    FontsMap::iterator it = main_scene->fonts.find(_name);
+    if (it != main_scene->fonts.end())
         return it->second;
-    return nullptr;
+    return main_scene->activeFont;
 }
 
 //  FONT
 //
 Font* textFont(const std::string& _name) { 
     if (_name == "default")
-        scene->getDefaultFont();
+        main_scene->getDefaultFont();
 
-    FontsMap::iterator it = scene->fonts.find(_name);
-    if (it != scene->fonts.end())
-        scene->activeFont = it->second;
+    FontsMap::iterator it = main_scene->fonts.find(_name);
+    if (it != main_scene->fonts.end())
+        main_scene->activeFont = it->second;
 
-    return scene->activeFont; 
+    return main_scene->activeFont; 
+}
+
+Font* textFont(const std::string& _name, float _size) { 
+    Font* f = textFont(_name);
+    if (f)
+        textSize(_size, f);
+    return f;
 }
 
 void textAlign(HorizontalAlign _align, Font* _font) {
     if (_font == nullptr)
-        _font = getFont();
+        _font = font();
     _font->setAlign( _align );
 }
 
 void textAlign(VerticalAlign _align, Font* _font) {
     if (_font == nullptr)
-        _font = getFont();
+        _font = font();
     _font->setAlign( _align );
 }
 
 void textAngle(float _angle, Font* _font) {
     if (_font == nullptr)
-        _font = getFont();
+        _font = font();
     _font->setAngle( _angle );
 }
 
 void textSize(float _size, Font* _font) { 
     if (_font == nullptr)
-        _font = getFont();
+        _font = font();
 
     if (getWindowStyle() == LENTICULAR)
         _font->setSize(_size * 3.0f * pd);
@@ -1071,19 +1082,19 @@ void textSize(float _size, Font* _font) {
 
 float textWidth(const std::string& _text, Font* _font) {
     if (_font == nullptr)
-        _font = getFont();
+        _font = font();
     return _font->getBoundingBox(_text).z;
 }
 
 float textHeight(Font* _font) {
     if (_font == nullptr)
-        _font = getFont();
+        _font = font();
     return _font->getHeight() * getDisplayPixelRatio();
 }
 
 float textHeight(const std::string& _text, Font* _font) {
     if (_font == nullptr)
-        _font = getFont();
+        _font = font();
     return _font->getBoundingBox(_text).w * getDisplayPixelRatio();
 }
 
@@ -1093,7 +1104,7 @@ BoundingBox textBoundingBox(const std::string& _text, float _x, float _y, Font* 
 
 BoundingBox textBoundingBox(const std::string& _text, const glm::vec2& _pos, Font* _font) {
     if (_font == nullptr)
-        _font = getFont();
+        _font = font();
     glm::vec4 bbox = _font->getBoundingBox(_text);
     return BoundingBox(_pos.x + bbox.x, _pos.y + bbox.y, bbox.z * getDisplayPixelRatio(), bbox.w * getDisplayPixelRatio());
 }
@@ -1101,7 +1112,7 @@ BoundingBox textBoundingBox(const std::string& _text, const glm::vec2& _pos, Fon
 void text(const std::string& _text, const glm::vec2& _pos, Font* _font) { text(_text, _pos.x, _pos.y, _font); }
 void text(const std::string& _text, float _x, float _y, Font* _font) {
     if (_font == nullptr)
-        _font = getFont();
+        _font = font();
     _font->setColor( fill_color );
 
     glm::vec4 pos = getProjectionViewWorldMatrix() * glm::vec4(_x, _y, 0.0f, 1.0f);
@@ -1115,9 +1126,9 @@ void text(const std::string& _text, float _x, float _y, Font* _font) {
 
 void text(const std::string& _text, const glm::vec3& _pos, Font* _font) { 
     if (_font == nullptr)
-        _font = getFont();
+        _font = font();
 
-    Camera* cam = getCamera();
+    Camera* cam = main_scene->activeCamera;
 
     glm::vec3 screenPos = cam->worldToScreen(_pos, getWorldMatrixPtr());
     screenPos.x *= vera::getViewport().z;
@@ -1135,7 +1146,7 @@ void text(const std::string& _text, const glm::vec3& _pos, Font* _font) {
 void textHighlight(const std::string& _text, const glm::vec2& _pos, const glm::vec4& _bg, Font* _font) { textHighlight(_text, _pos.x, _pos.y, _bg, _font); }
 void textHighlight(const std::string& _text, float _x , float _y, const glm::vec4& _bg, Font* _font) {
     if (_font == nullptr)
-        _font = getFont();
+        _font = font();
 
     // record sty
     glm::vec4       style_fg = fill_color;
@@ -1207,18 +1218,18 @@ Shader* createShader(DefaultShaders _frag, DefaultShaders _vert) {
     return s;
 }
 
-std::vector<std::string> getShaderNames() {
+std::vector<std::string> listShaders() {
     std::vector<std::string> names;
-    for (ShadersMap::iterator it = scene->shaders.begin(); it != scene->shaders.end(); ++it) {
+    for (ShadersMap::iterator it = main_scene->shaders.begin(); it != main_scene->shaders.end(); ++it) {
         names.push_back(it->first);
     }
     return names;
 }
 
-Shader* addShader(const std::string& _name, Shader* _shader) { scene->shaders[_name] = _shader; return _shader; }
+Shader* addShader(const std::string& _name, Shader* _shader) { main_scene->shaders[_name] = _shader; return _shader; }
 Shader* addShader(const std::string& _name, Shader& _shader) { return addShader(_name, &_shader); }
 Shader* addShader(const std::string& _name, const std::string& _frag, const std::string& _vert) {
-    scene->shaders[_name] = new Shader();
+    main_scene->shaders[_name] = new Shader();
 
     std::string vertSrc = _vert;
     if (vertSrc.empty()) {
@@ -1236,16 +1247,16 @@ Shader* addShader(const std::string& _name, const std::string& _frag, const std:
         fragSrc = loadGlslFrom(fragSrc);
     }
 
-    scene->shaders[_name]->setSource(fragSrc, vertSrc);
+    main_scene->shaders[_name]->setSource(fragSrc, vertSrc);
 
-    return scene->shaders[_name];
+    return main_scene->shaders[_name];
 }
 
 void resetShader() { shaderPtr = nullptr; }
 
 Shader* shader(const std::string& _name) {
-    ShadersMap::iterator it = scene->shaders.find(_name);
-    if (it != scene->shaders.end()) {
+    ShadersMap::iterator it = main_scene->shaders.find(_name);
+    if (it != main_scene->shaders.end()) {
         return shader(it->second);
     }
     return nullptr;
@@ -1289,23 +1300,23 @@ Shader* shader(Shader* _program) {
         #endif
     }
 
-    if (scene->activeCamera) {
-        _program->setUniform("u_modelViewProjectionMatrix", scene->activeCamera->getProjectionViewMatrix() * matrix_world );
-        _program->setUniform("u_projectionMatrix", scene->activeCamera->getProjectionMatrix());
-        _program->setUniform("u_normalMatrix", scene->activeCamera->getNormalMatrix());
-        _program->setUniform("u_viewMatrix", scene->activeCamera->getViewMatrix() );
+    if (main_scene->activeCamera) {
+        _program->setUniform("u_modelViewProjectionMatrix", main_scene->activeCamera->getProjectionViewMatrix() * matrix_world );
+        _program->setUniform("u_projectionMatrix", main_scene->activeCamera->getProjectionMatrix());
+        _program->setUniform("u_normalMatrix", main_scene->activeCamera->getNormalMatrix());
+        _program->setUniform("u_viewMatrix", main_scene->activeCamera->getViewMatrix() );
 
-        _program->setUniform("u_camera", -scene->activeCamera->getPosition() );
-        _program->setUniform("u_cameraDistance", scene->activeCamera->getDistance());
-        _program->setUniform("u_cameraNearClip", scene->activeCamera->getNearClip());
-        _program->setUniform("u_cameraFarClip", scene->activeCamera->getFarClip());
-        _program->setUniform("u_cameraEv100", scene->activeCamera->getEv100());
-        _program->setUniform("u_cameraExposure", float(scene->activeCamera->getExposure()));
-        _program->setUniform("u_cameraAperture", scene->activeCamera->getAperture());
-        _program->setUniform("u_cameraShutterSpeed", scene->activeCamera->getShutterSpeed());
-        _program->setUniform("u_cameraSensitivity", scene->activeCamera->getSensitivity());
-        _program->setUniform("u_cameraChange", scene->activeCamera->bChange);
-        _program->setUniform("u_iblLuminance", float(30000.0f * scene->activeCamera->getExposure()));
+        _program->setUniform("u_camera", -main_scene->activeCamera->getPosition() );
+        _program->setUniform("u_cameraDistance", main_scene->activeCamera->getDistance());
+        _program->setUniform("u_cameraNearClip", main_scene->activeCamera->getNearClip());
+        _program->setUniform("u_cameraFarClip", main_scene->activeCamera->getFarClip());
+        _program->setUniform("u_cameraEv100", main_scene->activeCamera->getEv100());
+        _program->setUniform("u_cameraExposure", float(main_scene->activeCamera->getExposure()));
+        _program->setUniform("u_cameraAperture", main_scene->activeCamera->getAperture());
+        _program->setUniform("u_cameraShutterSpeed", main_scene->activeCamera->getShutterSpeed());
+        _program->setUniform("u_cameraSensitivity", main_scene->activeCamera->getSensitivity());
+        _program->setUniform("u_cameraChange", main_scene->activeCamera->bChange);
+        _program->setUniform("u_iblLuminance", float(30000.0f * main_scene->activeCamera->getExposure()));
     }
     else {
         _program->setUniform("u_modelViewProjectionMatrix", getFlippedOrthoMatrix() * matrix_world );
@@ -1318,8 +1329,8 @@ Shader* shader(Shader* _program) {
 
     if (lights_enabled) {
         // Pass Light Uniforms
-        if (scene->lights.size() == 1) {
-            LightsMap::iterator it = scene->lights.begin();
+        if (main_scene->lights.size() == 1) {
+            LightsMap::iterator it = main_scene->lights.begin();
 
             _program->setUniform("u_lightColor", it->second->color);
             _program->setUniform("u_lightIntensity", it->second->intensity);
@@ -1337,7 +1348,7 @@ Shader* shader(Shader* _program) {
                 _program->setUniformDepthTexture("u_lightShadowMap", it->second->getShadowMap(), _program->textureIndex++ );
         }
         else {
-            for (LightsMap::iterator it = scene->lights.begin(); it != scene->lights.end(); ++it) {
+            for (LightsMap::iterator it = main_scene->lights.begin(); it != main_scene->lights.end(); ++it) {
                 std::string name = "u_" + it->first;
 
                 _program->setUniform(name + "Color", it->second->color);
@@ -1363,7 +1374,7 @@ Shader* shader(Shader* _program) {
 void addTexture(const std::string& _name, const std::string& _filename, bool _vFlip, TextureFilter _filter, TextureWrap _wrap) {
     Texture* tex = new Texture();
     if (tex->load(_filename, _vFlip, _filter, _wrap))
-        scene->textures[_name] = tex;
+        main_scene->textures[_name] = tex;
     else
         delete tex;
 }
@@ -1371,25 +1382,34 @@ void addTexture(const std::string& _name, const std::string& _filename, bool _vF
 void addTexture(const std::string& _name, const vera::Image& _image, TextureFilter _filter, TextureWrap _wrap) {
     Texture* tex = new Texture();
     if (tex->load(_image, _filter, _wrap))
-        scene->textures[_name] = tex;
+        main_scene->textures[_name] = tex;
     else
         delete tex;
 }
 
+Texture* texture(const std::string _name) {
+    vera::TexturesMap::iterator it = main_scene->textures.find(_name);
+    if (it != main_scene->textures.end())
+        return it->second;
+    return nullptr;
+}
+
 Texture* texture(const std::string _name, const std::string _uniform_name) {
-    vera::TexturesMap::iterator it = scene->textures.find(_name);
-    if (it != scene->textures.end())
+    vera::TexturesMap::iterator it = main_scene->textures.find(_name);
+    if (it != main_scene->textures.end())
         return texture(it->second, _uniform_name);
     return nullptr;
 }
+
 Texture* texture(Texture& _texture, const std::string _uniform_name) { return texture(&_texture, _uniform_name); }
 Texture* texture(Texture* _texture, const std::string _uniform_name) {
     if (shaderPtr == nullptr)
-        shaderPtr = getFillShader();
+        shaderPtr = fillShader();
     
     std::string uniform_name = _uniform_name;
     if (_uniform_name.size() == 0)
         uniform_name = "u_tex" + toString(shaderPtr->textureIndex);
+    
     shaderPtr->addDefine("USE_TEXTURE", uniform_name);
     shaderPtr->setUniformTexture(uniform_name, _texture, shaderPtr->textureIndex );
     shaderPtr->setUniform(uniform_name + "Resolution", (float)_texture->getWidth(), (float)_texture->getHeight());
@@ -1416,7 +1436,7 @@ void model(Vbo* _vbo, Shader* _program) {
             _program = shaderPtr;
         }
         else {
-            _program = getFillShader();
+            _program = fillShader();
         }
     }
 
@@ -1461,9 +1481,9 @@ void model(Vbo* _vbo, Shader* _program) {
 }
 
 // 3D Scene
-void setScene(Scene& _scene) { setScene( &_scene ); }
-void setScene(Scene* _scene) { scene = _scene; }
-Scene* getScene() { return scene; }
+void scene(Scene& _scene) { scene( &_scene ); }
+void scene(Scene* _scene) { main_scene = _scene; }
+Scene* scene() { return main_scene; }
 
 void lights() { lights_enabled = true; }
 void noLights() { lights_enabled = false; }
@@ -1475,18 +1495,18 @@ Light* createLight(const std::string& _name) {
 }
 
 void addLight(Light& _light, const std::string& _name) { 
-    scene->lights[_name] = &_light; 
+    main_scene->lights[_name] = &_light; 
 }
 
 void addLight(Light* _light, const std::string& _name) { 
-    scene->lights[_name] = _light;
+    main_scene->lights[_name] = _light;
 }
 
 void addLabel(Label& _label) { addLabel(&_label); }
 void addLabel(Label* _label) {
-    if (scene->activeFont == nullptr)
-        scene->activeFont = getDefaultFont();
-    scene->labels.push_back( _label );
+    if (main_scene->activeFont == nullptr)
+        main_scene->activeFont = main_scene->getDefaultFont();
+    main_scene->labels.push_back( _label );
 }
 
 // Ephymeral Label
@@ -1529,57 +1549,57 @@ void addLabel(std::function<std::string(void)> _func, Model* _model, LabelType _
     addLabel( new vera::Label(_func, _model, _type, _margin) );
 }
 
-LabelSettings& labelSettings() { return scene->labelSettings; }
+LabelSettings& labelSettings() { return main_scene->labelSettings; }
 
 void labelRadialCenter(float _x, float _y) { labelSettings().radialCenter = glm::vec2(_x, _y); }
 void labelRadialCenter(const glm::vec2& _center) { labelSettings().radialCenter = _center; }
 void labelRadialCenter(const glm::vec3& _center) { 
-    Camera *cam = scene->activeCamera != nullptr ? getCamera() : getLastCamera();
+    Camera *cam = main_scene->activeCamera != nullptr ? main_scene->activeCamera : main_scene->lastCamera;
     glm::vec2 center = cam->worldToScreen(_center, getWorldMatrixPtr());
     labelRadialCenter( center );
 }
 
 void labels() {
-    if (scene->activeFont == nullptr)
-        scene->activeFont = getDefaultFont();
+    if (main_scene->activeFont == nullptr)
+        main_scene->activeFont = main_scene->getDefaultFont();
 
-    bool enabledCamera = scene->activeCamera != nullptr;
+    bool enabledCamera = main_scene->activeCamera != nullptr;
 
-    Camera *cam = enabledCamera? getCamera() : getLastCamera();
+    Camera *cam = enabledCamera? main_scene->activeCamera : main_scene->lastCamera;
 
-    Label::updateList( scene->labels, cam, scene->activeFont );
+    Label::updateList( main_scene->labels, cam, main_scene->activeFont );
 
     if (enabledCamera)
         resetCamera();
 
-    scene->activeFont->setEffect( EFFECT_NONE );
-    scene->activeFont->setColor( fill_color );
+    main_scene->activeFont->setEffect( EFFECT_NONE );
+    main_scene->activeFont->setColor( fill_color );
     
-    Label::renderList( scene->labels, scene->activeFont );
+    Label::renderList( main_scene->labels, main_scene->activeFont );
 
     if (enabledCamera)
         setCamera(cam);
 }
 
 void cleanLabels() {
-    for (size_t i = 0; i < scene->labels.size(); i++)
-        delete scene->labels[i];
-    scene->labels.clear();
+    for (size_t i = 0; i < main_scene->labels.size(); i++)
+        delete main_scene->labels[i];
+    main_scene->labels.clear();
 }
 
 int labelAt(float _x, float _y) {
-    for (size_t i = 0; i < scene->labels.size(); i++)
-        if (scene->labels[i]->contains(_x, _y))
+    for (size_t i = 0; i < main_scene->labels.size(); i++)
+        if (main_scene->labels[i]->contains(_x, _y))
             return i;
     
     return -1;
 }
 
 Label* label(size_t _index) {
-    if (_index >= scene->labels.size())
+    if (_index >= main_scene->labels.size())
         return nullptr;
 
-    return scene->labels[_index];
+    return main_scene->labels[_index];
 }
 
 };

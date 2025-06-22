@@ -121,7 +121,7 @@ void Label::updateVisibility(Camera* _cam, float margin) {
 
     // _cam->bChange
     if (_cam == nullptr)
-        _cam = getCamera();
+        _cam = scene()->activeCamera;
 
     if (m_bbox) {
         m_screenBox = _cam->worldToScreen(*m_bbox, getWorldMatrixPtr());
@@ -150,7 +150,7 @@ void Label::updateVisibility(Camera* _cam, float margin) {
 
 void Label::updatePosition(Font *_font, float margin) {
     if (_font == nullptr)
-        _font = getFont();
+        _font = font();
     
     if (m_type == LABEL_UP)
         m_screenPos.y -= m_screenBox.getHeight() * 0.5;
@@ -235,7 +235,7 @@ void Label::updateFont(Font *_font) {
 
 void Label::updateBoundingBox(Font *_font) {
     if (_font == nullptr)
-        _font = getFont();
+        _font = font();
 
     if (m_textFunc)
         m_text = m_textFunc();
@@ -341,10 +341,10 @@ void Label::updateList(std::vector<Label*>& _labels, Camera* _cam, Font *_font) 
             
     // Get elements
     if (_cam == nullptr)
-        _cam = getCamera();
+        _cam = scene()->activeCamera;
 
     if (_font == nullptr)
-        _font = getFont();
+        _font = font();
 
     float occlution_margin = labelSettings().occlusionMargin * vera::getDisplayPixelRatio();
     float margin = labelSettings().screenMargin * vera::getDisplayPixelRatio();
@@ -461,7 +461,7 @@ void Label::render(Font *_font) {
     }
     
     if (_font == nullptr)
-        _font = getFont();
+        _font = font();
 
     const BoundingBox bbox = BoundingBox((const BoundingBox*)this);
     glm::vec4 lineColor = labelSettings().lineColor;

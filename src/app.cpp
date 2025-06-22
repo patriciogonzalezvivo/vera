@@ -309,7 +309,7 @@ void App::orbitControl() {
     if (getXR() > 0)
         return;
 
-    Camera* cam = getCamera();
+    Camera* cam = scene()->activeCamera;
 
     if (cam == nullptr)
         return;

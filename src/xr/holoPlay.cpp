@@ -71,7 +71,7 @@ int getQuiltTotalViews() { return quilt.totalViews; }
 int getQuiltCurrentViewIndex() { return currentViewIndex; }
 
 void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _renderFnc, int _viewIndex, bool _justQuilt) {
-    Camera* cam = getCamera();
+    Camera* cam = scene()->activeCamera;
     if (!cam)
         return;
 
