@@ -321,7 +321,9 @@ target_include_directories(vera PUBLIC ${INCLUDE_DEPS_FOLDERS} ${INCLUDE_FOLDER}
                 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 
-    install(TARGETS ${PROJECT_NAME} DESTINATION lib)
+    install(TARGETS ${PROJECT_NAME}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
     install(FILES ${ROOT_HEADER} DESTINATION include/vera)
     install(FILES ${GL_HEADER} DESTINATION include/vera/gl)
     install(FILES ${IO_HEADER} DESTINATION include/vera/io)
