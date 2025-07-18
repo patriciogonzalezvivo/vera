@@ -4,18 +4,22 @@ namespace vera {
 
 UniformData::UniformData() {
     size = 0;
+    bInt = false;
+    bTranspose = false;
 }
 
 UniformData::UniformData(int _x) {
     value[0] = _x;
     size = 1;
     bInt = true;
+    bTranspose = false;
 }
 UniformData::UniformData(int _x, int _y) {
     value[0] = _x;
     value[1] = _y;
     size = 2;
     bInt = true;
+    bTranspose = false;
 }
 
 UniformData::UniformData(int _x, int _y, int _z) {
@@ -24,6 +28,7 @@ UniformData::UniformData(int _x, int _y, int _z) {
     value[2] = _z;
     size = 3;
     bInt = true;
+    bTranspose = false;
 }
 
 UniformData::UniformData(int _x, int _y, int _z, int _w) {
@@ -33,6 +38,7 @@ UniformData::UniformData(int _x, int _y, int _z, int _w) {
     value[3] = _w;
     size = 4;
     bInt = true;
+    bTranspose = false;
 }
 
 UniformData::UniformData(const int *_array, size_t _size) {
@@ -40,12 +46,14 @@ UniformData::UniformData(const int *_array, size_t _size) {
     for (size_t i = 0; i < size; ++i)
         value[i] = _array[i];
     bInt = true;
+    bTranspose = false;
 }
 
 UniformData::UniformData(float _x) {
     value[0] = _x;
     size = 1;
     bInt = false;
+    bTranspose = false;
 }
 
 UniformData::UniformData(float _x, float _y) {
@@ -53,6 +61,7 @@ UniformData::UniformData(float _x, float _y) {
     value[1] = _y;
     size = 2;
     bInt = false;
+    bTranspose = false;
 }
 
 UniformData::UniformData(float _x, float _y, float _z) {
@@ -61,6 +70,7 @@ UniformData::UniformData(float _x, float _y, float _z) {
     value[2] = _z;
     size = 3;
     bInt = false;
+    bTranspose = false;
 }
 
 UniformData::UniformData(float _x, float _y, float _z, float _w) {
@@ -70,6 +80,7 @@ UniformData::UniformData(float _x, float _y, float _z, float _w) {
     value[3] = _w;
     size = 4;
     bInt = false;
+    bTranspose = false;
 }
 
 UniformData::UniformData(const float *_array, size_t _size) {
@@ -77,6 +88,7 @@ UniformData::UniformData(const float *_array, size_t _size) {
     for (size_t i = 0; i < size; ++i)
         value[i] = _array[i];
     bInt = false;
+    bTranspose = false;
 }
 
 UniformData::UniformData(const glm::vec2& _value) {
@@ -84,6 +96,7 @@ UniformData::UniformData(const glm::vec2& _value) {
     value[1] = _value.y;
     size = 2;
     bInt = false;
+    bTranspose = false;
 }
 
 UniformData::UniformData(const glm::vec3& _value) {
@@ -92,6 +105,7 @@ UniformData::UniformData(const glm::vec3& _value) {
     value[2] = _value.z;
     size = 3;
     bInt = false;
+    bTranspose = false;
 }
 
 UniformData::UniformData(const glm::vec4& _value) {
@@ -101,6 +115,7 @@ UniformData::UniformData(const glm::vec4& _value) {
     value[3] = _value.w;
     size = 4;
     bInt = false;
+    bTranspose = false;
 }
 
 UniformData::UniformData(const glm::mat3& _value, bool _transpose) {

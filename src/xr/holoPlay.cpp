@@ -15,7 +15,7 @@ static Shader           quilt_shader;
 static int              currentViewIndex = 0;
 
 //  QUILT 
-QuiltProperties::QuiltProperties() {};
+QuiltProperties::QuiltProperties() = default;
 QuiltProperties::QuiltProperties(int _width, int _height, int _cols, int _rows) {
     width = _width;
     height = _height;

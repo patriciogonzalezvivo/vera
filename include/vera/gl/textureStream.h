@@ -2,6 +2,7 @@
 
 #include "texture.h"
 
+#include <GL/glext.h>
 #include <vector>
 #include <iostream>
 
@@ -10,6 +11,7 @@ namespace vera {
 class TextureStream : public Texture {
 public:
 
+    TextureStream() = default;
     virtual ~TextureStream() {}
     
     virtual void            setSpeed( float _speed ) {};
@@ -86,7 +88,7 @@ protected:
     }
     std::vector<GLuint>     m_idPrevs;
 
-    bool                    m_play = true;
+    bool                    m_play;
 };
 
 typedef std::shared_ptr<TextureStream>          TextureStreamPtr;

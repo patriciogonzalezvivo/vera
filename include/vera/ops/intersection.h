@@ -34,6 +34,7 @@ bool intersection( const std::vector<glm::vec2>& _polygon,
 // 3D
 //
 struct IntersectionData {
+    IntersectionData() = default;
     glm::vec3   position;
     glm::vec3   direction;
     float       distance    = 0.0f;
