@@ -15,3 +15,6 @@ Release/
 CMakeFiles/
 build/
 *.stamp
+
+# clangd
+.cache
