@@ -312,6 +312,11 @@ Shader* shader(Shader* _shader);
 Shader* shader(const std::string& _name);
 Shader* shader();
 
+Shader* pointShader();
+Shader* strokeShader();
+Shader* spline2DShader();
+Shader* spline3DShader();
+Shader* fillShader();
 
 // TEXTURES
 // -----------------------------
@@ -360,9 +365,9 @@ void setCamera(Camera& _camera);
 void setCamera(Camera* _camera);
 void resetCamera();
 
-// Camera* getCamera();
-// Camera* getLastCamera();
-// Camera* getCamera(const std::string& _name);
+Camera* camera();
+Camera* cameraLast();
+Camera* camera(const std::string& _name);
 
 // LIGHT
 // -----------------------------

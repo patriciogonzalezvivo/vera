@@ -115,6 +115,19 @@ void pop() {
 
 // CAMERA
 // 
+Camera* camera() { return main_scene->activeCamera; }
+Camera* cameraLast() { return main_scene->lastCamera; }
+Camera* camera(const std::string& _name) {
+    CamerasMap::iterator it = main_scene->cameras.find(_name);
+    if (it != main_scene->cameras.end()) {
+        return it->second;
+    }
+    else {
+        std::cerr << "Camera '" << _name << "' not found!" << std::endl;
+        return nullptr;
+    }
+}
+
 Camera* createCamera(const std::string& _name) {
     Camera* cam;
     CamerasMap::iterator it = main_scene->cameras.find(_name);

@@ -2,7 +2,6 @@
 
 #include "texture.h"
 
-#include <GL/glext.h>
 #include <vector>
 #include <iostream>
 
