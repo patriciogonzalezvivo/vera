@@ -16,7 +16,7 @@ public:
 private:
     static const int        m_buf_len = 1024;
     std::vector<uint8_t>    m_buffer_wr, m_buffer_re, m_texture;
-    float*                  m_dft_buffer = nullptr;
+    float*                  m_dft_buffer;
 };
 
 

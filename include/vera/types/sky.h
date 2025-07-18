@@ -7,6 +7,7 @@ namespace vera {
 // SKY BOX GENERATOR
 // -------------------------------------------------------------- 
 struct SkyData {
+    SkyData() = default;
     glm::vec3   groundAlbedo    = glm::vec3(0.25f);
     float       elevation       = 0.3f;
     float       azimuth         = 0.0f;

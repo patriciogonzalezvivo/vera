@@ -17,6 +17,8 @@ enum LabelType {
 };
 
 struct LabelSettings {
+    LabelSettings() = default;
+
     glm::vec4   lineColor        = glm::vec4(1.0f);
     glm::vec4   textColor        = glm::vec4(1.0f);
     

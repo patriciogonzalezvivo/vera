@@ -13,8 +13,14 @@
 
 namespace vera {
 
-Label::Label() : m_text(""), m_type(LABEL_CENTER), m_bbox(nullptr), m_worldPos(nullptr) { 
-}
+Label::Label() : m_text(""),
+    m_type(LABEL_CENTER),
+    m_bbox(nullptr),
+    m_worldPos(nullptr),
+    bEnabled(true),
+    m_margin(15.0f),
+    m_bEphemeral(false),
+    m_bVisible(true) {}
 
 Label::~Label() {
     // If not, we should delete the linked position if it was created by this label

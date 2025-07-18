@@ -53,6 +53,7 @@ TextureStreamAudio::TextureStreamAudio(): TextureStream() {
     m_dft_buffer = (float*)av_malloc_array(sizeof(float), m_buf_len);
     m_buffer_wr.resize(m_buf_len, 0);
     m_buffer_re.resize(m_buf_len, 0);
+    m_dft_buffer = nullptr;
 }
 
 TextureStreamAudio::~TextureStreamAudio() {

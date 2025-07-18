@@ -42,6 +42,7 @@ void renderQuilt(std::function<void(const QuiltProperties&, glm::vec4&, int&)> _
 //  in order to render correctly make sure this values match your calibration file on your device
 // 
 struct LenticularProperties {
+    LenticularProperties() = default;
     float dpi       = 324.0;
     float pitch     = 52.58737671470091;
     float slope     = -7.196136200157333;

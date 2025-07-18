@@ -19,6 +19,8 @@ namespace vera {
 class App {
 public:
 
+    App() = default;
+
     void run(WindowProperties _properties = WindowProperties());
 
     virtual void setup() {};

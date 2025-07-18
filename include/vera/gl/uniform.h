@@ -28,7 +28,7 @@ struct UniformData {
     UniformData(const glm::mat4& _value, bool _transpose = false);
 
     UniformValue                        value;
-    size_t                              size    = 0;
+    size_t                              size;
     bool                                bInt    = false;
     bool                                bTranspose = false;
 };
@@ -41,7 +41,7 @@ enum UniformTextureType {
 };
 
 struct UniformTexture {
-    UniformTexture() {}
+    UniformTexture() = default;
     UniformTexture(UniformTextureType _type, size_t _id, size_t _texLoc) {
         type = _type;
         id = _id;

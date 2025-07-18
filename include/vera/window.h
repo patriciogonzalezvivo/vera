@@ -145,6 +145,9 @@ enum WindowStyle {
 };
 
 struct WindowProperties {
+
+    WindowProperties() = default;
+
     WindowStyle style   = REGULAR;
 
     #if defined(__APPLE__)
