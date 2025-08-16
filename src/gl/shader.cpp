@@ -66,15 +66,30 @@ void Shader::setSource(const std::string& _fragmentSrc, const std::string& _vert
 }
 
 bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc, ShaderErrorResolve _onError, bool _verbose) {
+
+    // Attempt to 
     setVersionFromCode(_fragmentSrc);
+
     if (m_fragmentSource == "" || m_vertexSource == "") {
         m_fragmentSource = getDefaultSrc(FRAG_ERROR);
         m_vertexSource = getDefaultSrc(VERT_ERROR);
     }
+    
+    std::string vertexSrc = _vertexSrc;
+    if (!haveVersion(vertexSrc)) {
+        vertexSrc = getVersionLine() + "\n" + vertexSrc;
+    }
+    else if (getVersionNumber(vertexSrc) != getVersionNumber()) {
+        std::cout << "Shader version mismatch, using version " << getVersionNumber() << std::endl;
+    }
 
+    std::string fragmentSrc = _fragmentSrc;
+    if (!haveVersion(_fragmentSrc)) {
+        fragmentSrc = getVersionLine() + "\n" + fragmentSrc;
+    }
 
     // VERTEX
-    m_vertexShader = compileShader(_vertexSrc, GL_VERTEX_SHADER, _verbose);
+    m_vertexShader = compileShader(vertexSrc, GL_VERTEX_SHADER, _verbose);
     if (!m_vertexShader) {
         if (_onError == SHOW_MAGENTA_SHADER) {
             if (_verbose)
@@ -91,7 +106,7 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
     }
 
     // FRAGMENT
-    m_fragmentShader = compileShader(_fragmentSrc, GL_FRAGMENT_SHADER, _verbose);
+    m_fragmentShader = compileShader(fragmentSrc, GL_FRAGMENT_SHADER, _verbose);
     if (!m_fragmentShader) {
         if (_onError == SHOW_MAGENTA_SHADER) {
             if (_verbose)

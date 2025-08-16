@@ -151,7 +151,7 @@ struct WindowProperties {
     WindowStyle style   = REGULAR;
 
     #if defined(__APPLE__)
-    size_t      major   = 4;
+    size_t      major   = 2;
     size_t      minor   = 1;
     #else
     size_t      major   = 2;

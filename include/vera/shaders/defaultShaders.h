@@ -1,5 +1,7 @@
 #pragma once
 
+#define DEFAULT_GLSL_VERSION_NUMBER 120
+
 #include <string>
 
 namespace vera
@@ -23,8 +25,13 @@ enum DefaultShaders {
     VERT_DEVLOOK_BILLBOARD, VERT_DEVLOOK_SPHERE
 };
 
-void    setVersionFromCode(const std::string& _src);
-int     getVersion();
+bool        haveVersion(const std::string& _src);
+
+void        setVersionFromCode(const std::string& _src);
+
+int         getVersionNumber();
+int         getVersionNumber(const std::string& _src);
+std::string getVersionLine();
 
 std::string getDefaultSrc(DefaultShaders _type);
     

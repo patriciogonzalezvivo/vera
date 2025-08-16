@@ -33,7 +33,7 @@ void setQuiltProperties(const QuiltProperties& _quilt) {
     quilt_shader.addDefine("QUILT_COLUMNS", vera::toString( quilt.columns ));
     quilt_shader.addDefine("QUILT_ROWS", vera::toString( quilt.rows ));
     quilt_shader.addDefine("QUILT_TOTALVIEWS", vera::toString( quilt.totalViews ));
-    quilt_shader.setSource(vera::getLenticularFragShader(vera::getVersion()), vera::getDefaultSrc(vera::VERT_BILLBOARD));
+    quilt_shader.setSource(vera::getLenticularFragShader(vera::getVersionNumber()), vera::getDefaultSrc(vera::VERT_BILLBOARD));
 }
 
 static int quilt_resolutions[16][4] = {

@@ -24,15 +24,44 @@
 
 namespace vera {
 
-static size_t versionNumber = 100;
+static size_t versionNumber = DEFAULT_GLSL_VERSION_NUMBER;
 static std::string versionLine = "";
 
-void setVersionFromCode(const std::string& _src) {
-    versionLine = getVersion(_src, versionNumber);
+bool haveVersion(const std::string& _src) {
+    return _src.substr(0, 8) == "#version";
 }
 
-int getVersion() {
+void setVersionFromCode(const std::string& _src) {
+    versionNumber = getVersionNumber(_src);
+    versionLine = getVersionLine();
+}
+
+int getVersionNumber() {
     return versionNumber;
+}
+
+int getVersionNumber(const std::string& _src) {
+    std::string _versionLine = "";
+    int _versionNumber = DEFAULT_GLSL_VERSION_NUMBER;
+
+    if (haveVersion(_src)) {
+        // split _src into srcVersion and srcBody
+        std::istringstream srcIss(_src);
+
+        // the version line can be read without checking the result of getline(), srcVersionFound == true implies this
+        std::getline(srcIss, _versionLine);
+
+        std::istringstream versionIss(_versionLine);
+        std::string dataRead;
+        versionIss >> dataRead;             // consume the "#version" string which is guaranteed to be there
+        versionIss >> _versionNumber;       // try to read the next token and convert it to a number
+    }
+
+    return _versionNumber;
+}
+
+std::string getVersionLine() {
+    return "#version " + std::to_string(versionNumber);
 }
 
 std::string getDefaultSrc( DefaultShaders _type ) {
