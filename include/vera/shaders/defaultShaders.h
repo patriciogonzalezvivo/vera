@@ -1,6 +1,10 @@
 #pragma once
 
-#define DEFAULT_GLSL_VERSION_NUMBER 120
+#if defined(__APPLE__)
+#define DEFAULT_GLSL_VERSION_NUMBER 110
+#else
+#define DEFAULT_GLSL_VERSION_NUMBER 100
+#endif
 
 #include <string>
 
