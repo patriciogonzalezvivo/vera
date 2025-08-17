@@ -1432,6 +1432,9 @@ int initGL(WindowProperties _prop) {
 
     // callback when the mouse cursor moves
     glfwSetCursorPosCallback(window, [](GLFWwindow* _window, double x, double y) {
+        x *= device_pixel_ratio;
+        y *= device_pixel_ratio;
+
         // mouse.pos.x,mouse.pos.y is the current cursor position, constrained
         // mouse.vel.x,mouse.vel.y is the distance the mouse cursor has moved
         // since the last callback, during a drag gesture.
