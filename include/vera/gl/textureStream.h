@@ -10,11 +10,12 @@ namespace vera {
 class TextureStream : public Texture {
 public:
 
-    TextureStream() = default;
+    TextureStream() : m_play(true) {}
     virtual ~TextureStream() {}
     
-    virtual void            setSpeed( float _speed ) {};
-    virtual void            setTime( float _time ) {};
+    virtual void            setSpeed( float _speed ) { std::cout << "WARNING: TextureStream::setSpeed() not implemented!" << std::endl; };
+    virtual void            setTime( float _time ) { std::cout << "WARNING: TextureStream::setTime() not implemented!" << std::endl; };
+    virtual void            setFrame( size_t _frame ) { std::cout << "WARNING: TextureStream::setFrame() not implemented!" << std::endl; };
     virtual void            setPct( float _pct ) { setTime( _pct * getDuration() ); };
     
     virtual void            setPrevTextures(size_t _total) {

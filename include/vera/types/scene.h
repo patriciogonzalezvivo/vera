@@ -61,6 +61,8 @@ public:
     virtual void        setStreamPct(const std::string& _name, float _pct);
     virtual float       getStreamSpeed(const std::string& _name);
     virtual void        setStreamSpeed(const std::string& _name, float _speed);
+    virtual void        setStreamFrame(const std::string& _name, size_t _frame);
+
 
     virtual void        setStreamsPlay();
     virtual void        setStreamsStop();
@@ -70,6 +72,7 @@ public:
     virtual void        setStreamsTime(float _time);
     virtual void        setStreamsSpeed(float _speed);
     virtual void        setStreamsPrevs(size_t _total);
+    virtual void        setStreamsFrame(size_t _frame);
 
     // Cubemap
     TextureCubesMap     cubemaps;

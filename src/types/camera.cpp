@@ -47,7 +47,7 @@ void Camera::setViewport(glm::vec4 _viewport) {
 void Camera::setProjection(ProjectionType _type) {
     m_projectionType = _type;
     m_viewMatrix = getTransformMatrix();
-    lookAt(m_target);
+    // lookAt(m_target);
     updateCameraSettings();
 }
 

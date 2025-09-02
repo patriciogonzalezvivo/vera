@@ -37,6 +37,17 @@ std::string getExt(const std::string& _filename) {
     return "";
 }
 
+bool isFolder(const std::string& _path) {
+    struct stat info;
+
+    if (stat( _path.c_str(), &info ) != 0)
+        return false;
+    else if (info.st_mode & S_IFDIR)  // S_ISDIR() doesn't exist on my windows 
+        return true;
+    else
+        return false;
+}
+
 std::string getBaseDir(const std::string& filepath) {
     std::string base_dir = "";
 
@@ -242,6 +253,12 @@ std::vector<std::string> glob(const std::string& _pattern) {
     }
 
 #endif
+
+    // Sort and remove duplicates
+    std::sort(files.begin(), files.end());
+    files.erase(std::unique(files.begin(), files.end()), files.end());
+    std::sort(files.begin(), files.end());
+
     return files;
 }
 

@@ -19,8 +19,10 @@ bool TextureStreamSequence::load(const std::string& _path, bool _vFlip) {
     m_vFlip = _vFlip;
 
     std::vector<std::string> files = glob(_path);
-    for (size_t i = 0; i < files.size(); i++) {
 
+    // 
+
+    for (size_t i = 0; i < files.size(); i++) {
         std::string ext = getExt(files[i]);
 
         // BMP non-1bpp, non-RLE
@@ -79,7 +81,16 @@ bool TextureStreamSequence::load(const std::string& _path, bool _vFlip) {
         }
     }
     
-    return true;
+    return (m_frames.size() > 0);
+}
+
+void TextureStreamSequence::setFrame( size_t _frame ) {
+    if (_frame < m_frames.size()) {
+        m_currentFrame = _frame % m_frames.size();
+        if ( Texture::load(m_width, m_height, 4, m_bits, m_frames[ m_currentFrame ]) ) {
+            // TODO: anything else?   
+        }
+    }
 }
 
 bool TextureStreamSequence::update() {

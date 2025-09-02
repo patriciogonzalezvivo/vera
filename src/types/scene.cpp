@@ -283,11 +283,15 @@ void Scene::clearTextures() {
 bool Scene::addStreamingTexture( const std::string& _name, const std::string& _url, bool _vflip, bool _device, bool _verbose) {
     if (textures.find(_name) == textures.end()) {
 
-        // Check if it's a PNG Sequence
-        if ( haveWildcard(_url) ) {
+        // Check if it's an folder or a wildcard path
+        if ( haveWildcard(_url) || isFolder(_url) ) {
             TextureStreamSequence *tex = new TextureStreamSequence();
 
-            if (tex->load(_url, _vflip)) {
+            std::string url = _url;
+            if (isFolder(_url)) {
+                url = _url + "/*";
+            }
+            if (tex->load(url, _vflip)) {
                 // the image is loaded finish add the texture to the uniform list
                 textures[_name] = (Texture*)tex;
                 streams[_name] = (TextureStream*)tex;
@@ -430,6 +434,14 @@ void Scene::setStreamPlay( const std::string& _name) {
     }
 }
 
+void Scene::setStreamFrame( const std::string& _name, size_t _frame) {
+    TextureStreamsMap::iterator it = streams.find(_name);
+    if (it != streams.end()) {
+        it->second->setFrame(_frame);
+        m_changed = true;
+    }
+}
+
 void Scene::setStreamStop( const std::string& _name) {
     TextureStreamsMap::iterator it = streams.find(_name);
     if (it != streams.end()) {
@@ -508,6 +520,13 @@ void Scene::setStreamsStop() {
 void Scene::setStreamsRestart() {
     for (TextureStreamsMap::iterator it = streams.begin(); it != streams.end(); ++it) {
         it->second->restart();
+        m_changed = true;
+    }
+}
+
+void Scene::setStreamsFrame( size_t _frame) {
+    for (TextureStreamsMap::iterator it = streams.begin(); it != streams.end(); ++it) {
+        it->second->setFrame(_frame);
         m_changed = true;
     }
 }
@@ -657,8 +676,15 @@ glm::vec3 Scene::getGroundAlbedo() const { return m_skybox.groundAlbedo; }
 //
 void Scene::printCameras() {
     std::cout << "// Cameras: " << std::endl;
-    for (CamerasMap::iterator it = cameras.begin(); it != cameras.end(); ++it)
-        std::cout << "// " << it->first << " " << toString( it->second->getPosition() ) << std::endl;
+    for (CamerasMap::iterator it = cameras.begin(); it != cameras.end(); ++it) {
+        
+        std::cout << "// " << it->first << ":" << std::endl; 
+        std::cout << "//   position: " << toString( it->second->getPosition() ) << std::endl;
+        std::cout << "//   target: " << toString( it->second->getTarget() ) << " distance: " << toString( it->second->getDistance() ) << std::endl;
+        std::cout << "//   fov: " << toString( it->second->getFOV() ) << " near: " << toString( it->second->getNearClip() ) << " far: " << toString( it->second->getFarClip() ) << std::endl;
+        std::cout << "// -------------------------------------------- " << std::endl; 
+
+    }
 
     std::cout << "// Active Camera: " << std::endl;
     if (activeCamera)

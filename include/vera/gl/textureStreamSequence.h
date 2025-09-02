@@ -11,10 +11,10 @@ public:
     virtual ~TextureStreamSequence();
 
     // virtual void            setSpeed( float _speed ) {};
+    virtual void    setFrame( size_t _frame );
 
     virtual float   getDuration() const;
     virtual float   getTime() const;
-
     virtual float   getTotalFrames() { return m_frames.size(); };
     virtual float   getCurrentFrame() const { return m_currentFrame; };
 
