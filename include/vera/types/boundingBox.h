@@ -47,7 +47,34 @@ public:
     glm::vec2   getBottomLeft() const { return glm::vec2(min.x, min.y); }
     glm::vec2   getBottomRight() const { return glm::vec2(max.x, min.y); }
     
+    glm::vec3   getTopLeftFront() const { return glm::vec3(min.x, min.y, max.z); }
+    glm::vec3   getTopLeftBack() const { return glm::vec3(min.x, min.y, min.z); }
+    glm::vec3   getTopLeftCenter() const { return glm::vec3(min.x, min.y, min.z + getDepth() * 0.5f); }
+    glm::vec3   getTopCenter() const { return glm::vec3(min.x + getWidth() * 0.5f, min.y, min.z + getDepth() * 0.5f); }
+    glm::vec3   getTopRightFront() const { return glm::vec3(max.x, min.y, max.z); }
+    glm::vec3   getTopRightBack() const { return glm::vec3(max.x, min.y, min.z); }
+    glm::vec3   getTopRightCenter() const { return glm::vec3(max.x, min.y, min.z + getDepth() * 0.5f); }
+
+    glm::vec3   getBottomLeftFront() const { return glm::vec3(min.x, max.y, max.z); }
+    glm::vec3   getBottomLeftBack() const { return glm::vec3(min.x, max.y, min.z); }
+    glm::vec3   getBottomLeftCenter() const { return glm::vec3(min.x, max.y, min.z + getDepth() * 0.5f); }
+    glm::vec3   getBottomCenter() const { return glm::vec3(min.x + getWidth() * 0.5f, max.y, min.z + getDepth() * 0.5f); }
+    glm::vec3   getBottomRightFront() const { return glm::vec3(max.x, max.y, max.z); }
+    glm::vec3   getBottomRightBack() const { return glm::vec3(max.x, max.y, min.z); }
+    glm::vec3   getBottomRightCenter() const { return glm::vec3(max.x, max.y, min.z + getDepth() * 0.5f); }
+
+    glm::vec3   getLeftFront() const { return glm::vec3(min.x, min.y, max.z); }
+    glm::vec3   getLeftCenter() const { return glm::vec3(min.x, min.y + getHeight() * 0.5f, min.z + getDepth() * 0.5f); }
+    glm::vec3   getLeftBack() const { return glm::vec3(min.x, min.y, min.z); }
+
+    glm::vec3   getRightFront() const { return glm::vec3(max.x, min.y, max.z); }
+    glm::vec3   getRightCenter() const { return glm::vec3(max.x, min.y + getHeight() * 0.5f, min.z + getDepth() * 0.5f); }
+    glm::vec3   getRightBack() const { return glm::vec3(max.x, min.y, min.z); }
+
     glm::vec3   getCenter() const { return min + (max - min) * 0.5f; }
+
+
+
     glm::vec3   getDiagonal() const { return max - min; }
     glm::vec4   get2DBoundingBox() const { return glm::vec4(min.x, min.y, max.x, max.y); }
     float       getArea() const { glm::vec3 e = getDiagonal(); return (e.x * e.y + e.y * e.z + e.z * e.x); };// * 2.0f; }

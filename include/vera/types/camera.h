@@ -72,17 +72,16 @@ public:
     // Camera Controls
     virtual void                setTarget(glm::vec3 _target);
     virtual const glm::vec3&    getTarget() const { return m_target; }
-    virtual float               getDistance() const { return glm::length(m_position - m_target); }
-    virtual float               getDistance(const glm::vec3& point) const { return glm::length(m_position - point); }
+    virtual float               getDistance() const { return glm::length(m_position + m_target); }
 
     virtual void                moveTarget(float x, float y); // move target in camera's local space (screen-relative)
     virtual void                moveTarget(const glm::vec3& delta) { setTarget(m_target + delta); } // move target in world space
     virtual void                orbit(float _azimuth, float _elevation, float _distance);
 
-    virtual void begin();
-    virtual void end();
-protected:
+    virtual void                begin();
+    virtual void                end();
 
+protected:
     virtual void        onPositionChanged();
     virtual void        onOrientationChanged();
     virtual void        onScaleChanged();

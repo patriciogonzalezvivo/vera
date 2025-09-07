@@ -122,6 +122,7 @@ std::string Label::getText() {
         return m_textFunc();
     return m_text;
 }
+
 void Label::updateVisibility(Camera* _cam, float margin) {
     m_bVisible = true;
 
@@ -135,7 +136,18 @@ void Label::updateVisibility(Camera* _cam, float margin) {
         m_screenBox.max.x *= vera::getWindowWidth();
         m_screenBox.min.y *= vera::getWindowHeight(); 
         m_screenBox.max.y *= vera::getWindowHeight(); 
-        m_screenPos = m_screenBox.getCenter();
+
+        if (m_type == LABEL_UP)
+            m_screenPos = m_screenBox.getTopCenter();
+        else if (m_type == LABEL_DOWN)
+            m_screenPos = m_screenBox.getBottomCenter();
+        else if (m_type == LABEL_LEFT)
+            m_screenPos = m_screenBox.getLeftCenter();
+        else if (m_type == LABEL_RIGHT)
+            m_screenPos = m_screenBox.getRightCenter();
+        else // LABEL_CENTER
+            m_screenPos = m_screenBox.getCenter();
+
     }
     else {
         m_screenPos = _cam->worldToScreen(m_worldPos, worldMatrixPtr());

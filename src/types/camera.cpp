@@ -140,10 +140,11 @@ void Camera::moveTarget(float deltaX, float deltaY) {
 
 void Camera::orbit(float _azimuth, float _elevation, float _distance) {
     glm::vec3 p = glm::vec3(0.0, 0.0, _distance);
-    _elevation = vera::clamp(_elevation,-89.9,89.9);
+    _elevation = glm::clamp(_elevation, -89.0f, 89.0f);
+    
     p = glm::angleAxis(glm::radians(_elevation), glm::vec3(1.0, 0.0, 0.0)) * p;
     p = glm::angleAxis(glm::radians(_azimuth), glm::vec3(0.0, 1.0, 0.0)) * p;
-    p += m_target;
+    p -= m_target;
 
     setPosition(p);
     lookAt(m_target);
