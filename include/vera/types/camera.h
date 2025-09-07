@@ -34,9 +34,7 @@ public:
     virtual void        setViewport(int _width, int _height);
     virtual void        setViewport(glm::vec4 _viewport);
     virtual void        setClipping(double _near_clip_distance, double _far_clip_distance);
-    virtual void        setDistance(float _distance);
-    virtual void        setTarget(glm::vec3 _target);
-    virtual void        setTarget(float x, float y, float z) { setTarget(glm::vec3(x,y,z)); }
+
     virtual void        setVirtualOffset(float _scale, int _currentViewIndex, int _totalViews, float aspect = 1.0f);
 
     virtual void        setExposure(float _aperture, float _shutterSpeed, float _sensitivity);
@@ -54,14 +52,12 @@ public:
     virtual const float         getAspect() const { return m_aspect; }
     virtual const float         getFarClip() const { return m_farClip; }
     virtual const float         getNearClip() const { return m_nearClip; }
-    virtual const float         getDistance() const;
 
     virtual const float         getEv100() const { return m_ev100; }
     virtual const double        getExposure() const { return m_exposure; }
     virtual const float         getAperture() const { return m_aperture; }          //! returns this camera's aperture in f-stops
     virtual const float         getShutterSpeed() const { return m_shutterSpeed; }  //! returns this camera's shutter speed in seconds
     virtual const float         getSensitivity() const { return m_sensitivity; }    //! returns this camera's sensitivity in ISO
-    virtual const glm::vec3&    getTarget() const { return m_target; }
     
     virtual const glm::vec3&    getPosition() const;
     virtual const glm::mat4&    getViewMatrix() const;
@@ -72,6 +68,17 @@ public:
     virtual const glm::mat4&    getInverseProjectionMatrix() const { return m_inverseProjectionMatrix; }
 
     virtual glm::ivec4          getViewport() const;
+
+    // Camera Controls
+    virtual void                setTarget(glm::vec3 _target);
+    virtual const glm::vec3&    getTarget() const { return m_target; }
+    virtual float               getDistance() const { return glm::length(m_position - m_target); }
+    virtual float               getDistance(const glm::vec3& point) const { return glm::length(m_position - point); }
+
+    virtual void                moveTarget(float x, float y); // move target in camera's local space (screen-relative)
+    virtual void                moveTarget(const glm::vec3& delta) { setTarget(m_target + delta); } // move target in world space
+    virtual void                orbit(float _azimuth, float _elevation, float _distance);
+
     virtual void begin();
     virtual void end();
 protected:
@@ -96,8 +103,9 @@ private:
     glm::ivec4  m_viewport;
     glm::ivec4  m_viewport_old;
     
-    glm::vec3   m_target;
     glm::vec3   m_position_offset;
+
+    glm::vec3   m_target;
 
     float       m_aspect;
     float       m_fov;

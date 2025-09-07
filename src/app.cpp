@@ -321,7 +321,7 @@ void App::orbitControl() {
     }
 
     if (mouseIsPressed && getQuiltCurrentViewIndex() == 0) {
-        float dist = cam->getDistance();
+        float dist = glm::length(cam->getPosition());
 
         if (mouseButton == 1) {
 
@@ -330,7 +330,7 @@ void App::orbitControl() {
                 cameraLat -= getMouseVelX();
                 cameraLon -= getMouseVelY() * 0.5;
                 cam->orbit(cameraLat, cameraLon, dist);
-                cam->lookAt(glm::vec3(0.0));
+                // cam->lookAt(glm::vec3(0.0));
             }
         } 
         else if (mouseButton == 2) {
@@ -339,7 +339,7 @@ void App::orbitControl() {
             dist += (-.05f * movedY);
             if (dist > 0.0f) {
                 cam->orbit(cameraLat, cameraLon, dist);
-                cam->lookAt(glm::vec3(0.0));
+                // cam->lookAt(glm::vec3(0.0));
             }
         }
     }

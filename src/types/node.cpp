@@ -108,15 +108,6 @@ void Node::lookAt(const glm::vec3& _lookAtPosition, glm::vec3 _upVector ) {
     setOrientation( glm::lookAt(-m_position, _lookAtPosition, _upVector) );
 }
 
-void Node::orbit(float _azimuth, float _elevation, float _distance, const glm::vec3& _centerPoint) {
-    glm::vec3 p = glm::vec3(0.0, 0.0, _distance);
-    _elevation = vera::clamp(_elevation,-89.9,89.9);
-    p = glm::angleAxis(glm::radians(_elevation), glm::vec3(1.0, 0.0, 0.0)) * p;
-    p = glm::angleAxis(glm::radians(_azimuth), glm::vec3(0.0, 1.0, 0.0)) * p;
-    p += _centerPoint;
-    setPosition(p);
-}
-
 void Node::apply(const glm::mat4& _m) {
     m_transformMatrix = m_transformMatrix * _m;
     setTransformMatrix(m_transformMatrix);

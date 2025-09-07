@@ -1354,14 +1354,14 @@ int initGL(WindowProperties _prop) {
     });
 
     glfwSetKeyCallback(window, [](GLFWwindow* _window, int _key, int _scancode, int _action, int _mods) {
-        if (_action == GLFW_PRESS && (_key == GLFW_KEY_LEFT_SHIFT || GLFW_KEY_RIGHT_SHIFT) )
+        if (_action == GLFW_PRESS && (_key == GLFW_KEY_LEFT_SHIFT || _key == GLFW_KEY_RIGHT_SHIFT) )
             bShift = true;
-        else if (_action == GLFW_RELEASE && (_key == GLFW_KEY_LEFT_SHIFT || GLFW_KEY_RIGHT_SHIFT) )
+        else if (_action == GLFW_RELEASE && (_key == GLFW_KEY_LEFT_SHIFT || _key == GLFW_KEY_RIGHT_SHIFT) )
             bShift = false;
 
-        else if (_action == GLFW_PRESS && (_key == GLFW_KEY_LEFT_CONTROL || GLFW_KEY_RIGHT_CONTROL) )
+        if (_action == GLFW_PRESS && (_key == GLFW_KEY_LEFT_CONTROL || _key == GLFW_KEY_RIGHT_CONTROL) )
             bControl = true;
-        else if (_action == GLFW_RELEASE && (_key == GLFW_KEY_LEFT_CONTROL || GLFW_KEY_RIGHT_CONTROL) )
+        else if (_action == GLFW_RELEASE && (_key == GLFW_KEY_LEFT_CONTROL || _key == GLFW_KEY_RIGHT_CONTROL) )
             bControl = false;
 
         if (_key == GLFW_KEY_ESCAPE ||
@@ -1462,10 +1462,12 @@ int initGL(WindowProperties _prop) {
             */
         int action1 = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1);
         int action2 = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_2);
+        int action3 = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_3);
         int button = 0;
 
         if (action1 == GLFW_PRESS) button = 1;
         else if (action2 == GLFW_PRESS) button = 2;
+        else if (action3 == GLFW_PRESS) button = 3;
 
         // Lunch events
         if (mouse.button == 0 && button != mouse.button) {

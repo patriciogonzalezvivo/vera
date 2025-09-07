@@ -47,7 +47,6 @@ void Camera::setViewport(glm::vec4 _viewport) {
 void Camera::setProjection(ProjectionType _type) {
     m_projectionType = _type;
     m_viewMatrix = getTransformMatrix();
-    // lookAt(m_target);
     updateCameraSettings();
 }
 
@@ -64,12 +63,8 @@ void Camera::setClipping(double _near_clip_distance, double _far_clip_distance) 
 
 void Camera::setTarget(glm::vec3 _target) {
     m_target = _target;
-    bChange = true;
-}
-
-void Camera::setDistance(float _distance) {
-    setPosition( -_distance * getZAxis() );
     lookAt(m_target);
+    bChange = true;
 }
 
 void Camera::setProjection(const glm::mat4& _M ) {
@@ -90,7 +85,7 @@ void Camera::setVirtualOffset(float scale, int currentViewIndex, int totalViews,
     float offsetAngle = (float(currentViewIndex) / (float(totalViews) - 1.0f) - 0.5f) * viewCone;
 
     // calculate the offset that the camera should move
-    float offset = -getDistance() * tan(offsetAngle) * 0.5f;
+    float offset = -glm::length(m_position)* tan(offsetAngle) * 0.5f;
 
     // modify the view matrix (position)
     // determine the local direction of the offset 
@@ -135,8 +130,24 @@ const glm::vec3& Camera::getPosition() const {
         return m_position;
 }
 
-const float Camera::getDistance() const { 
-    return glm::length(m_position);
+void Camera::moveTarget(float deltaX, float deltaY) {
+    // Move target in camera's local space (screen-relative)
+    glm::vec3 right = getXAxis();
+    glm::vec3 up = getYAxis();
+    glm::vec3 newTarget = getTarget() + (right * deltaX) + (up * deltaY);
+    setTarget(newTarget);
+}
+
+void Camera::orbit(float _azimuth, float _elevation, float _distance) {
+    glm::vec3 p = glm::vec3(0.0, 0.0, _distance);
+    _elevation = vera::clamp(_elevation,-89.9,89.9);
+    p = glm::angleAxis(glm::radians(_elevation), glm::vec3(1.0, 0.0, 0.0)) * p;
+    p = glm::angleAxis(glm::radians(_azimuth), glm::vec3(0.0, 1.0, 0.0)) * p;
+    p += m_target;
+
+    setPosition(p);
+    lookAt(m_target);
+    bChange = true;
 }
 
 void Camera::begin() {
