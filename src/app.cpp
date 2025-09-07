@@ -321,26 +321,47 @@ void App::orbitControl() {
     }
 
     if (mouseIsPressed && getQuiltCurrentViewIndex() == 0) {
-        float dist = glm::length(cam->getPosition());
+        float currentDistance = glm::length(cam->getPosition());
+        bool shiftPressed = isShiftPressed();
+        bool ctrlPressed = isControlPressed();
 
-        if (mouseButton == 1) {
+        float vel_x = getMouseVelX();
+        float vel_y = getMouseVelY();
 
-            // Left-button drag is used to rotate geometry.
-            if (fabs(movedX) < 50.0 && fabs(movedY) < 50.0) {
-                cameraLat -= getMouseVelX();
-                cameraLon -= getMouseVelY() * 0.5;
-                cam->orbit(cameraLat, cameraLon, dist);
-                // cam->lookAt(glm::vec3(0.0));
-            }
+        // Clamp velocity to prevent jumps
+        vel_x = glm::clamp(vel_x, -50.0f, 50.0f);
+        vel_y = glm::clamp(vel_y, -50.0f, 50.0f);
+        
+        if (mouseButton == 1 && !shiftPressed && !ctrlPressed) {
+            // Update orbital angles
+            cameraLat -= vel_x * 0.5f;
+            cameraLon += vel_y * 0.5f;
+            
+            // Clamp elevation to prevent gimbal lock
+            cameraLon = glm::clamp(cameraLon, -89.0f, 89.0f);
+            cam->orbit(cameraLat, cameraLon, currentDistance);
         } 
+        else if (mouseButton == 1 && shiftPressed) {
+            cam->moveTarget(-vel_x * 0.01f, vel_y * 0.01f);
+            
+        }
+        else if (mouseButton == 1 && ctrlPressed) {
+            cam->truck(.01f * vel_x);
+            cam->boom(.01f * -vel_y);
+            cam->moveTarget(-vel_x * 0.01f, vel_y * 0.01f);
+        }
         else if (mouseButton == 2) {
-
-            // Right-button drag is used to zoom geometry.
-            dist += (-.05f * movedY);
-            if (dist > 0.0f) {
-                cam->orbit(cameraLat, cameraLon, dist);
-                // cam->lookAt(glm::vec3(0.0));
-            }
+            // Right-button or Shift+Ctrl+Left: Zoom (change distance)
+            float zoomSpeed = currentDistance * 0.01f; // Zoom speed relative to distance
+            currentDistance += vel_y * zoomSpeed;
+            
+            // Clamp distance to reasonable bounds
+            currentDistance = glm::clamp(currentDistance, 0.1f, 1000.0f);
+            cam->orbit(cameraLat, cameraLon, currentDistance);
+        }
+        else if (mouseButton == 3) {
+            cam->pan(-vel_x * 0.05f);
+            cam->tilt(-vel_y * 0.05f);
         }
     }
 
