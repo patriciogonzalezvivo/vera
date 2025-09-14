@@ -142,11 +142,6 @@ void Camera::orbit(float _azimuth, float _elevation, float _distance) {
     glm::vec3 p = glm::vec3(0.0, 0.0, _distance);
     _elevation = glm::clamp(_elevation, -89.0f, 89.0f);
 
-    if (bFlipped) {
-        _elevation = -_elevation;
-        _azimuth = -_azimuth;
-    }
-    
     p = glm::angleAxis(glm::radians(_elevation), glm::vec3(1.0, 0.0, 0.0)) * p;
     p = glm::angleAxis(glm::radians(_azimuth), glm::vec3(0.0, 1.0, 0.0)) * p;
     p -= m_target;
