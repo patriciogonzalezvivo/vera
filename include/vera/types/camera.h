@@ -81,6 +81,8 @@ public:
     virtual void                begin();
     virtual void                end();
 
+
+    bool                        bFlipped = false;
 protected:
     virtual void        onPositionChanged();
     virtual void        onOrientationChanged();

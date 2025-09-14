@@ -24,7 +24,7 @@ Camera::Camera():
     m_target(0.0), m_position_offset(0.0),
     m_aspect(4.0f/3.0f), m_fov(45.), m_nearClip(0.01f), m_farClip(1000.0f), 
     m_exposure(2.60417e-05), m_ev100(14.9658), m_aperture(16), m_shutterSpeed(1.0f/125.0f), m_sensitivity(100.0f), 
-    m_projectionType(ProjectionType::PERSPECTIVE) {
+    m_projectionType(ProjectionType::PERSPECTIVE){
 
     updateCameraSettings();
 }
@@ -141,6 +141,11 @@ void Camera::moveTarget(float deltaX, float deltaY) {
 void Camera::orbit(float _azimuth, float _elevation, float _distance) {
     glm::vec3 p = glm::vec3(0.0, 0.0, _distance);
     _elevation = glm::clamp(_elevation, -89.0f, 89.0f);
+
+    if (bFlipped) {
+        _elevation = -_elevation;
+        _azimuth = -_azimuth;
+    }
     
     p = glm::angleAxis(glm::radians(_elevation), glm::vec3(1.0, 0.0, 0.0)) * p;
     p = glm::angleAxis(glm::radians(_azimuth), glm::vec3(0.0, 1.0, 0.0)) * p;

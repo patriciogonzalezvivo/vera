@@ -3,7 +3,7 @@
 #if defined(__APPLE__)
 #define DEFAULT_GLSL_VERSION_NUMBER 110
 #else
-#define DEFAULT_GLSL_VERSION_NUMBER 100
+#define DEFAULT_GLSL_VERSION_NUMBER 110
 #endif
 
 #include <string>
