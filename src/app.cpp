@@ -190,7 +190,7 @@ void App::run(WindowProperties _properties) {
             if (getBackgroundEnabled())
                 background();
 
-            Camera* cam = getCamera();
+            Camera* cam = camera();
 
             if (cam == nullptr)
                 return;

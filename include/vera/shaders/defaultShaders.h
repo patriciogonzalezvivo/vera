@@ -2,6 +2,10 @@
 
 #if defined(__APPLE__)
 #define DEFAULT_GLSL_VERSION_NUMBER 110
+
+#elif defined(__EMSCRIPTEN__)
+#define DEFAULT_GLSL_VERSION_NUMBER 100
+
 #else
 #define DEFAULT_GLSL_VERSION_NUMBER 110
 #endif
