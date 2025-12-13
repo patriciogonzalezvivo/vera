@@ -43,25 +43,32 @@ int getVersionNumber() {
 int getVersionNumber(const std::string& _src) {
     std::string _versionLine = "";
     int _versionNumber = DEFAULT_GLSL_VERSION_NUMBER;
+    std::string _versionProfile = "";
 
     if (haveVersion(_src)) {
         // split _src into srcVersion and srcBody
         std::istringstream srcIss(_src);
-
-        // the version line can be read without checking the result of getline(), srcVersionFound == true implies this
         std::getline(srcIss, _versionLine);
 
         std::istringstream versionIss(_versionLine);
         std::string dataRead;
         versionIss >> dataRead;             // consume the "#version" string which is guaranteed to be there
         versionIss >> _versionNumber;       // try to read the next token and convert it to a number
+        versionIss >> _versionProfile;      // try to read the next token (e.g., 'es')
+
+        // Store the version line with profile if present
+        if (!_versionProfile.empty()) {
+            versionLine = "#version " + std::to_string(_versionNumber) + " " + _versionProfile;
+        } else {
+            versionLine = "#version " + std::to_string(_versionNumber);
+        }
     }
 
     return _versionNumber;
 }
 
 std::string getVersionLine() {
-    return "#version " + std::to_string(versionNumber);
+    return versionLine.empty() ? ("#version " + std::to_string(versionNumber)) : versionLine;
 }
 
 std::string getDefaultSrc( DefaultShaders _type ) {
