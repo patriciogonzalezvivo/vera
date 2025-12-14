@@ -25,6 +25,7 @@
 namespace vera {
 
 static size_t versionNumber = DEFAULT_GLSL_VERSION_NUMBER;
+static bool versionES = false;
 static std::string versionLine = "";
 
 bool haveVersion(const std::string& _src) {
@@ -33,6 +34,7 @@ bool haveVersion(const std::string& _src) {
 
 void setVersionFromCode(const std::string& _src) {
     versionNumber = getVersionNumber(_src);
+    versionES = getVersionES(_src);
     versionLine = getVersionLine();
 }
 
@@ -60,8 +62,38 @@ int getVersionNumber(const std::string& _src) {
     return _versionNumber;
 }
 
+bool getVersionES() {
+    return versionES;
+}
+
+bool getVersionES(const std::string& _src) {
+    bool _versionES = false;
+
+    if (haveVersion(_src)) {
+        // split _src into srcVersion and srcBody
+        std::istringstream srcIss(_src);
+
+        // the version line can be read without checking the result of getline(), srcVersionFound == true implies this
+        std::string versionLine;
+        std::getline(srcIss, versionLine);
+
+        // if versionLine ends with " es", then we are using GLSL ES
+        std::istringstream versionIss(versionLine);
+        std::string dataRead;
+        versionIss >> dataRead; // consume the "#version" string which is guaranteed to be there
+        versionIss >> dataRead; // read the version number
+        versionIss >> dataRead; // read the optional "es" token
+
+        if (dataRead == "es") {
+            _versionES = true;
+        }
+    }
+
+    return _versionES;
+}
+
 std::string getVersionLine() {
-    return "#version " + std::to_string(versionNumber);
+    return "#version " + std::to_string(versionNumber) + (versionES ? " es" : "");
 }
 
 std::string getDefaultSrc( DefaultShaders _type ) {

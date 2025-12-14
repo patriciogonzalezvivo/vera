@@ -37,6 +37,8 @@ bool        haveVersion(const std::string& _src);
 
 void        setVersionFromCode(const std::string& _src);
 
+bool        getVersionES();
+bool        getVersionES(const std::string& _src);
 int         getVersionNumber();
 int         getVersionNumber(const std::string& _src);
 std::string getVersionLine();
