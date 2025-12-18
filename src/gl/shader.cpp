@@ -184,7 +184,7 @@ const GLint Shader::getAttribLocation(const std::string& _attribute) const {
 
 bool Shader::reload() {
     if (inUse() && isLoaded()) {
-        std::cout << "Reloading shader program " << getProgram() << std::endl;
+        // std::cout << "Reloading shader program " << getProgram() << std::endl;
         glUseProgram(0); // Unbind the current shader progra;
     } 
     return load(m_fragmentSource, m_vertexSource, m_error_screen, false);
