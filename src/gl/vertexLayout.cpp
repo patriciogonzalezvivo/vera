@@ -50,6 +50,9 @@ void VertexLayout::enable(const Shader* _program) {
 void VertexLayout::bind(const Shader* _program) {
     GLuint glProgram = _program->getProgram();
 
+    if (glProgram == 0)
+        return;
+
     // Enable all attributes for this layout
     for (unsigned int i = 0; i < m_attribs.size(); i++) {
         const GLint location = _program->getAttribLocation("a_"+m_attribs[i].name);
