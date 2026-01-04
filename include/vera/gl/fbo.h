@@ -39,6 +39,8 @@ public:
     bool            enabled;
 
 protected:
+    GLint       m_prev_viewport[4];
+
     GLuint      m_id;
     GLuint      m_fbo_id;
     GLuint      m_old_fbo_id;

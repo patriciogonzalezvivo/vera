@@ -193,7 +193,9 @@ void Font::render(const std::string &_text, float _x, float _y) {
         fonsSetBlur(fs, m_blur);
     }
 
-    glfonsScreenSize(fs, vera::getViewport().z, vera::getViewport().w);
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    glfonsScreenSize(fs, viewport[2], viewport[3]);
 
     fsuint textID = 0;
     fsuint buffer;

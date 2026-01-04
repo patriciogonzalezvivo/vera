@@ -13,13 +13,15 @@ uniform int         u_floodTotal;
 
 uniform vec2        u_resolution;
 
-varying vec2 v_texcoord;
+varying vec2        v_texcoord;
 
 void main() {
     vec4 color = vec4(0.0);
-    vec2 pixel = 1.0/u_resolution;
+    vec2 pixel = 1.0/u_resolution;;
     vec2 st = gl_FragCoord.xy * pixel;
-    // vec2 st = v_texcoord;
+    vec2 uv = v_texcoord;
+
+    st = uv;
 
     float jDist = pow(2.0, float(u_floodTotal - u_floodIndex - 1) );
 

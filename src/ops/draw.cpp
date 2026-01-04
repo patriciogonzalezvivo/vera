@@ -211,10 +211,12 @@ void ortho(float _left, float _right, float _bottom, float _top,  float _near, f
 }
 
 glm::mat4 projectionViewWorldMatrix() {
-    if (main_scene->activeCamera)
+    if (main_scene->activeCamera) {
         return main_scene->activeCamera->getProjectionViewMatrix() * matrix_world; 
-    else
+    }
+    else {
         return getFlippedOrthoMatrix() * matrix_world;
+    }
 }
 
 const glm::mat4& projectionViewMatrix() {
@@ -979,7 +981,10 @@ void image(const Fbo *_fbo) {
 }
 
 void image(const Fbo &_fbo, float _x, float _y, float _width, float _height) { image(&_fbo, _x, _y, _width, _height); }
-void image(const Fbo *_fbo, float _x, float _y, float _width, float _height) { 
+void image(const Fbo *_fbo, float _x, float _y, float _width, float _height) { image( _fbo, _x, _y, _width, _height, vera::getOrthoMatrix() ); }
+
+void image(const Fbo &_fbo, float _x, float _y, float _width, float _height, glm::mat4 _world) { image(&_fbo, _x, _y, _width, _height, _world); }
+void image(const Fbo *_fbo, float _x, float _y, float _width, float _height, glm::mat4 _world) { 
     if (billboard_shader == nullptr) {
         billboard_shader = new Shader();
         billboard_shader->setSource( getDefaultSrc(FRAG_DYNAMIC_BILLBOARD), getDefaultSrc(VERT_DYNAMIC_BILLBOARD) );
@@ -995,12 +1000,14 @@ void image(const Fbo *_fbo, float _x, float _y, float _width, float _height) {
     billboard_shader->setUniform("u_depth", 0.0f);
     billboard_shader->setUniform("u_translate", _x, _y);
     billboard_shader->setUniform("u_scale", _width, _height);
-    billboard_shader->setUniform("u_modelViewProjectionMatrix", vera::getOrthoMatrix() );
+    billboard_shader->setUniform("u_modelViewProjectionMatrix", _world);
     billboard_shader->setUniformTexture("u_tex0", _fbo, 0);
     billboard_shader->setUniform("u_tex0CurrentFrame", 0.0f );
     billboard_shader->setUniform("u_tex0TotalFrames", 0.0f );
     billboard_vbo->render( billboard_shader );
 }
+
+
 
 void imageDepth(const Fbo &_fbo, float _x, float _y, float _width, float _height, float _far, float _near) { imageDepth(&_fbo, _x, _y, _width, _height, _far, _near); }
 void imageDepth(const Fbo *_fbo, float _x, float _y, float _width, float _height, float _far, float _near) { 
@@ -1140,11 +1147,15 @@ void text(const std::string& _text, float _x, float _y, Font* _font) {
         _font = font();
     _font->setColor( fill_color );
 
-    glm::vec4 pos = projectionViewWorldMatrix() * glm::vec4(_x, _y, 0.0f, 1.0f);
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
+    // glm::vec4 pos = projectionViewWorldMatrix() * glm::vec4(_x, _y, 0.0f, 1.0f);
+    glm::vec4 pos = glm::ortho(0.0f, (float)viewport[2], (float)viewport[3], 0.0f) * glm::vec4(_x, _y, 0.0f, 1.0f);
     pos.x /= pos.w;
     pos.y /= pos.w;
-    pos.x = (pos.x + 1.0f) * 0.5f * vera::getViewport().z;
-    pos.y = (1.0f-pos.y) * 0.5f * vera::getViewport().w;
+    pos.x = (pos.x + 1.0f) * 0.5f * viewport[2];
+    pos.y = (1.0f-pos.y) * 0.5f * viewport[3];
 
     _font->render(_text, pos.x, pos.y);
 }
@@ -1155,9 +1166,12 @@ void text(const std::string& _text, const glm::vec3& _pos, Font* _font) {
 
     Camera* cam = main_scene->activeCamera;
 
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
     glm::vec3 screenPos = cam->worldToScreen(_pos, worldMatrixPtr());
-    screenPos.x *= vera::getViewport().z;
-    screenPos.y *= vera::getViewport().w;
+    screenPos.x *= viewport[2];
+    screenPos.y *= viewport[3];
 
     // Is in view? (depth and in viewport)
     if (screenPos.z >= 1.0) {

@@ -144,6 +144,7 @@ struct GLFONScontext {
     bool resolutionDirty;
     void* userPtr;
     std::unordered_map<fsuint, GLFONSbuffer*> buffers;
+    GLuint vao;
 };
 
 static int glfons__renderCreate(void* userPtr, int width, int height) {
@@ -288,6 +289,8 @@ void glfons__initShaders(GLFONScontext* gl) {
 
     gl->program = program;
 
+    glGenVertexArrays(1, &gl->vao);
+
     GLuint boundProgram;
     glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*) &boundProgram);
     GLFONS_GL_CHECK(glUseProgram(program));
@@ -337,6 +340,10 @@ void glfons__projection(GLFONScontext* gl, float* projectionMatrix) {
 }
 
 void glfons__draw(GLFONScontext* gl, bool bindAtlas) {
+    // Store previously bound program
+    GLint boundProgram;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &boundProgram);
+
     GLFONS_GL_CHECK(glUseProgram(gl->program));
 
     if(gl->resolutionDirty) {
@@ -357,6 +364,9 @@ void glfons__draw(GLFONScontext* gl, bool bindAtlas) {
         GLFONS_GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, buffer->nVerts));
         glfons__disableVertexLayout(gl);
     }
+
+    // restore previously bound program
+    glUseProgram(boundProgram);
 }
 
 void glfons__setDirty(GLFONSbuffer* buffer, GLintptr start, GLsizei size) {
@@ -403,7 +413,15 @@ void glfons__udpateAtas(void* usrPtr, unsigned int xoff, unsigned int yoff,
 
     glActiveTexture(GL_TEXTURE0 + ATLAS_TEXTURE_SLOT);
     GLFONS_GL_CHECK(glBindTexture(GL_TEXTURE_2D, gl->atlas));
+
+    GLint alignment;
+    glGetIntegerv(GL_UNPACK_ALIGNMENT, &alignment);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
     glTexSubImage2D(GL_TEXTURE_2D, 0, xoff, yoff, width, height, GL_ALPHA, GL_UNSIGNED_BYTE, pixels);
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -614,12 +632,21 @@ void glfonsDraw(FONScontext* ctx) {
     GLuint textureUnit0 = 0;
     GLuint boundProgram = 0;
     GLuint boundBuffer = 0;
+    GLint boundVertexArray = 0;
+    GLint boundTextureUnit = 0;
+    GLint blendSrcRGB, blendDstRGB, blendSrcAlpha, blendDstAlpha;
 
     // save states
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, (GLint*) &boundBuffer);
     glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*) &boundProgram);
+    glGetIntegerv(GL_ACTIVE_TEXTURE, &boundTextureUnit);
     glActiveTexture(GL_TEXTURE0 + ATLAS_TEXTURE_SLOT);
     glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint*) &textureUnit0);
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &boundVertexArray);
+    glGetIntegerv(GL_BLEND_SRC_RGB, &blendSrcRGB);
+    glGetIntegerv(GL_BLEND_DST_RGB, &blendDstRGB);
+    glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrcAlpha);
+    glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDstAlpha);
 
     if(depthTest)
         glDisable(GL_DEPTH_TEST);
@@ -628,7 +655,11 @@ void glfonsDraw(FONScontext* ctx) {
         glEnable(GL_BLEND);
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glBindVertexArray(gl->vao);
     glfons__draw(gl, gl->atlas != textureUnit0);
+    glBindVertexArray(boundVertexArray);
+
     glBindBuffer(GL_ARRAY_BUFFER, boundBuffer);
 
     if(!blending)
@@ -637,7 +668,8 @@ void glfonsDraw(FONScontext* ctx) {
     if(depthTest)
         glEnable(GL_DEPTH_TEST);
 
-    glActiveTexture(GL_TEXTURE0 + ATLAS_TEXTURE_SLOT);
+    glBlendFuncSeparate(blendSrcRGB, blendDstRGB, blendSrcAlpha, blendDstAlpha);
+    glActiveTexture(boundTextureUnit);
     glBindTexture(GL_TEXTURE_2D, textureUnit0);
     glUseProgram(boundProgram);
 }
@@ -656,6 +688,9 @@ static void glfons__renderDelete(void* userPtr) {
         }
         if (gl->program) {
             glDeleteProgram(gl->program);
+        }
+        if (gl->vao != 0) {
+            glDeleteVertexArrays(1, &gl->vao);
         }
     }
     delete gl;
@@ -682,6 +717,7 @@ void glfons__createAtlas(void* usrPtr, unsigned int width, unsigned int height) 
 FONScontext* glfonsCreate(int width, int height, int flags, GLFONSparams glParams, void* userPtr) {
     FONSparams params;
     GLFONScontext* gl = new GLFONScontext;
+    gl->vao = 0;
 
     if(glParams.useGLBackend) {
         glParams.updateAtlas = glfons__udpateAtas;

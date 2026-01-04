@@ -214,6 +214,8 @@ void                updateViewport();
 
 void                setFps(int _fps);
 void                setViewport(float _width, float _height);
+void                setViewport(int _x, int _y, int _width, int _height);
+void                setOrthoMatrix(float _left, float _right, float _bottom, float _top);
 void                setWindowSize(int _width, int _height);
 void                setWindowTitle(const char* _title);
 void                setWindowVSync(bool _value);

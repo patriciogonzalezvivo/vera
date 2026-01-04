@@ -1734,6 +1734,9 @@ void setViewport(float _width, float _height) {
     viewport.w = _height;
 
     updateViewport();
+
+    if (onViewportResize)
+        onViewportResize(_width, _height);
 }
 
 void setViewport(int _x, int _y, int _width, int _height){
@@ -1743,6 +1746,11 @@ void setViewport(int _x, int _y, int _width, int _height){
     viewport.w = _height;
 
     updateViewport();
+}
+
+void setOrthoMatrix(float _left, float _right, float _bottom, float _top) {
+    ortho_matrix = glm::ortho(_left , _right, _bottom, _top);
+    ortho_flipped_matrix = glm::ortho(_left, _right, _top, _bottom);
 }
 
 void updateViewport() {
@@ -1755,14 +1763,13 @@ void updateViewport() {
                     width, height);
     }
 
-    ortho_matrix = glm::ortho(   (float)viewport.x * device_pixel_ratio, width, 
-                                (float)viewport.y * device_pixel_ratio, height);
+    setOrthoMatrix( (float)viewport.x * device_pixel_ratio, width, 
+                    (float)viewport.y * device_pixel_ratio, height );
 
-    ortho_flipped_matrix = glm::ortho(   (float)viewport.x * device_pixel_ratio, width, 
-                                        height, (float)viewport.y * device_pixel_ratio);
-
-    if (onViewportResize)
-        onViewportResize(width, height);
+    // ortho_matrix = glm::ortho(  (float)viewport.x * device_pixel_ratio, width, 
+    //                             (float)viewport.y * device_pixel_ratio, height);
+    // ortho_flipped_matrix = glm::ortho(  (float)viewport.x * device_pixel_ratio, width, 
+    //                                     height, (float)viewport.y * device_pixel_ratio);
 }
 
 void getScreenSize() {
@@ -1877,13 +1884,7 @@ void setWindowIcon(unsigned char* _data, size_t _width, size_t _height) {
 #endif
 }
 
-const glm::ivec4& getViewport() { 
-    // int vp[4];
-    // glGetIntegerv(GL_VIEWPORT, vp);
-    // return glm::ivec4(vp[0], vp[1], vp[2], vp[3]);
-    return viewport;
-}
-
+const glm::ivec4& getViewport() { return viewport; }
 const glm::mat4& getOrthoMatrix() { return ortho_matrix; }
 const glm::mat4& getFlippedOrthoMatrix() { return ortho_flipped_matrix; }
 const int getWindowWidth() { return viewport.z * device_pixel_ratio; }

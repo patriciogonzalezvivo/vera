@@ -222,7 +222,9 @@ void image(const TextureStream *_stream, float _x, float _y, float _width = 0, f
 void image(const Fbo &_fbo);
 void image(const Fbo *_fbo);
 void image(const Fbo &_fbo, float _x, float _y, float _width = 0, float _height = 0);
+void image(const Fbo &_fbo, float _x, float _y, float _width, float _height, glm::mat4 _world);
 void image(const Fbo *_fbo, float _x, float _y, float _width = 0, float _height = 0);
+void image(const Fbo *_fbo, float _x, float _y, float _width, float _height, glm::mat4 _world);
 void imageDepth(const Fbo &_fbo, float _x, float _y, float _width = 0, float _height = 0, float _far = 100.0f, float _near = 0.001f);
 void imageDepth(const Fbo *_fbo, float _x, float _y, float _width = 0, float _height = 0, float _far = 100.0f, float _near = 0.001f);
 Vbo* billboard();

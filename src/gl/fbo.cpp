@@ -195,11 +195,13 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
 
 void Fbo::bind() {
     if (!m_binded) {
+        glGetIntegerv(GL_VIEWPORT, m_prev_viewport);
         glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&m_old_fbo_id);
         glBindTexture(GL_TEXTURE_2D, 0);
 
         glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_id);
         glViewport(0.0f, 0.0f, m_width, m_height);
+
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
         if (m_id != 0)
@@ -226,6 +228,7 @@ void Fbo::unbind() {
         glBindFramebuffer(GL_FRAMEBUFFER, m_old_fbo_id);
         glBindTexture(GL_TEXTURE_2D, 0);
         m_binded = false;
+        glViewport( (GLint)m_prev_viewport[0], (GLint)m_prev_viewport[1], (GLsizei)m_prev_viewport[2], (GLsizei)m_prev_viewport[3] );
     }
 }
 
