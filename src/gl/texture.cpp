@@ -9,7 +9,7 @@
 namespace vera {
 
 // TEXTURE
-Texture::Texture() : m_path(""), m_width(0), m_height(0), m_id(0), m_vFlip(false) {
+Texture::Texture() : m_path(""), m_width(0), m_height(0), m_id(0), m_vFlip(false), m_format(0), m_type(0), m_filter(LINEAR), m_wrap(REPEAT) {
 }
 
 Texture::Texture(const Image& _img, TextureFilter _filter, TextureWrap _wrap) : m_path(""), m_width(0), m_height(0), m_id(0), m_vFlip(false) {
@@ -46,8 +46,9 @@ bool Texture::load(const std::string& _path, bool _vFlip, TextureFilter _filter,
         ext == "jpg"    || ext == "JPG" ||
         ext == "jpeg"   || ext == "JPEG" ) {
 
-        unsigned char* pixels = loadPixels(_path, &m_width, &m_height, RGB_ALPHA, _vFlip);
-        loaded = load(m_width, m_height, 4, 8, pixels, _filter, _wrap);
+        int w, h;
+        unsigned char* pixels = loadPixels(_path, &w, &h, RGB_ALPHA, _vFlip);
+        loaded = load(w, h, 4, 8, pixels, _filter, _wrap);
         freePixels(pixels);
     }
 
@@ -59,12 +60,14 @@ bool Texture::load(const std::string& _path, bool _vFlip, TextureFilter _filter,
                 ext == "tga" || ext == "TGA") {
 #if defined(PLATFORM_RPI) || defined(__EMSCRIPTEN__)
         // If we are in a Raspberry Pi don't take the risk of loading a 16bit image
-        unsigned char* pixels = loadPixels(_path, &m_width, &m_height, RGB_ALPHA, _vFlip);
-        loaded = load(m_width, m_height, 4, 8, pixels, _filter, _wrap);
+        int w, h;
+        unsigned char* pixels = loadPixels(_path, &w, &h, RGB_ALPHA, _vFlip);
+        loaded = load(w, h, 4, 8, pixels, _filter, _wrap);
         freePixels(pixels);
 #else
-        uint16_t* pixels = loadPixels16(_path, &m_width, &m_height, RGB_ALPHA, _vFlip);
-        loaded = load(m_width, m_height, 4, 16, pixels, _filter, _wrap);
+        int w, h;
+        uint16_t* pixels = loadPixels16(_path, &w, &h, RGB_ALPHA, _vFlip);
+        loaded = load(w, h, 4, 16, pixels, _filter, _wrap);
         freePixels(pixels);
 #endif
     }
@@ -73,8 +76,9 @@ bool Texture::load(const std::string& _path, bool _vFlip, TextureFilter _filter,
     else if (   ext == "hdr" || ext == "HDR" ||
                 ext == "exr" || ext == "EXR" ) {
         int channels = 3;
-        float* pixels = loadPixelsFloat(_path, &m_width, &m_height, &channels, _vFlip);
-        loaded = load(m_width, m_height, channels, 32, pixels, _filter, _wrap);
+        int w, h;
+        float* pixels = loadPixelsFloat(_path, &w, &h, &channels, _vFlip);
+        loaded = load(w, h, channels, 32, pixels, _filter, _wrap);
         freePixels(pixels);
     }
 
