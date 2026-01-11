@@ -205,6 +205,7 @@ void Shader::use() {
 }
 
 bool Shader::inUse() const {
+    if (getProgram() == 0) return false;
     GLint currentProgram = 0;
     glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
     return (getProgram() == (GLuint)currentProgram);
