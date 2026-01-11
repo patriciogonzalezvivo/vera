@@ -182,7 +182,7 @@ inline glm::mat4 inverseMatrix(const glm::mat4& m) {
 }
 
 inline float random() { return static_cast<float>(rand()) / static_cast<float>(RAND_MAX); }
-inline float random(float min, float max) { return min + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX/(max - min))); }
+inline float random(float min, float max) { return min + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / (max - min)); }
 inline int random(int min, int max) { return min + rand() % (max - min + 1); }
 
 }

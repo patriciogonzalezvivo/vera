@@ -213,7 +213,6 @@ WindowProperties    getWindowProperties();
 void                updateViewport();
 
 void                setFps(int _fps);
-void                setViewport(float _width, float _height);
 void                setViewport(int _x, int _y, int _width, int _height);
 void                setOrthoMatrix(float _left, float _right, float _bottom, float _top);
 void                setWindowSize(int _width, int _height);
@@ -274,7 +273,7 @@ const bool          isControlPressed();
 
 // EVENTS CALLBACKS
 //----------------------------------------------
-void    setViewportResizeCallback(std::function<void(int,int)>);
+void    setWindowResizeCallback(std::function<void(int,int)>);
 void    setKeyPressCallback(std::function<void(int)>);
 void    setMouseMoveCallback(std::function<void(float, float)>);
 void    setMousePressCallback(std::function<void(float, float, int)>);

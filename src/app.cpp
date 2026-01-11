@@ -35,6 +35,12 @@ void App::loop(double _time, App* _app) {
     _app->update();
     updateGL();
 
+    if (_app->bShouldResize) {
+        _app->onWindowResize( getWindowWidth(), getWindowHeight() );
+        _app->windowResized();
+        _app->bShouldResize = false;
+    }
+
     if (_app->m_saveToPath.length() > 0) {
         if (!_app->m_framebuffer.isAllocated())
             _app->m_framebuffer.allocate(_app->width, _app->height, vera::COLOR_TEXTURE_DEPTH_BUFFER);
@@ -54,8 +60,9 @@ void App::loop(double _time, App* _app) {
             _app->draw();
         });
     }
-    else
+    else {
         _app->draw();
+    }
         
     renderGL();
 
@@ -96,9 +103,8 @@ void App::run(WindowProperties _properties) {
     bPostSetup = true;
 
 #ifdef EVENTS_AS_CALLBACKS
-    setViewportResizeCallback( [&](int _width, int _height) {
-        onViewportResize(_width, _height); 
-        windowResized();
+    setWindowResizeCallback( [&](int _width, int _height) {
+        bShouldResize = true;
     } );
     
     setKeyPressCallback( [&](int _key) { 
@@ -263,8 +269,14 @@ void App::run(WindowProperties _properties) {
 #else
     
     // Render Loop
-    while ( isGL() && !bShouldExit)
+    while ( isGL() && !bShouldExit) {
+        if (bShouldResize) {
+            onWindowResize( getWindowWidth(), getWindowHeight() );
+            windowResized();
+            bShouldResize = false;
+        }
         loop(getTime(), this);
+    }
 
     closeGL();
     close();

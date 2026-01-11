@@ -860,7 +860,7 @@ static bool                     bControl        = false;
     
 #endif
 
-    std::function<void(int,int)>            onViewportResize;
+    std::function<void(int,int)>            onWindowResize;
     std::function<void(int)>                onKeyPress;
     std::function<void(float, float)>       onMouseMove;
     std::function<void(float, float, int)>  onMousePress;
@@ -869,7 +869,7 @@ static bool                     bControl        = false;
     std::function<void(float)>              onScroll;
     std::function<void(int, const char**)>  onDrop;
 
-    void setViewportResizeCallback(std::function<void(int,int)> _callback) { onViewportResize = _callback; }
+    void setWindowResizeCallback(std::function<void(int,int)> _callback) { onWindowResize = _callback; }
     void setKeyPressCallback(std::function<void(int)> _callback) { onKeyPress = _callback; }
     void setMouseMoveCallback(std::function<void(float, float)> _callback) { onMouseMove = _callback; }
     void setMousePressCallback(std::function<void(float, float, int)> _callback) { onMousePress = _callback; }
@@ -954,7 +954,14 @@ int initGL(WindowProperties _prop) {
     properties = _prop;
 
     if (properties.style == EMBEDDED) {
-        setViewport(properties.screen_width, properties.screen_height);
+        viewport.z = properties.screen_width;
+        viewport.w = properties.screen_height;
+
+        updateViewport();
+
+        if (onWindowResize)
+            onWindowResize(properties.screen_width, properties.screen_height);
+
         return 0;
     }
 
@@ -1385,8 +1392,8 @@ int initGL(WindowProperties _prop) {
         device_pixel_ratio = (xscale > yscale ? xscale : yscale);
         std::cout << "Pixel Density: " << device_pixel_ratio << std::endl;
 
-        if (onViewportResize)
-            onViewportResize(properties.screen_width, properties.screen_height);
+        if (onWindowResize)
+            onWindowResize(properties.screen_width, properties.screen_height);
     });
 
     // callback when the mouse cursor enters/leaves
@@ -1507,14 +1514,26 @@ int initGL(WindowProperties _prop) {
             updateViewport();
     });
 
-    glfwSetWindowSizeCallback(window, [](GLFWwindow* _window, int _w, int _h) {
-        setViewport(_w,_h);
+    glfwSetWindowSizeCallback(window, [](GLFWwindow* _window, int _width, int _height) {
+        viewport.z = _width;
+        viewport.w = _height;
+
+        updateViewport();
+
+        if (onWindowResize)
+            onWindowResize(_width, _height);
     });
     
 #endif 
         
 #endif
-    setViewport(properties.screen_width, properties.screen_height);
+    viewport.z = properties.screen_width;
+    viewport.w = properties.screen_height;
+
+    updateViewport();
+
+    if (onWindowResize)
+        onWindowResize(properties.screen_width, properties.screen_height);
 
 #if defined(__EMSCRIPTEN__)
     update_canvas_size();
@@ -1705,7 +1724,14 @@ void closeGL(){
 //-------------------------------------------------------------
 void setWindowSize(int _width, int _height) {
 #if defined(__EMSCRIPTEN__)
-    setViewport((float)_width, (float)_height);
+    viewport.z = _width;
+    viewport.w = _height;
+
+    updateViewport();
+
+    if (onWindowResize)
+        onWindowResize(_width, _height);
+
     glfwSetWindowSize(window, _width * getDisplayPixelRatio(true), _height * getDisplayPixelRatio(true));
     return;
 
@@ -1714,7 +1740,13 @@ void setWindowSize(int _width, int _height) {
         glfwSetWindowSize(window, _width / getDisplayPixelRatio(true), _height / getDisplayPixelRatio(true));
 #endif
 
-    setViewport((float)_width / getDisplayPixelRatio(true), (float)_height / getDisplayPixelRatio(true));
+    viewport.z = _width/getDisplayPixelRatio(true);
+    viewport.w = _height/getDisplayPixelRatio(true);
+
+    updateViewport();
+
+    if (onWindowResize)
+        onWindowResize(viewport.z, viewport.w);
 }
 
 void setWindowTitle( const char* _title) {
@@ -1727,16 +1759,6 @@ void setWindowVSync(bool _value) {
 #if defined(DRIVER_GLFW)
     glfwSwapInterval(_value);
 #endif
-}
-
-void setViewport(float _width, float _height) {
-    viewport.z = _width;
-    viewport.w = _height;
-
-    updateViewport();
-
-    if (onViewportResize)
-        onViewportResize(_width, _height);
 }
 
 void setViewport(int _x, int _y, int _width, int _height){
@@ -1758,10 +1780,8 @@ void updateViewport() {
     float width = getWindowWidth();
     float height = getWindowHeight();
 
-    if (properties.style != EMBEDDED) {
-        glViewport( (float)viewport.x * device_pixel_ratio, (float)viewport.y * device_pixel_ratio,
-                    width, height);
-    }
+    if (properties.style != EMBEDDED)
+        glViewport( (float)viewport.x * device_pixel_ratio, (float)viewport.y * device_pixel_ratio, width, height);
 
     setOrthoMatrix( (float)viewport.x * device_pixel_ratio, width, 
                     (float)viewport.y * device_pixel_ratio, height );

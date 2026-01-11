@@ -29,7 +29,7 @@ public:
     virtual void close() {};
 
     virtual void windowResized() {};
-    virtual void onViewportResize(int _width, int _height) {};
+    virtual void onWindowResize(int _width, int _height) {};
 
     virtual void keyPressed() {};
     virtual void onKeyPress(int _key) {};
@@ -90,6 +90,7 @@ protected:
 
     bool        bPostSetup = false;
     bool        bShouldExit = false;
+    bool        bShouldResize = true;
 
     #if defined(__EMSCRIPTEN__)
     static EM_BOOL loop (double time, void* userData);
