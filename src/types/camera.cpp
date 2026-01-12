@@ -33,14 +33,14 @@ Camera::~Camera() {
 
 }
 
-void Camera::setViewport(int _width, int _height){
-    m_aspect = double(_width) / double(_height);
-    updateCameraSettings();
-}
-
 void Camera::setViewport(glm::vec4 _viewport) {
     m_viewport = _viewport;
     setViewport(_viewport.z, _viewport.w);
+}
+
+void Camera::setViewport(int _width, int _height){
+    m_aspect = double(_width) / double(_height);
+    updateCameraSettings();
 }
 
 //Setting Functions
@@ -245,7 +245,7 @@ void Camera::updateCameraSettings() {
     setExposure(getAperture(), getShutterSpeed(), getSensitivity());
     
     if (m_projectionType == ProjectionType::ORTHO)
-        m_projectionMatrix = glm::ortho(-1.5f * float(m_aspect), 1.5f * float(m_aspect), -1.5f, 1.5f, -10.0f, 10.f);
+        m_projectionMatrix = glm::ortho(-1.5f * float(m_aspect), 1.5f * float(m_aspect), -1.5f, 1.5f, -10.0f, 10.0f);
     else if (m_projectionType != ProjectionType::CUSTOM)
         m_projectionMatrix = glm::perspective(m_fov, m_aspect, m_nearClip, m_farClip);
     

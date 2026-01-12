@@ -1785,11 +1785,6 @@ void updateViewport() {
 
     setOrthoMatrix( (float)viewport.x * device_pixel_ratio, width, 
                     (float)viewport.y * device_pixel_ratio, height );
-
-    // ortho_matrix = glm::ortho(  (float)viewport.x * device_pixel_ratio, width, 
-    //                             (float)viewport.y * device_pixel_ratio, height);
-    // ortho_flipped_matrix = glm::ortho(  (float)viewport.x * device_pixel_ratio, width, 
-    //                                     height, (float)viewport.y * device_pixel_ratio);
 }
 
 void getScreenSize() {
