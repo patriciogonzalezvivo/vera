@@ -90,6 +90,7 @@ void stroke( float _red, float _green, float _blue, float _alpha);
 void stroke( const glm::vec3& _color );
 void stroke( const glm::vec4& _color );
 void noStroke();
+float strokeWeight();
 void strokeWeight(float _weight);
 const glm::vec4& getStrokeColor();
 

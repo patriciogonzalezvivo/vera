@@ -493,7 +493,7 @@ void Label::render(Font *_font) {
             line(m_line_points);
 
             // draw a line to the text position
-            strokeWeight(1.0f);
+            strokeWeight(1.5f);
             stroke(1.0f);
             line(m_line_points);
         }
@@ -508,7 +508,7 @@ void Label::render(Font *_font) {
             stroke(getBackground());
             line(m_line_points);
 
-            strokeWeight(1.0f);
+            strokeWeight(1.5f);
             stroke(1.0f);
             line(m_line_points);
         }

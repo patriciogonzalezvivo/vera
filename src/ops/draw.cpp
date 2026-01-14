@@ -355,6 +355,8 @@ void stroke( const glm::vec4& _color ) {
     if (shaderPtr == nullptr || shaderPtr != fill_shader)
         shaderPtr = fillShader();
 }
+
+float strokeWeight() { return stroke_weight; }
 void strokeWeight( float _weight) {
     stroke_weight = _weight * pd;
 }

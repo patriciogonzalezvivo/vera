@@ -198,6 +198,8 @@ void main(void) {
     #ifdef MODEL_VERTEX_NORMAL
     vec2 pixel = 1.0/u_resolution;
     gl_Position.xy += v_normal.xy * u_strokeWeight  * pixel * 100.0;
+    // vec4 offset = u_modelViewProjectionMatrix * vec4(vec3(v_normal.xy, 1.0), 0.0);
+    // gl_Position.xy += offset.xy * u_strokeWeight  * pixel * 100.0;
     #endif 
 }
 )";
@@ -327,6 +329,9 @@ void main(void) {
     #ifdef MODEL_VERTEX_NORMAL
     vec2 pixel = 1.0/u_resolution;
     gl_Position.xy += v_normal.xy * u_strokeWeight  * pixel * 100.0;
+
+    // vec4 offset = u_modelViewProjectionMatrix * vec4(vec3(v_normal.xy, 1.0), 0.0);
+    // gl_Position.xy += offset.xy * u_strokeWeight  * pixel * 100.0;
     #endif 
 }
 )";
@@ -471,6 +476,7 @@ void main(void) {
     vec3 n2 = extrudeNormal(screen_pos_curr, screen_pos_next);
 
     position_curr.xy += normalize(n1.xy + n2.xy) * width * pixel;
+    // position_curr.xy += (n1.xy + n2.xy) / (1.0 + dot(n1.xy, n2.xy)) * width * pixel;
 
     gl_Position = position_curr;
 }

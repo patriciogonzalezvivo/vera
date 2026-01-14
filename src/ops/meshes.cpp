@@ -44,23 +44,46 @@ Mesh lineMesh(std::vector<glm::vec2> _points, float _width) {
     Mesh mesh;
     mesh.setDrawMode(TRIANGLE_STRIP);
 
-    glm::vec3 normal = glm::normalize( glm::vec3(_points[1], 0.0f) - glm::vec3(_points[0], 0.0f) );
-    normal = glm::vec3( normal.y, -normal.x, 0.0f );
-    normal *= _width * 0.5;
+    if (_points.size() < 2) return mesh;
 
-    mesh.addVertex( glm::vec3(_points[0], 0.0f) + normal );
-    mesh.addVertex( glm::vec3(_points[0], 0.0f) - normal );
-    mesh.addTexCoord( glm::vec2(0.0f, 0.0f) );
-    mesh.addTexCoord( glm::vec2(1.0f, 0.0f) );
+    for (size_t i = 0; i < _points.size(); i++) {
+        glm::vec2 normal;
+        bool has_prev = i > 0;
+        bool has_next = i < _points.size() - 1;
 
-    for (int i = 1; i < _points.size(); i++) {
-        glm::vec3 normal = glm::normalize( glm::vec3(_points[i], 0.0f) - glm::vec3(_points[i-1], 0.0f) );
-        normal = glm::vec3( normal.y, -normal.x, 0.0f );
-        normal *= _width * 0.5;
-        mesh.addVertex( glm::vec3(_points[i], 0.0f) + normal );
-        mesh.addVertex( glm::vec3(_points[i], 0.0f) - normal );
+        if (has_prev && has_next) {
+            glm::vec2 dir1 = glm::normalize(_points[i] - _points[i-1]);
+            glm::vec2 dir2 = glm::normalize(_points[i+1] - _points[i]);
+            
+            glm::vec2 tangent = dir1 + dir2;
+            if (glm::length(tangent) > 0.0001) {
+                tangent = glm::normalize(tangent);
+                glm::vec2 miter = glm::vec2(-tangent.y, tangent.x);
+                glm::vec2 n1 = glm::vec2(dir1.y, -dir1.x);
+                
+                float length = 1.0f / glm::dot(miter, n1);
+                if (length > 5.0f) length = 5.0f;
+                normal = miter * length;
+            } else {
+                 normal = glm::vec2(dir1.y, -dir1.x);
+            }
+        }
+        else if (has_prev) {
+             glm::vec2 dir = glm::normalize(_points[i] - _points[i-1]);
+             normal = glm::vec2(dir.y, -dir.x);
+        }
+        else if (has_next) {
+             glm::vec2 dir = glm::normalize(_points[i+1] - _points[i]);
+             normal = glm::vec2(dir.y, -dir.x);
+        }
 
-        float pct = (float)i/(float)_points.size();
+        normal *= _width * 0.5f;
+        glm::vec3 offset = glm::vec3(normal, 0.0f);
+
+        mesh.addVertex( glm::vec3(_points[i], 0.0f) + offset );
+        mesh.addVertex( glm::vec3(_points[i], 0.0f) - offset );
+
+        float pct = (float)i / (float)(_points.size() - 1);
         mesh.addTexCoord( glm::vec2(0.0f, pct) );
         mesh.addTexCoord( glm::vec2(1.0f, pct) );
     }
@@ -176,6 +199,7 @@ Mesh lineMesh(std::vector<glm::vec3> _points, float _width) {
         
         n_right = n + n_n;
         n_right *= sqrtf(2.0 / (1.0 + glm::dot(n,n_n) )) * _width * 0.5;
+        // n_right *= _width / (1.0f + glm::dot(n,n_n));
 
         mesh.addVertex( v + n_right );
         mesh.addNormal( UP_NORMAL );
