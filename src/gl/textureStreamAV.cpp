@@ -475,8 +475,8 @@ void  TextureStreamAV::clear() {
     if (av_packet)
         av_free(av_packet);
         
-    if (av_codec_ctx)
-        avcodec_close(av_codec_ctx);
+    // if (av_codec_ctx)
+    //     avcodec_close(av_codec_ctx);
         
     if (av_format_ctx)
         avformat_free_context(av_format_ctx);

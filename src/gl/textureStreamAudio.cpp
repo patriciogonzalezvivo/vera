@@ -15,14 +15,17 @@
 #define MINIAUDIO_IMPLEMENTATION
 
 extern "C" {
-#include <libavcodec/avfft.h>
+// #include <libavcodec/avfft.h>
+#include <libavutil/tx.h>
 #include <libavutil/mem.h>
 #include "miniaudio.h"
 }
 
 ma_device_config a_deviceConfig;
 ma_device a_device;
-static RDFTContext *ctx;
+// static RDFTContext *ctx;
+static AVTXContext *tx_ctx;
+static av_tx_fn tx_fn;
 ma_context context;
 ma_device_info* pPlaybackDeviceInfos;
 ma_device_info* pCaptureDeviceInfos;
@@ -138,8 +141,10 @@ bool TextureStreamAudio::load(const std::string &_device_id_str, bool _vFlip, ve
     }
 
     // init dft calculator
-    ctx = av_rdft_init((int) log2(m_buf_len), DFT_R2C);
-    if (!ctx) {
+    // ctx = av_rdft_init((int) log2(m_buf_len), DFT_R2C);
+    // if (!ctx) {
+    float scale = 1.0f;
+    if (av_tx_init(&tx_ctx, &tx_fn, AV_TX_FLOAT_RDFT, 0, m_buf_len, &scale, 0) < 0) {
         ma_device_uninit(&a_device);
         ma_context_uninit(&context);
         std::cout << "Failed to init dft calculator."  << std::endl;
@@ -192,7 +197,8 @@ bool TextureStreamAudio::update() {
         m_dft_buffer[i] = value;
     }
 
-    av_rdft_calc(ctx, m_dft_buffer);
+    // av_rdft_calc(ctx, m_dft_buffer);
+    tx_fn(tx_ctx, m_dft_buffer, m_dft_buffer, sizeof(float));
 
     // copy frequency values to RED pixels
     for (int i = 0; i < m_width; i++) {
@@ -232,8 +238,8 @@ void TextureStreamAudio::clear() {
     ma_device_uninit(&a_device);
     ma_context_uninit(&context);
 
-   if (ctx) 
-        av_rdft_end(ctx); 
+   if (tx_ctx) 
+        av_tx_uninit(&tx_ctx); 
 
     av_free(m_dft_buffer);
 
