@@ -32,6 +32,13 @@
 
 #include "vera/window.h"
 
+#ifdef __APPLE__
+#define GL_VERTEX_ARRAY_BINDING GL_VERTEX_ARRAY_BINDING_APPLE
+#define glGenVertexArrays glGenVertexArraysAPPLE
+#define glBindVertexArray glBindVertexArrayAPPLE
+#define glDeleteVertexArrays glDeleteVertexArraysAPPLE
+#endif
+
 typedef unsigned int fsuint;
 
 typedef struct GLFONScontext GLFonscontext;
@@ -642,7 +649,11 @@ void glfonsDraw(FONScontext* ctx) {
     glGetIntegerv(GL_ACTIVE_TEXTURE, &boundTextureUnit);
     glActiveTexture(GL_TEXTURE0 + ATLAS_TEXTURE_SLOT);
     glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint*) &textureUnit0);
+    #ifdef __APPLE__
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING_APPLE, &boundVertexArray);
+    #else
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &boundVertexArray);
+    #endif
     glGetIntegerv(GL_BLEND_SRC_RGB, &blendSrcRGB);
     glGetIntegerv(GL_BLEND_DST_RGB, &blendDstRGB);
     glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrcAlpha);

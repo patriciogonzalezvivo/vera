@@ -24983,7 +24983,7 @@ static ma_result ma_get_device_object_ids__coreaudio(ma_context* pContext, UInt3
 
     propAddressDevices.mSelector = kAudioHardwarePropertyDevices;
     propAddressDevices.mScope    = kAudioObjectPropertyScopeGlobal;
-    propAddressDevices.mElement  = kAudioObjectPropertyElementMaster;
+    propAddressDevices.mElement  = kAudioObjectPropertyElementMain;
 
     status = ((ma_AudioObjectGetPropertyDataSize_proc)pContext->coreaudio.AudioObjectGetPropertyDataSize)(kAudioObjectSystemObject, &propAddressDevices, 0, NULL, &deviceObjectsDataSize);
     if (status != noErr) {
@@ -25017,7 +25017,7 @@ static ma_result ma_get_AudioObject_uid_as_CFStringRef(ma_context* pContext, Aud
 
     propAddress.mSelector = kAudioDevicePropertyDeviceUID;
     propAddress.mScope    = kAudioObjectPropertyScopeGlobal;
-    propAddress.mElement  = kAudioObjectPropertyElementMaster;
+    propAddress.mElement  = kAudioObjectPropertyElementMain;
 
     dataSize = sizeof(*pUID);
     status = ((ma_AudioObjectGetPropertyData_proc)pContext->coreaudio.AudioObjectGetPropertyData)(objectID, &propAddress, 0, NULL, &dataSize, pUID);
@@ -25059,7 +25059,7 @@ static ma_result ma_get_AudioObject_name(ma_context* pContext, AudioObjectID obj
 
     propAddress.mSelector = kAudioDevicePropertyDeviceNameCFString;
     propAddress.mScope    = kAudioObjectPropertyScopeGlobal;
-    propAddress.mElement  = kAudioObjectPropertyElementMaster;
+    propAddress.mElement  = kAudioObjectPropertyElementMain;
 
     dataSize = sizeof(deviceName);
     status = ((ma_AudioObjectGetPropertyData_proc)pContext->coreaudio.AudioObjectGetPropertyData)(objectID, &propAddress, 0, NULL, &dataSize, &deviceName);
@@ -25088,7 +25088,7 @@ static ma_bool32 ma_does_AudioObject_support_scope(ma_context* pContext, AudioOb
     /* To know whether or not a device is an input device we need ot look at the stream configuration. If it has an output channel it's a playback device. */
     propAddress.mSelector = kAudioDevicePropertyStreamConfiguration;
     propAddress.mScope    = scope;
-    propAddress.mElement  = kAudioObjectPropertyElementMaster;
+    propAddress.mElement  = kAudioObjectPropertyElementMain;
 
     status = ((ma_AudioObjectGetPropertyDataSize_proc)pContext->coreaudio.AudioObjectGetPropertyDataSize)(deviceObjectID, &propAddress, 0, NULL, &dataSize);
     if (status != noErr) {
@@ -25143,7 +25143,7 @@ static ma_result ma_get_AudioObject_stream_descriptions(ma_context* pContext, Au
     */
     propAddress.mSelector = kAudioStreamPropertyAvailableVirtualFormats; /*kAudioStreamPropertyAvailablePhysicalFormats;*/
     propAddress.mScope    = (deviceType == ma_device_type_playback) ? kAudioObjectPropertyScopeOutput : kAudioObjectPropertyScopeInput;
-    propAddress.mElement  = kAudioObjectPropertyElementMaster;
+    propAddress.mElement  = kAudioObjectPropertyElementMain;
 
     status = ((ma_AudioObjectGetPropertyDataSize_proc)pContext->coreaudio.AudioObjectGetPropertyDataSize)(deviceObjectID, &propAddress, 0, NULL, &dataSize);
     if (status != noErr) {
@@ -25181,7 +25181,7 @@ static ma_result ma_get_AudioObject_channel_layout(ma_context* pContext, AudioOb
 
     propAddress.mSelector = kAudioDevicePropertyPreferredChannelLayout;
     propAddress.mScope    = (deviceType == ma_device_type_playback) ? kAudioObjectPropertyScopeOutput : kAudioObjectPropertyScopeInput;
-    propAddress.mElement  = kAudioObjectPropertyElementMaster;
+    propAddress.mElement  = kAudioObjectPropertyElementMain;
 
     status = ((ma_AudioObjectGetPropertyDataSize_proc)pContext->coreaudio.AudioObjectGetPropertyDataSize)(deviceObjectID, &propAddress, 0, NULL, &dataSize);
     if (status != noErr) {
@@ -25271,7 +25271,7 @@ static ma_result ma_get_AudioObject_sample_rates(ma_context* pContext, AudioObje
 
     propAddress.mSelector = kAudioDevicePropertyAvailableNominalSampleRates;
     propAddress.mScope    = (deviceType == ma_device_type_playback) ? kAudioObjectPropertyScopeOutput : kAudioObjectPropertyScopeInput;
-    propAddress.mElement  = kAudioObjectPropertyElementMaster;
+    propAddress.mElement  = kAudioObjectPropertyElementMain;
 
     status = ((ma_AudioObjectGetPropertyDataSize_proc)pContext->coreaudio.AudioObjectGetPropertyDataSize)(deviceObjectID, &propAddress, 0, NULL, &dataSize);
     if (status != noErr) {
@@ -25393,7 +25393,7 @@ static ma_result ma_get_AudioObject_closest_buffer_size_in_frames(ma_context* pC
 
     propAddress.mSelector = kAudioDevicePropertyBufferFrameSizeRange;
     propAddress.mScope    = (deviceType == ma_device_type_playback) ? kAudioObjectPropertyScopeOutput : kAudioObjectPropertyScopeInput;
-    propAddress.mElement  = kAudioObjectPropertyElementMaster;
+    propAddress.mElement  = kAudioObjectPropertyElementMain;
 
     dataSize = sizeof(bufferSizeRange);
     status = ((ma_AudioObjectGetPropertyData_proc)pContext->coreaudio.AudioObjectGetPropertyData)(deviceObjectID, &propAddress, 0, NULL, &dataSize, &bufferSizeRange);
@@ -25431,7 +25431,7 @@ static ma_result ma_set_AudioObject_buffer_size_in_frames(ma_context* pContext, 
     /* Try setting the size of the buffer... If this fails we just use whatever is currently set. */
     propAddress.mSelector = kAudioDevicePropertyBufferFrameSize;
     propAddress.mScope    = (deviceType == ma_device_type_playback) ? kAudioObjectPropertyScopeOutput : kAudioObjectPropertyScopeInput;
-    propAddress.mElement  = kAudioObjectPropertyElementMaster;
+    propAddress.mElement  = kAudioObjectPropertyElementMain;
 
     ((ma_AudioObjectSetPropertyData_proc)pContext->coreaudio.AudioObjectSetPropertyData)(deviceObjectID, &propAddress, 0, NULL, sizeof(chosenBufferSizeInFrames), &chosenBufferSizeInFrames);
 
@@ -25460,7 +25460,7 @@ static ma_result ma_find_default_AudioObjectID(ma_context* pContext, ma_device_t
     *pDeviceObjectID = 0;
 
     propAddressDefaultDevice.mScope = kAudioObjectPropertyScopeGlobal;
-    propAddressDefaultDevice.mElement = kAudioObjectPropertyElementMaster;
+    propAddressDefaultDevice.mElement = kAudioObjectPropertyElementMain;
     if (deviceType == ma_device_type_playback) {
         propAddressDefaultDevice.mSelector = kAudioHardwarePropertyDefaultOutputDevice;
     } else {
@@ -26534,7 +26534,7 @@ static ma_result ma_context__init_device_tracking__coreaudio(ma_context* pContex
         if (g_DeviceTrackingInitCounter_CoreAudio == 0) {
             AudioObjectPropertyAddress propAddress;
             propAddress.mScope    = kAudioObjectPropertyScopeGlobal;
-            propAddress.mElement  = kAudioObjectPropertyElementMaster;
+            propAddress.mElement  = kAudioObjectPropertyElementMain;
 
             ma_mutex_init(&g_DeviceTrackingMutex_CoreAudio);
 
@@ -26564,7 +26564,7 @@ static ma_result ma_context__uninit_device_tracking__coreaudio(ma_context* pCont
         if (g_DeviceTrackingInitCounter_CoreAudio == 0) {
             AudioObjectPropertyAddress propAddress;
             propAddress.mScope    = kAudioObjectPropertyScopeGlobal;
-            propAddress.mElement  = kAudioObjectPropertyElementMaster;
+            propAddress.mElement  = kAudioObjectPropertyElementMain;
 
             propAddress.mSelector = kAudioHardwarePropertyDefaultInputDevice;
             ((ma_AudioObjectRemovePropertyListener_proc)pContext->coreaudio.AudioObjectRemovePropertyListener)(kAudioObjectSystemObject, &propAddress, &ma_default_device_changed__coreaudio, NULL);
@@ -26999,7 +26999,7 @@ static ma_result ma_device_init_internal__coreaudio(ma_context* pContext, ma_dev
 
             propAddress.mSelector = kAudioDevicePropertyNominalSampleRate;
             propAddress.mScope    = (deviceType == ma_device_type_playback) ? kAudioObjectPropertyScopeOutput : kAudioObjectPropertyScopeInput;
-            propAddress.mElement  = kAudioObjectPropertyElementMaster;
+            propAddress.mElement  = kAudioObjectPropertyElementMain;
 
             status = ((ma_AudioObjectSetPropertyData_proc)pContext->coreaudio.AudioObjectSetPropertyData)(deviceObjectID, &propAddress, 0, NULL, sizeof(sampleRateRange), &sampleRateRange);
             if (status != noErr) {
