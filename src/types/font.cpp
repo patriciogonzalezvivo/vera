@@ -122,7 +122,10 @@ bool Font::load(const std::string &_filepath, std::string _name) {
     if (fs == nullptr) {
         GLFONSparams params;
         params.useGLBackend = true; // if not set to true, you must provide your own gl backend
-        fs = glfonsCreate(FONS_ATLAS_SIZE, FONS_ATLAS_SIZE, FONS_ZERO_TOPLEFT | FONS_NORMALIZE_TEX_COORDS, params, nullptr);
+        int atlasSize = FONS_ATLAS_SIZE;
+        if (vera::getDisplayPixelRatio() > 1.0)
+            atlasSize *= 2;
+        fs = glfonsCreate(atlasSize, atlasSize, FONS_ZERO_TOPLEFT | FONS_NORMALIZE_TEX_COORDS, params, nullptr);
     }
 
     m_id = fonsAddFont(fs, _name.c_str(), _filepath.c_str());
@@ -136,7 +139,10 @@ bool Font::load(unsigned char* _data, size_t _size, std::string _name) {
     if (fs == nullptr) {
         GLFONSparams params;
         params.useGLBackend = true; // if not set to true, you must provide your own gl backend
-        fs = glfonsCreate(FONS_ATLAS_SIZE, FONS_ATLAS_SIZE, FONS_ZERO_TOPLEFT | FONS_NORMALIZE_TEX_COORDS, params, nullptr);
+        int atlasSize = FONS_ATLAS_SIZE;
+        if (vera::getDisplayPixelRatio() > 1.0)
+            atlasSize *= 2;
+        fs = glfonsCreate(atlasSize, atlasSize, FONS_ZERO_TOPLEFT | FONS_NORMALIZE_TEX_COORDS, params, nullptr);
     }
 
     m_id = fonsAddFontMem(fs, _name.c_str(), _data, _size, 1);
