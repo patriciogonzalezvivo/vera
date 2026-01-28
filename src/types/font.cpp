@@ -123,8 +123,10 @@ bool Font::load(const std::string &_filepath, std::string _name) {
         GLFONSparams params;
         params.useGLBackend = true; // if not set to true, you must provide your own gl backend
         int atlasSize = FONS_ATLAS_SIZE;
-        if (vera::getDisplayPixelRatio() > 1.0)
-            atlasSize *= 2;
+        if (vera::getDisplayPixelRatio() > 1.0) {
+            // if retina assume the GPU have more available memory, increase atlas size to have better resolution
+            atlasSize *= 4;
+        }
         fs = glfonsCreate(atlasSize, atlasSize, FONS_ZERO_TOPLEFT | FONS_NORMALIZE_TEX_COORDS, params, nullptr);
     }
 
