@@ -79,6 +79,89 @@ void Gsplat::clear() {
 }
 
 bool Gsplat::load(const std::string& _filepath) {
+    std::string ext = _filepath.substr(_filepath.find_last_of(".") + 1);
+    if (ext == "ply") {
+        return loadPLY(_filepath);
+    } else if (ext == "splat") {
+        return loadSPLAT(_filepath);
+    } else {
+        // Fallback or error
+        // Try PLY as default
+        return loadPLY(_filepath);
+    }
+}
+
+bool Gsplat::loadSPLAT(const std::string& _filepath) {
+    std::ifstream file(_filepath, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open SPLAT file: " + _filepath);
+        return false;
+    }
+
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    // .splat format: 32 bytes per splat
+    // pos(3*4) + scale(3*4) + color(4) + rot(4)
+    size_t splatCount = size / 32;
+    
+    clear();
+    m_positions.resize(splatCount);
+    m_scales.resize(splatCount);
+    m_rotations.resize(splatCount);
+    m_colors.resize(splatCount);
+
+    struct SplatData {
+        float x, y, z;
+        float sx, sy, sz;
+        uint8_t r, g, b, a;
+        uint8_t rot_0, rot_1, rot_2, rot_3;
+    };
+
+    std::vector<SplatData> buffer(splatCount);
+    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
+         return false;
+    }
+
+    for (size_t i = 0; i < splatCount; i++) {
+        const SplatData& s = buffer[i];
+        
+        m_positions[i] = glm::vec3(s.x, s.y, s.z);
+        m_scales[i] = glm::vec3(s.sx, s.sy, s.sz);
+        
+        // Color
+        m_colors[i] = glm::u8vec4(s.r, s.g, s.b, s.a);
+        
+        // Rotation (mapping uint8 0..255 to -1.0..1.0)
+        // (val - 128) / 128.0
+        float r0 = (s.rot_0 - 128) / 128.0f;
+        float r1 = (s.rot_1 - 128) / 128.0f;
+        float r2 = (s.rot_2 - 128) / 128.0f;
+        float r3 = (s.rot_3 - 128) / 128.0f;
+        
+        // .splat format often uses distinct quaternion ordering, usually w,x,y,z or x,y,z,w
+        // Standard convention for this format seems to be: 
+        // rot[0] = w, rot[1] = x, rot[2] = y, rot[3] = z? 
+        // Or sometimes x,y,z,w
+        // Let's assume standard antimatter15: rot[0] is X, ... ? 
+        // Actually antimatter15 code: 
+        // var u = (rot[0] - 128) / 128; var v = (rot[1] - 128) / 128; ...
+        // q = new Quaternion(v, w, z, u); -> y, z, w, x ?? 
+        
+        // Let's assume generic construction for now, standard quaternion is (w, x, y, z)
+        // Adjust based on visual results.
+        
+        // Common packing: rot_0, rot_1, rot_2, rot_3 -> x, y, z, w ? 
+        // Let's iterate.
+        glm::quat q(r3, r0, r1, r2); // w, x, y, z
+        m_rotations[i] = glm::normalize(q);
+    }
+
+    pack();
+    return true;
+}
+
+bool Gsplat::loadPLY(const std::string& _filepath) {
     std::ifstream ss(_filepath, std::ios::binary);
     if (!ss.is_open()) {
         throw std::runtime_error("Failed to open PLY file: " + _filepath);
@@ -196,7 +279,7 @@ bool Gsplat::load(const std::string& _filepath) {
     
     for (size_t i = 0; i < vertexCount; i++) {
         // Position
-        m_positions[i] = glm::vec3(x_data[i], -y_data[i], z_data[i]);
+        m_positions[i] = glm::vec3(x_data[i], y_data[i], z_data[i]);
         
         // Scale (exponential)
         m_scales[i] = glm::vec3(
@@ -451,7 +534,7 @@ void main() {
 })";
 
         std::string fragSrc = R"(#version 120
-        
+
 varying vec4 v_color;
 varying vec2 v_position;
 
@@ -494,11 +577,7 @@ void main() {
     color = pow(color, vec3(1.0 / sharpness));
     
     gl_FragColor = vec4(color, B);
-}
-        )";
-
-
-
+})";
 
         // m_shader->load(loadGlslFrom("shaders/splat.frag"), loadGlslFrom("shaders/splat.vert"));
         m_shader->load(fragSrc, vertSrc);

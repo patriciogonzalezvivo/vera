@@ -24,6 +24,9 @@ public:
 
 private:
     void    pack();
+    
+    bool    loadPLY(const std::string& _filepath);
+    bool    loadSPLAT(const std::string& _filepath);
 
     void    initGPUData();
     Texture* createTexture();
