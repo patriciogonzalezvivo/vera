@@ -73,6 +73,7 @@ set(VERA_SOURCES
     ${SOURCE_FOLDER}/types/bvh.cpp
     ${SOURCE_FOLDER}/types/camera.cpp
     ${SOURCE_FOLDER}/types/font.cpp
+    ${SOURCE_FOLDER}/types/gsplat.cpp
     ${SOURCE_FOLDER}/types/image.cpp
     ${SOURCE_FOLDER}/types/line.cpp
     ${SOURCE_FOLDER}/types/light.cpp
