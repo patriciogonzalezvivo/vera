@@ -315,6 +315,11 @@ endif()
 # We need this directory, and users of our library will need it too
 target_include_directories(vera PUBLIC ${INCLUDE_DEPS_FOLDERS} ${INCLUDE_FOLDER} )
 
+# target_compile_definitions(vera PRIVATE DEBUG)
+target_compile_definitions(vera PRIVATE VERA_VERSION_MAJOR=${VERSION_MAJOR})
+target_compile_definitions(vera PRIVATE VERA_VERSION_MINOR=${VERSION_MINOR})
+target_compile_definitions(vera PRIVATE VERA_VERSION_PATCH=${VERSION_PATCH})
+
 # IDEs should put the headers in a nice place
 # source_group(   TREE ${INCLUDE_FOLDER} 
 #                 PREFIX "Header Files" FILES ${ROOT_HEADER})
