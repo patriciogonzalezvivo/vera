@@ -1,4 +1,5 @@
 #include "vera/types/gsplat.h"
+#include "vera/ops/fs.h"
 
 #include "glm/gtc/quaternion.hpp"
 
@@ -56,6 +57,16 @@ Gsplat::Gsplat() {
 }
 
 Gsplat::~Gsplat() {
+    if (m_texture) {
+        m_texture->clear();
+        delete m_texture;
+        m_texture = nullptr;
+    }
+
+    if (m_shader) {
+        delete m_shader;
+        m_shader = nullptr;
+    }
 }
 
 void Gsplat::clear() {
@@ -67,10 +78,11 @@ void Gsplat::clear() {
     m_worldPositions.clear();
 }
 
-void Gsplat::load(const std::string& _filepath) {
+bool Gsplat::load(const std::string& _filepath) {
     std::ifstream ss(_filepath, std::ios::binary);
     if (!ss.is_open()) {
         throw std::runtime_error("Failed to open PLY file: " + _filepath);
+        return false;
     }
     
     tinyply::PlyFile file;
@@ -184,7 +196,7 @@ void Gsplat::load(const std::string& _filepath) {
     
     for (size_t i = 0; i < vertexCount; i++) {
         // Position
-        m_positions[i] = glm::vec3(x_data[i], y_data[i], z_data[i]);
+        m_positions[i] = glm::vec3(x_data[i], -y_data[i], z_data[i]);
         
         // Scale (exponential)
         m_scales[i] = glm::vec3(
@@ -226,6 +238,8 @@ void Gsplat::load(const std::string& _filepath) {
     
     // Pack data for GPU
     pack();
+
+    return true;
 }
 
 void Gsplat::pack() {
@@ -287,39 +301,251 @@ void Gsplat::pack() {
         m_packedData[i * 16 + 14] = color.b / 255.0f;
         m_packedData[i * 16 + 15] = color.a / 255.0f;
     }
-}
 
-void Gsplat::sort(const glm::mat4& _viewProj, std::vector<uint32_t>& _depthIndex) {
-    // Compute depths
-    size_t vertexCount = m_positions.size();
-    std::vector<std::pair<float, uint32_t>> depths(vertexCount);
-    
-    for (uint32_t i = 0; i < vertexCount; i++) {
-        glm::vec3 pos(
-            m_worldPositions[i * 3 + 0],
-            m_worldPositions[i * 3 + 1],
-            m_worldPositions[i * 3 + 2]
-        );
-        
-        glm::vec4 projected = _viewProj * glm::vec4(pos, 1.0f);
-        float depth = projected.z / projected.w;
-        
-        depths[i] = {depth, i};
-    }
-    
-    // Sort by depth (front to back for weighted blended transparency)
-    std::sort(depths.begin(), depths.end(),
-        [](const std::pair<float, uint32_t>& a, const std::pair<float, uint32_t>& b) { return a.first < b.first; });
-    
-    // Extract sorted indices
-    _depthIndex.resize(vertexCount);
-    _depthIndex.resize(vertexCount);
-    for (uint32_t i = 0; i < vertexCount; i++) {
-        _depthIndex[i] = depths[i].second;
+    if (m_texture) {
+        m_texture->clear();
+        delete m_texture;
+        m_texture = nullptr;
     }
 }
 
-Texture *Gsplat::getTexture() {
+void Gsplat::initGPUData() {
+    
+    if (!m_texture) {
+        m_texture = createTexture();
+    }
+
+    if (!m_shader) {
+        m_shader = new Shader();
+
+                std::string vertSrc = R"(#version 120
+
+uniform sampler2D   u_tex0;
+uniform vec2        u_tex0Resolution; // Must be passed: vec2(4096.0, height)
+
+uniform mat4        u_projectionMatrix;
+uniform mat4        u_viewMatrix;
+uniform vec2        u_resolution;
+uniform vec2        u_focal;
+
+attribute vec2      a_position;
+attribute float     a_index;
+
+varying vec4        v_color;
+varying vec2        v_position;
+
+#if !defined(FNC_TRANSPOSE) && (__VERSION__ < 120)
+#define FNC_TRANSPOSE
+mat3 transpose(in mat3 m) {
+    return mat3(    m[0][0], m[1][0], m[2][0],
+                    m[0][1], m[1][1], m[2][1],
+                    m[0][2], m[1][2], m[2][2] );
+}
+
+mat4 transpose(in mat4 m) {
+    return mat4(    vec4(m[0][0], m[1][0], m[2][0], m[3][0]),
+                    vec4(m[0][1], m[1][1], m[2][1], m[3][1]),
+                    vec4(m[0][2], m[1][2], m[2][2], m[3][2]),
+                    vec4(m[0][3], m[1][3], m[2][3], m[3][3])    );
+}
+#endif
+
+#ifndef FNC_TOMAT3
+#define FNC_TOMAT3
+mat3 toMat3(mat4 m) {
+    #if __VERSION__ >= 300
+    return mat3(m);
+    #else
+    return mat3(m[0].xyz, m[1].xyz, m[2].xyz);
+    #endif
+}
+#endif
+
+void main() {
+    float width = u_tex0Resolution.x;
+    float height = u_tex0Resolution.y;
+
+    // Fetch gaussian data from texture
+    // Reconstruct texture coordinates from index
+    float fIndex = a_index;
+    float row = floor(fIndex / 1024.0);
+    float colStart = mod(fIndex, 1024.0) * 4.0;
+    
+    // UVs center
+    float v = (row + 0.5) / height;
+    
+    // Fetch 4 pixels
+    vec4 p1 = texture2D(u_tex0, vec2((colStart + 0.5) / width, v));
+    vec4 p2 = texture2D(u_tex0, vec2((colStart + 1.5) / width, v));
+    vec4 p3 = texture2D(u_tex0, vec2((colStart + 2.5) / width, v));
+    vec4 p4 = texture2D(u_tex0, vec2((colStart + 3.5) / width, v));
+
+    // p1: pos.xyz, valid
+    // p2: cov.xx, cov.xy, cov.xz, cov.yy
+    // p3: cov.yz, cov.zz, 0, 0
+    // p4: color.rgba
+
+    // Transform position to camera space
+    vec4 cam = u_viewMatrix * vec4(p1.xyz, 1.0);
+    vec4 pos2d = u_projectionMatrix * cam;
+    
+    // Frustum culling
+    float clip = 1.2 * pos2d.w;
+    if (pos2d.z < -pos2d.w || pos2d.z > pos2d.w || 
+        pos2d.x < -clip || pos2d.x > clip || 
+        pos2d.y < -clip || pos2d.y > clip) {
+        gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+        return;
+    }
+    
+    // Construct covariance matrix
+    mat3 Vrk = mat3(
+        p2.x, p2.y, p2.z,
+        p2.y, p2.w, p3.x,
+        p2.z, p3.x, p3.y
+    );
+    
+    // Compute 2D covariance
+    mat3 J = mat3(
+        u_focal.x / cam.z, 0.0, -(u_focal.x * cam.x) / (cam.z * cam.z),
+        0.0, u_focal.y / cam.z, -(u_focal.y * cam.y) / (cam.z * cam.z),
+        0.0, 0.0, 0.0
+    );
+    
+    mat3 T = transpose(toMat3(u_viewMatrix)) * J;
+    mat3 cov2d = transpose(T) * Vrk * T;
+    
+    // Add low-pass filter (reduce value for finer splats)
+    cov2d[0][0] += 0.1;
+    cov2d[1][1] += 0.1;
+    
+    // Compute eigenvalues for ellipse
+    float mid = (cov2d[0][0] + cov2d[1][1]) / 2.0;
+    float radius = length(vec2((cov2d[0][0] - cov2d[1][1]) / 2.0, cov2d[0][1]));
+    float lambda1 = mid + radius;
+    float lambda2 = mid - radius;
+    
+    if (lambda2 < 0.0) {
+        gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+        return;
+    }
+    
+    vec2 diagonalVector = normalize(vec2(cov2d[0][1], lambda1 - cov2d[0][0]));
+
+    // Reduce scale for finer splat coverage
+    float scale = 2.5;
+    vec2 majorAxis = scale * min(sqrt(2.0 * lambda1), 1024.0) * diagonalVector;
+    vec2 minorAxis = scale * min(sqrt(2.0 * lambda2), 1024.0) * vec2(diagonalVector.y, -diagonalVector.x);
+    
+    v_color = p4;
+    v_position = a_position;
+    
+    // Compute final position
+    vec2 vCenter = vec2(pos2d) / pos2d.w;
+    gl_Position = vec4(
+        vCenter + 
+        a_position.x * majorAxis / u_resolution + 
+        a_position.y * minorAxis / u_resolution,
+        pos2d.z / pos2d.w, 1.0
+    );
+})";
+
+        std::string fragSrc = R"(#version 120
+        
+varying vec4 v_color;
+varying vec2 v_position;
+
+// Function to increase saturation
+vec3 adjustSaturation(vec3 color, float saturation) {
+    const vec3 luminanceWeights = vec3(0.2126, 0.7152, 0.0722);
+    float luminance = dot(color, luminanceWeights);
+    return mix(vec3(luminance), color, saturation);
+}
+
+// White point adjustment (exposure and tone mapping)
+vec3 adjustWhitePoint(vec3 color, float whitePoint) {
+    // Use Reinhard tone mapping variant
+    return color * (1.0 + color / (whitePoint * whitePoint)) / (1.0 + color);
+}
+
+void main() {
+    float A = -dot(v_position, v_position);
+    
+    // Stricter clipping for finer edges
+    if (A < -4.0) discard;
+    
+    // Use smoother attenuation curve
+    float gaussian = exp(A);
+    
+    // Add edge smoothing to reduce aliasing
+    float edgeSmoothness = smoothstep(-4.0, -3.5, A);
+    float B = gaussian * v_color.a * edgeSmoothness;
+    
+    vec3 color = B * v_color.rgb;
+    
+    // Adjust saturation (1.0 = original, >1.0 = more saturated, <1.0 = desaturated)
+    color = adjustSaturation(color, 1.2);
+    
+    // Adjust white point (lower value = brighter highlights)
+    color = adjustWhitePoint(color, 0.9);
+    
+    // Slight sharpening effect to enhance details
+    float sharpness = 1.05;
+    color = pow(color, vec3(1.0 / sharpness));
+    
+    gl_FragColor = vec4(color, B);
+}
+        )";
+
+
+
+
+        // m_shader->load(loadGlslFrom("shaders/splat.frag"), loadGlslFrom("shaders/splat.vert"));
+        m_shader->load(fragSrc, vertSrc);
+    }
+
+    if (m_vao == -1) {
+    
+        // Create VAO and VBOs
+        glGenVertexArrays(1, &m_vao);
+        glBindVertexArray(m_vao);
+        
+        // Quad positions for point sprite
+        float quadVertices[] = {
+            -1.0f, -1.0f,
+            1.0f, -1.0f,
+            1.0f,  1.0f,
+            -1.0f,  1.0f
+        };
+        
+        glGenBuffers(1, &m_positionVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, m_positionVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+        
+        m_position = m_shader->getAttribLocation("a_position");
+        if (m_position != -1) {
+            glEnableVertexAttribArray(m_position);
+            glVertexAttribPointer(m_position, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        }
+    
+        // Index buffer (per-instance)
+        glGenBuffers(1, &m_indexVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, m_indexVBO);
+        glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
+    
+        m_index = m_shader->getAttribLocation("a_index");
+        if (m_index != -1) {
+            glEnableVertexAttribArray(m_index);
+            // Use glVertexAttribPointer to allow conversion to float in shader
+            glVertexAttribPointer(m_index, 1, GL_FLOAT, GL_FALSE, 0, 0); 
+            glVertexAttribDivisor(m_index, 1);
+        }
+    
+        glBindVertexArray(0);
+    }
+}
+
+Texture *Gsplat::createTexture() {
 
     size_t splatCount = count();
     size_t splatsPerRow = 1024;
@@ -363,22 +589,107 @@ Texture *Gsplat::getTexture() {
     }
     
     Texture* texture = new Texture();
-
-    // GLuint texId = 0;
-    // glGenTextures(1, &texId);
-    // glBindTexture(GL_TEXTURE_2D, texId);
-    
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0, GL_RGBA, GL_FLOAT, textureData.data());
-        
-    // texture->load(texWidth, texHeight, texId, NEAREST, CLAMP);
     texture->load(texWidth, texHeight, 4, 32, textureData.data(), NEAREST, CLAMP);
 
     return texture;
 
+}
+
+void Gsplat::sort(const glm::mat4& _viewProj) {
+    // Compute depths
+    size_t vertexCount = m_positions.size();
+    if (m_sorter.size() != vertexCount) {
+        m_sorter.resize(vertexCount);
+    }
+    
+    // Extract Matrix components for faster dot product (Column-Major access)
+    // We want the result of (ViewProj * P).z and (ViewProj * P).w
+    // (M * P).z = M[0].z*x + M[1].z*y + M[2].z*z + M[3].z
+    // (M * P).w = M[0].w*x + M[1].w*y + M[2].w*z + M[3].w
+    
+    // Cache the relevant components
+    float M02 = _viewProj[0][2]; float M12 = _viewProj[1][2]; float M22 = _viewProj[2][2]; float M32 = _viewProj[3][2];
+    float M03 = _viewProj[0][3]; float M13 = _viewProj[1][3]; float M23 = _viewProj[2][3]; float M33 = _viewProj[3][3];
+    
+    for (uint32_t i = 0; i < vertexCount; i++) {
+        // Unpack manually
+        float x = m_worldPositions[i * 3 + 0];
+        float y = m_worldPositions[i * 3 + 1];
+        float z = m_worldPositions[i * 3 + 2];
+        
+        // Dot products manually expanded
+        float pz = M02 * x + M12 * y + M22 * z + M32;
+        float pw = M03 * x + M13 * y + M23 * z + M33;
+        
+        float depth = pz / pw;
+        m_sorter[i] = {depth, i};
+    }
+    
+    // Sort by depth (Back-to-Front for standard alpha blending)
+    std::sort(m_sorter.begin(), m_sorter.end(),
+        [](const std::pair<float, uint32_t>& a, const std::pair<float, uint32_t>& b) { return a.first > b.first; });
+    
+    // Extract sorted indices
+    if (m_depthIndex.size() != vertexCount) {
+        m_depthIndex.resize(vertexCount);
+    }
+
+    for (uint32_t i = 0; i < vertexCount; i++) {
+        m_depthIndex[i] = m_sorter[i].second;
+    }
+}
+
+void Gsplat::draw(Camera& _camera) {
+    if (m_shader == nullptr || m_texture == nullptr ||
+        m_vao == -1 || m_positionVBO == -1 || m_indexVBO == -1) {
+        // initialize GPU data
+        initGPUData();
+    }
+
+    // Sort splats by depth
+    glm::mat4 viewProj = _camera.getProjectionMatrix() * _camera.getViewMatrix();
+    sort(viewProj);
+
+    // Update index buffer
+    size_t splatCount = count();
+
+    if (m_indexFloats.size() != splatCount)
+        m_indexFloats.resize(splatCount);
+
+    for (size_t i = 0; i < splatCount; i++)
+        m_indexFloats[i] = static_cast<float>(m_depthIndex[i]);
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_indexVBO);
+    glBufferData(GL_ARRAY_BUFFER, m_indexFloats.size() * sizeof(float), m_indexFloats.data(), GL_DYNAMIC_DRAW);
+
+    m_shader->use();
+
+    glBindVertexArray(m_vao);
+
+    // Set uniforms
+    m_shader->setUniformTexture("u_tex0", m_texture, 0); // Use member variable directly
+    m_shader->setUniform("u_tex0Resolution", glm::vec2(m_texture->getWidth(), m_texture->getHeight()));
+
+    glm::mat4 viewMatrix = _camera.getViewMatrix();
+    glm::mat4 projMatrix = _camera.getProjectionMatrix();
+    glm::vec2 viewportSize = glm::vec2(_camera.getViewport().z, _camera.getViewport().w);
+
+    m_shader->setUniform("u_viewMatrix", viewMatrix);
+    m_shader->setUniform("u_projectionMatrix", projMatrix);
+    m_shader->setUniform("u_resolution", viewportSize);
+    
+    // Compute focal lengths from FOV
+    float fovRad = glm::radians(_camera.getFOV());
+    float fy = viewportSize.y / (2.0f * std::tan(fovRad / 2.0f));
+    m_shader->setUniform("u_focal", glm::vec2(fy, fy));
+    
+    // Draw
+    glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, count());
+    glBindVertexArray(0);
+
+    // Restore Render State
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
 }
 
 } // namespace vera
