@@ -11,6 +11,7 @@
 #include "vera/types/font.h"
 #include "vera/types/line.h"
 #include "vera/types/mesh.h"
+#include "vera/types/gsplat.h"
 #include "vera/types/scene.h"
 #include "vera/types/polyline.h"
 #include "vera/types/triangle.h"
@@ -401,6 +402,7 @@ void addLight(const std::string& _name, Light* _light);
 void model(Vbo& _vbo, Shader* _program = nullptr);
 void model(Vbo* _vbo, Shader* _program = nullptr);
 void model(const Mesh& _mesh, Shader* _program = nullptr);
+void model(Gsplat& _gsplat, Shader* _program = nullptr);
 
 // LABELS
 // -----------------------------

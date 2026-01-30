@@ -1470,6 +1470,15 @@ void model(const Mesh& _mesh, Shader* _program) {
     delete vbo;
 }
 
+void model(Gsplat& _gsplat, Shader* _program) {
+
+    if (_program != nullptr) {
+        _gsplat.use(_program);
+    }
+
+    _gsplat.render( *camera(), worldMatrix() );
+}
+
 void model(Vbo& _vbo, Shader* _program) { model(&_vbo, _program); }
 void model(Vbo* _vbo, Shader* _program) {
     if (_program == nullptr) {

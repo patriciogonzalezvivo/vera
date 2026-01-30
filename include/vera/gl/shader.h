@@ -40,6 +40,7 @@ public:
     const   GLuint  getFragmentShader() const { return m_fragmentShader; };
     const   GLuint  getVertexShader() const { return m_vertexShader; };
     const   GLint   getAttribLocation(const std::string& _attribute) const;
+    const   int     getVersion() const { return m_version;}
 
     const std::string& getFragmentSource() const { return m_fragmentSource; };
     const std::string& getVertexSource() const { return m_vertexSource; };
@@ -107,6 +108,7 @@ protected:
     GLuint              m_fragmentShader;
     GLuint              m_vertexShader;
 
+    int                 m_version;
     ShaderErrorResolve  m_error_screen;
     bool                m_needsReloading;
 };

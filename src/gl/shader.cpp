@@ -174,6 +174,8 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
 
         m_needsReloading = false;
         // m_defineChange = false;
+        m_version = getVersionNumber(fragmentSrc);
+
         return true;
     }
 }

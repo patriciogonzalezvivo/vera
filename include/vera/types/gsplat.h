@@ -40,7 +40,11 @@ private:
     
     // Sorting cache to avoid reallocation
     std::vector<std::pair<float, uint32_t>> m_sorter;
-    std::vector<float>      m_depthIndex;
+
+    std::vector<float>      m_depthFloatIndex;
+    std::vector<uint32_t>   m_depthUintIndex;
+
+
     std::vector<float>      m_worldPositions;   // Only needed for sorting
 
     Texture*                m_texture = nullptr;

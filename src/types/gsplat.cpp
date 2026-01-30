@@ -1,5 +1,6 @@
 #include "vera/types/gsplat.h"
 #include "vera/ops/fs.h"
+#include "vera/shaders/gsplat.h"
 #include "vera/shaders/defaultShaders.h"
 
 #include "glm/gtc/quaternion.hpp"
@@ -70,7 +71,8 @@ void Gsplat::clear() {
     m_worldPositions.clear();
 
     m_sorter.clear();
-    m_depthIndex.clear();
+    m_depthFloatIndex.clear();
+    m_depthUintIndex.clear();
 
     if (m_texture) {
         m_texture->clear();
@@ -359,22 +361,44 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
 }
 
 void Gsplat::use(Shader* _shader) {
-    if (_shader != m_shader) {
+
+    if (!_shader || _shader != m_shader) {
+
+        bool different = false;
+        if (m_shader && _shader->getProgram() != m_shader->getProgram()) {
+            different = true;
+        }
+
+        if (m_shader && (
+            _shader->getVersion() != m_shader->getVersion()
+        ) ) {
+            different = true;
+            if (m_texture) {
+                m_texture->clear();
+                delete m_texture;
+                m_texture = nullptr;
+            }
+        }
         m_shader = _shader;
      
-        if (m_vao != -1) {
-            glDeleteVertexArrays(1, &m_vao);
-            m_vao = -1;
-        }
+        if (different) {
+            // Invalidate VAO and VBOs
+            if (m_vao != -1) {
+                glDeleteVertexArrays(1, &m_vao);
+                m_vao = -1;
+            }
 
-        if (m_positionVBO != -1) {
-            glDeleteBuffers(1, &m_positionVBO);
-            m_positionVBO = -1;
-        }
+            if (m_positionVBO != -1) {
+                glDeleteBuffers(1, &m_positionVBO);
+                m_positionVBO = -1;
+            }
 
-        if (m_indexVBO != -1) {
-            glDeleteBuffers(1, &m_indexVBO);
-            m_indexVBO = -1;
+            if (m_indexVBO != -1) {
+                glDeleteBuffers(1, &m_indexVBO);
+                m_indexVBO = -1;
+            }
+            m_position = -1;
+            m_index = -1;
         }
     }
 
@@ -409,12 +433,19 @@ void Gsplat::use(Shader* _shader) {
         m_index = m_shader->getAttribLocation("a_index");
         if (m_index != -1) {
             glEnableVertexAttribArray(m_index);
-            // Use glVertexAttribPointer to allow conversion to float in shader
-            glVertexAttribPointer(m_index, 1, GL_FLOAT, GL_FALSE, 0, 0); 
+
+            if (m_shader->getVersion() >= 300) {
+                // Use integer attribute for modern OpenGL
+                glVertexAttribIPointer(m_index, 1, GL_UNSIGNED_INT, 0, 0);
+            } else {
+                // Use glVertexAttribPointer to allow conversion to float in shader
+                glVertexAttribPointer(m_index, 1, GL_FLOAT, GL_FALSE, 0, 0); 
+            }
             glVertexAttribDivisor(m_index, 1);
         }
 
         glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 }
 
@@ -649,23 +680,43 @@ void Gsplat::sort(const glm::mat4& _viewProj) {
     std::sort(m_sorter.begin(), m_sorter.end(),
         [](const std::pair<float, uint32_t>& a, const std::pair<float, uint32_t>& b) { return a.first > b.first; });
 
-    if (m_depthIndex.size() != vertexCount)
-        m_depthIndex.resize(vertexCount);
+    if (m_shader) {
+        if (m_shader->getVersion() >= 300) {
+            // Use integer indices for modern OpenGL
+            if (m_depthUintIndex.size() != vertexCount)
+                m_depthUintIndex.resize(vertexCount);
 
-    for (size_t i = 0; i < vertexCount; i++)
-        m_depthIndex[i] = static_cast<float>(m_sorter[i].second);
+            for (size_t i = 0; i < vertexCount; i++)
+                m_depthUintIndex[i] = m_sorter[i].second;
+        }
+        else {
+            // Use float indices for older OpenGL
+            if (m_depthFloatIndex.size() != vertexCount)
+                m_depthFloatIndex.resize(vertexCount);
+
+            for (size_t i = 0; i < vertexCount; i++)
+                m_depthFloatIndex[i] = static_cast<float>(m_sorter[i].second);
+        }
+    }
 }
 
 void Gsplat::render(Camera& _camera, glm::mat4 _model) {
 
-    if (!m_texture) {
-        m_texture = createTextureFloat();
-    }
-
     if (m_shader == nullptr) {        
         Shader* default_shader = new Shader();
         default_shader->load(getDefaultSrc(FRAG_SPLAT), getDefaultSrc(VERT_SPLAT));
+        // default_shader->load(splat_frag, splat_vert);
+        // default_shader->load(splat_frag_300, splat_vert_300);
         use(default_shader);
+    }
+
+    if (!m_texture) {
+        if (m_shader->getVersion() >= 300) {
+            m_texture = createTextureUint();
+        }
+        else {
+            m_texture = createTextureFloat();
+        }
     }
 
     // Sort splats by depth
@@ -674,7 +725,12 @@ void Gsplat::render(Camera& _camera, glm::mat4 _model) {
 
     // Update index buffer
     glBindBuffer(GL_ARRAY_BUFFER, m_indexVBO);
-    glBufferData(GL_ARRAY_BUFFER, m_depthIndex.size() * sizeof(float), m_depthIndex.data(), GL_DYNAMIC_DRAW);
+    if (m_shader->getVersion() >= 300) {
+        glBufferData(GL_ARRAY_BUFFER, m_depthUintIndex.size() * sizeof(uint32_t), m_depthUintIndex.data(), GL_STREAM_DRAW);
+    }
+    else {
+        glBufferData(GL_ARRAY_BUFFER, m_depthFloatIndex.size() * sizeof(float), m_depthFloatIndex.data(), GL_DYNAMIC_DRAW);
+    }
 
     m_shader->use();
 
@@ -695,6 +751,18 @@ void Gsplat::render(Camera& _camera, glm::mat4 _model) {
     float fy = _camera.getViewport().w / (2.0f * std::tan(fovRad / 2.0f));
     m_shader->setUniform("u_focal", glm::vec2(fy, fy));
     
+    if (m_shader->getVersion() >= 300) {
+        // Setup vertex attributes
+        glBindBuffer(GL_ARRAY_BUFFER, m_positionVBO);
+        glEnableVertexAttribArray(m_position);
+        glVertexAttribPointer(m_position, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, m_indexVBO);
+        glEnableVertexAttribArray(m_index);
+        glVertexAttribIPointer(m_index, 1, GL_UNSIGNED_INT, 0, 0);
+        glVertexAttribDivisor(m_index, 1);    
+    }
+
     // Draw
     glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, count());
     glBindVertexArray(0);
