@@ -17,19 +17,20 @@ public:
     virtual ~Gsplat();
 
     bool    load(const std::string& _filepath);
+    void    use(Shader* _shader);
+
     void    clear();
     size_t  count() const { return m_positions.size(); }
     
-    void    draw(Camera& _camera);
+    void    draw(Camera& _camera, glm::mat4 _model = glm::mat4(1.0f));
 
 private:
-    void    pack();
-    
     bool    loadPLY(const std::string& _filepath);
     bool    loadSPLAT(const std::string& _filepath);
 
-    void    initGPUData();
-    Texture* createTexture();
+    Texture* createTextureFloat();
+    Texture* createTextureUint();
+
     void    sort(const glm::mat4& _viewProj);
 
     std::vector<glm::u8vec4> m_colors;
@@ -39,10 +40,7 @@ private:
     
     // Sorting cache to avoid reallocation
     std::vector<std::pair<float, uint32_t>> m_sorter;
-    std::vector<uint32_t>   m_depthIndex;
-    std::vector<float>      m_indexFloats;
-
-    std::vector<float>      m_packedData;       // Packed data for GPU
+    std::vector<float>      m_depthIndex;
     std::vector<float>      m_worldPositions;   // Only needed for sorting
 
     Texture*                m_texture = nullptr;

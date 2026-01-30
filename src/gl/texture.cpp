@@ -96,13 +96,14 @@ bool Texture::load(const Image* _img, TextureFilter _filter, TextureWrap _wrap) 
     return load(_img->m_width, _img->m_height, _img->m_channels, 32, &_img->m_data[0], _filter, _wrap);
 }
 
-bool Texture::load(int _width, int _height, int _id ) {
+bool Texture::load(int _width, int _height, GLuint _id, TextureFilter _filter, TextureWrap _wrap) {
     m_width     = _width;
     m_height    = _height;
     m_id        = _id; 
 
-    m_filter    = LINEAR;
-    m_wrap      = REPEAT;
+    m_filter    = _filter;
+    m_wrap      = _wrap;
+
     return true;
 }
 

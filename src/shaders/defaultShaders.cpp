@@ -13,12 +13,14 @@
 #include "vera/shaders/fxaa.h"
 #include "vera/shaders/poissonfill.h"
 #include "vera/shaders/jumpFlood.h"
+#include "vera/shaders/gsplat.h"
 
 // 3D SCENE
 #include "vera/shaders/light_ui.h"
 #include "vera/shaders/cubemap.h"
 #include "vera/shaders/draw.h"
 #include "vera/shaders/devlook.h"
+
 
 #include "vera/ops/string.h"
 
@@ -288,6 +290,18 @@ std::string getDefaultSrc( DefaultShaders _type ) {
             rta += devlook_sphere_vert;
         else if (versionNumber >= 130) 
             rta += devlook_sphere_vert_300;
+    }
+    else if (_type == VERT_SPLAT) {
+        if (versionNumber < 130)
+            rta += splat_vert;
+        else if (versionNumber >= 130) 
+            rta += splat_vert_300;
+    }
+    else if (_type == FRAG_SPLAT) {
+        if (versionNumber < 130)
+            rta += splat_frag;
+        else if (versionNumber >= 130) 
+            rta += splat_frag_300;
     }
 
     return rta;
