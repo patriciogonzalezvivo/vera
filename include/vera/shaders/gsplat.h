@@ -245,7 +245,7 @@ void main() {
     );
 })";
 
-const std::string splat_frag = R"(#version 120
+const std::string splat_frag = R"(
 #ifdef GL_ES
 precision highp float;
 #endif

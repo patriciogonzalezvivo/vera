@@ -385,10 +385,10 @@ void Gsplat::use(Shader* _shader) {
         
         // Quad positions for point sprite
         float quadVertices[] = {
-            -1.0f, -1.0f,
-            1.0f, -1.0f,
-            1.0f,  1.0f,
-            -1.0f,  1.0f
+            -2.0f, -2.0f,
+             2.0f, -2.0f,
+             2.0f,  2.0f,
+            -2.0f,  2.0f
         };
         
         glGenBuffers(1, &m_positionVBO);
@@ -656,7 +656,7 @@ void Gsplat::sort(const glm::mat4& _viewProj) {
         m_depthIndex[i] = static_cast<float>(m_sorter[i].second);
 }
 
-void Gsplat::draw(Camera& _camera, glm::mat4 _model) {
+void Gsplat::render(Camera& _camera, glm::mat4 _model) {
 
     if (!m_texture) {
         m_texture = createTextureFloat();

@@ -100,6 +100,8 @@ set_target_properties(vera PROPERTIES
     CXX_STANDARD_REQUIRED ON
 )
 
+target_compile_definitions(vera PRIVATE _LARGEFILE64_SOURCE=1)
+
 message(STATUS "SYSTEM ${CMAKE_SYSTEM_PROCESSOR}")
 
 # if it's arm32 or armv7l 

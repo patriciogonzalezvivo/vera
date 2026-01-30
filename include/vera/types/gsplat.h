@@ -22,7 +22,7 @@ public:
     void    clear();
     size_t  count() const { return m_positions.size(); }
     
-    void    draw(Camera& _camera, glm::mat4 _model = glm::mat4(1.0f));
+    void    render(Camera& _camera, glm::mat4 _model = glm::mat4(1.0f));
 
 private:
     bool    loadPLY(const std::string& _filepath);
