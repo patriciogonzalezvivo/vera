@@ -1188,7 +1188,16 @@ void Gsplat::render(Camera& _camera, glm::mat4 _model) {
 
     // Sort splats by depth
     glm::mat4 viewProj = _camera.getProjectionMatrix() * _camera.getViewMatrix() * _model;
-    sort(viewProj);
+    
+    bool needsSort = _camera.bChange;
+    // Also check if valid indices exist (first frame)
+    if (m_depthUintIndex.empty() && m_depthFloatIndex.empty()) {
+        needsSort = true;
+    }
+    
+    if (needsSort) {
+        sort(viewProj);
+    }
 
     // Update index buffer
     glBindBuffer(GL_ARRAY_BUFFER, m_indexVBO);
