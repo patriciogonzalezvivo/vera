@@ -67,6 +67,7 @@ void Gsplat::clear() {
     m_scales.clear();
     m_rotations.clear();
     m_colors.clear();
+    m_normals.clear();
     
     m_worldPositions.clear();
 
