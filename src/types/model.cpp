@@ -2,28 +2,43 @@
 
 #include "vera/types/model.h"
 
+#include "vera/ops/draw.h"
 #include "vera/ops/meshes.h"
 #include "vera/ops/geom.h"
-
 #include "vera/ops/string.h"
 #include "vera/shaders/defaultShaders.h"
 
 namespace vera {
 
 Model::Model():
-    m_model_vbo(nullptr), m_bbox_vbo(nullptr),
+    m_bbox_vbo(nullptr),
+    m_model_vbo(nullptr), 
+    m_model_gsplat(nullptr),
     m_name(""), m_area(0.0f) {
 }
 
+Model::Model(const std::string& _name, Gsplat* _gsplat):
+    m_bbox_vbo(nullptr), 
+    m_model_vbo(nullptr),
+    m_model_gsplat(nullptr), 
+    m_area(0.0f) {
+    setName(_name);
+    setGeom(_gsplat);
+}
+
 Model::Model(const std::string& _name, const Mesh &_mesh):
-    m_model_vbo(nullptr), m_bbox_vbo(nullptr), 
+    m_bbox_vbo(nullptr), 
+    m_model_vbo(nullptr),
+    m_model_gsplat(nullptr), 
     m_area(0.0f) {
     setName(_name);
     setGeom(_mesh);
 }
 
 Model::Model(const std::string& _name, const Mesh &_mesh, Material* _mat):
-    m_model_vbo(nullptr), m_bbox_vbo(nullptr), 
+    m_bbox_vbo(nullptr), 
+    m_model_vbo(nullptr),
+    m_model_gsplat(nullptr), 
     m_area(0.0f) {
     setName(_name);
     setGeom(_mesh);
@@ -35,14 +50,19 @@ Model::~Model() {
 }
 
 void Model::clear() {
+    if (m_bbox_vbo) {
+        delete m_bbox_vbo;
+        m_bbox_vbo = nullptr;
+    }
+
     if (m_model_vbo) {
         delete m_model_vbo;
         m_model_vbo = nullptr;
     }
 
-    if (m_bbox_vbo) {
-        delete m_bbox_vbo;
-        m_bbox_vbo = nullptr;
+    if (m_model_gsplat) {
+        delete m_model_gsplat;
+        m_model_gsplat = nullptr;
     }
 }
 
@@ -128,6 +148,32 @@ bool Model::setGeom(const Mesh& _mesh) {
     return true;
 }
 
+bool Model::setGeom(Gsplat* _gsplat) {
+    if (!_gsplat)
+        return false;
+
+    // keep pointer to Gsplat
+    m_model_gsplat = _gsplat;
+
+    // Gsplats don't use m_model_vbo, because they have their own rendering method (VAO of VBOs per splat)
+    if (m_model_vbo) {
+        delete m_model_vbo;
+        m_model_vbo = nullptr;
+    }
+
+    m_bbox = _gsplat->getBoundingBox();
+    m_area = glm::min(glm::length(m_bbox.min), glm::length(m_bbox.max));
+    m_bbox_vbo = new Vbo( cubeCornersMesh( m_bbox, 0.25 ) );
+
+    // Setup Shader and GEOMETRY DEFINE FLAGS
+    addDefine("MODEL_PRIMITIVE_GSPLATS");
+    addDefine("MODEL_VERTEX_POSITION",  "v_position");
+    addDefine("MODEL_VERTEX_COLOR",     "v_color");
+    addDefine("MODEL_VERTEX_TEXCOORD",  "v_texcoord");
+
+    return true;
+}
+
 void Model::setShader(const std::string& _fragStr, const std::string& _vertStr) {
     mainShader.setSource(_fragStr, _vertStr);
 }
@@ -156,19 +202,34 @@ void Model::printVboInfo() {
         m_model_vbo->printInfo();
 }
 
-void Model::render() {
+void Model::render(){
     if (m_model_vbo && mainShader.isLoaded())
         m_model_vbo->render(&mainShader);
+
+    if (m_model_gsplat) {
+        // m_model_gsplat->use(&mainShader);
+        m_model_gsplat->render(vera::camera(), getTransformMatrix());
+    }
 }
 
 void Model::render(Shader* _shader) {
     if (m_model_vbo)
         m_model_vbo->render(_shader);
+
+    // if (m_model_gsplat) {
+    //     // m_model_gsplat->use(_shader);
+    //     m_model_gsplat->render(_camera, getTransformMatrix());
+    // }
 }
 
 void Model::renderBbox(Shader* _shader) {
     if (m_bbox_vbo)
         m_bbox_vbo->render(_shader);
+
+    if (m_model_gsplat) {
+        // m_model_gsplat->use(_shader);
+        m_model_gsplat->renderDebug(vera::camera(), getTransformMatrix());
+    }
 }
 
 }

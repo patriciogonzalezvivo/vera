@@ -721,18 +721,17 @@ void Gsplat::buildSpatialIndex() {
     }
     
     // Create Grid
-    const int GRID_DIM = m_gridDim;
-    m_blocks.resize(GRID_DIM * GRID_DIM * GRID_DIM);
+    m_blocks.resize(m_gridDim * m_gridDim * m_gridDim);
     
     glm::vec3 size = maxB - minB;
     size = glm::max(size, glm::vec3(0.001f));
-    glm::vec3 step = size / (float)GRID_DIM;
+    glm::vec3 step = size / (float)m_gridDim;
 
     // Initialize bounds
-    for (int z = 0; z < GRID_DIM; z++) {
-        for (int y = 0; y < GRID_DIM; y++) {
-            for (int x = 0; x < GRID_DIM; x++) {
-                int idx = z * GRID_DIM * GRID_DIM + y * GRID_DIM + x;
+    for (int z = 0; z < m_gridDim; z++) {
+        for (int y = 0; y < m_gridDim; y++) {
+            for (int x = 0; x < m_gridDim; x++) {
+                int idx = z * m_gridDim * m_gridDim + y * m_gridDim + x;
                 m_blocks[idx].min_bounds = minB + glm::vec3(x, y, z) * step;
                 m_blocks[idx].max_bounds = minB + glm::vec3(x+1, y+1, z+1) * step;
                 m_blocks[idx].indices.reserve(count / m_blocks.size() * 2);
@@ -747,11 +746,11 @@ void Gsplat::buildSpatialIndex() {
         glm::vec3 relative = (p - minB) / size;
         relative = glm::clamp(relative, 0.0f, 0.9999f);
         
-        int x = (int)(relative.x * GRID_DIM);
-        int y = (int)(relative.y * GRID_DIM);
-        int z = (int)(relative.z * GRID_DIM);
+        int x = (int)(relative.x * m_gridDim);
+        int y = (int)(relative.y * m_gridDim);
+        int z = (int)(relative.z * m_gridDim);
         
-        int idx = z * GRID_DIM * GRID_DIM + y * GRID_DIM + x;
+        int idx = z * m_gridDim * m_gridDim + y * m_gridDim + x;
         m_blocks[idx].indices.push_back(i);
     }
     
@@ -788,6 +787,15 @@ void Gsplat::buildSpatialIndex() {
     m_blocks = packed;
     std::cout << "Built Spatial Index: " << m_blocks.size() << " active blocks." << std::endl;
 }
+
+BoundingBox Gsplat::getBoundingBox() const {
+    BoundingBox bbox;
+    for (const glm::vec3& pos : m_positions) {
+        bbox.expand(pos);
+    }
+    return bbox;
+}
+
 
 void Gsplat::performOcclusionQuery(const glm::mat4& _viewProj) {
     if (m_blocks.empty()) return;
@@ -1159,7 +1167,9 @@ void Gsplat::radixSort(std::vector<std::pair<float, uint32_t>>& arr) {
 }
 
 
-void Gsplat::render(Camera& _camera, glm::mat4 _model) {
+void Gsplat::render(Camera* _camera, glm::mat4 _model) {
+    if (!_camera)
+        return;
 
     if (m_shader == nullptr) {        
         Shader* default_shader = new Shader();
@@ -1179,9 +1189,9 @@ void Gsplat::render(Camera& _camera, glm::mat4 _model) {
     }
 
     // Sort splats by depth
-    glm::mat4 viewProj = _camera.getProjectionMatrix() * _camera.getViewMatrix() * _model;
+    glm::mat4 viewProj = _camera->getProjectionMatrix() * _camera->getViewMatrix() * _model;
     
-    bool needsSort = _camera.bChange;
+    bool needsSort = _camera->bChange;
     // Also check if valid indices exist (first frame)
     if (m_depthUintIndex.empty() && m_depthFloatIndex.empty()) {
         needsSort = true;
@@ -1209,14 +1219,14 @@ void Gsplat::render(Camera& _camera, glm::mat4 _model) {
     m_shader->setUniform("u_tex0Resolution", glm::vec2(m_texture->getWidth(), m_texture->getHeight()));
 
     m_shader->setUniform("u_modelMatrix", _model);
-    m_shader->setUniform("u_normalMatrix", _camera.getNormalMatrix());
-    m_shader->setUniform("u_viewMatrix", _camera.getViewMatrix());
-    m_shader->setUniform("u_projectionMatrix", _camera.getProjectionMatrix());
-    m_shader->setUniform("u_resolution", glm::vec2(_camera.getViewport().z, _camera.getViewport().w));
+    m_shader->setUniform("u_normalMatrix", _camera->getNormalMatrix());
+    m_shader->setUniform("u_viewMatrix", _camera->getViewMatrix());
+    m_shader->setUniform("u_projectionMatrix", _camera->getProjectionMatrix());
+    m_shader->setUniform("u_resolution", glm::vec2(_camera->getViewport().z, _camera->getViewport().w));
     
     // Compute focal lengths from FOV
-    float fovRad = glm::radians(_camera.getFOV());
-    float fy = _camera.getViewport().w / (2.0f * std::tan(fovRad / 2.0f));
+    float fovRad = glm::radians(_camera->getFOV());
+    float fy = _camera->getViewport().w / (2.0f * std::tan(fovRad / 2.0f));
     m_shader->setUniform("u_focal", glm::vec2(fy, fy));
     
     if (m_shader->getVersion() >= 300) {
@@ -1247,17 +1257,17 @@ void Gsplat::render(Camera& _camera, glm::mat4 _model) {
     performOcclusionQuery(viewProj);
 }
 
-void Gsplat::renderDebug(Camera& _camera, glm::mat4 _model) {
-    if (m_blocks.empty()) return;
+void Gsplat::renderDebug(Camera* _camera, glm::mat4 _model) {
+    if (!_camera)
+        return;
 
-    // _camera.begin();
-    vera::push();
-    // vera::applyMatrix(_model);
-    
+    if (m_blocks.empty()) 
+        return;
+
     vera::noFill();
     vera::strokeWeight(1.0f);
 
-    glm::mat4 viewProj = _camera.getProjectionMatrix() * _camera.getViewMatrix() * _model;
+    glm::mat4 viewProj = _camera->getProjectionMatrix() * _camera->getViewMatrix() * _model;
     Frustum frustum = extractFrustum(viewProj);
 
     for (const auto& block : m_blocks) {
@@ -1275,9 +1285,6 @@ void Gsplat::renderDebug(Camera& _camera, glm::mat4 _model) {
         bbox.max = block.max_bounds;
         vera::line(bbox);
     }
-    
-    vera::pop();
-    // _camera.end();
 }
 
 void Gsplat::optimizeDataLayout() {

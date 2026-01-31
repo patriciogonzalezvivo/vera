@@ -1493,7 +1493,7 @@ void model(Gsplat& _gsplat, Shader* _program) {
         _gsplat.use(_program);
     }
 
-    _gsplat.render( *camera(), worldMatrix() );
+    _gsplat.render( camera(), worldMatrix() );
 }
 
 void model(Vbo& _vbo, Shader* _program) { model(&_vbo, _program); }

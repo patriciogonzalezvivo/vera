@@ -21,6 +21,7 @@ uniform vec2        u_focal;
 attribute vec2      a_position;
 attribute float     a_index;
 
+varying vec4        v_position;
 varying vec4        v_color;
 varying vec2        v_texcoord;
 
@@ -74,7 +75,8 @@ void main() {
     // p4: color.rgba
 
     // Transform position to camera space
-    vec4 cam = u_viewMatrix * u_modelMatrix * vec4(p1.xyz, 1.0);
+    v_position = vec4(p1.xyz, 1.0);
+    vec4 cam = u_viewMatrix * u_modelMatrix * v_position;
     vec4 pos2d = u_projectionMatrix * cam;
     
     // Frustum culling
@@ -147,6 +149,7 @@ const std::string splat_frag = R"(
 precision highp float;
 #endif
 
+varying vec4 v_position;
 varying vec4 v_color;
 varying vec2 v_texcoord;
 
@@ -209,6 +212,7 @@ uniform vec2        u_resolution;
 in vec2             a_position;
 in uint             a_index;
 
+out vec4            v_position;
 out vec4            v_color;
 out vec2            v_texcoord;
 
@@ -220,7 +224,8 @@ void main() {
     uvec4 cen = texelFetch(u_tex0, ivec2((uint(a_index) & 0x3ffu) << 1, uint(a_index) >> 10), 0);
     
     // Transform position to camera space
-    vec4 cam = u_viewMatrix * u_modelMatrix * vec4(uintBitsToFloat(cen.xyz), 1.0);
+    v_position = vec4(uintBitsToFloat(cen.xyz), 1.0);
+    vec4 cam = u_viewMatrix * u_modelMatrix * v_position;
     vec4 pos2d = u_projectionMatrix * cam;
     
     // Frustum culling
@@ -303,6 +308,7 @@ const std::string splat_frag_300 = R"(#version 300 es
 precision highp float;
 precision highp int;
 
+in vec4 v_position;
 in vec4 v_color;
 in vec2 v_texcoord;
     
