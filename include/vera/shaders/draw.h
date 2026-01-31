@@ -245,6 +245,7 @@ precision mediump float;
 
 uniform mat4    u_modelViewProjectionMatrix;
 in      vec4    a_position;
+out     vec4    v_position;
 out     vec2    v_texcoord;
 
 #ifdef MODEL_VERTEX_NORMAL
@@ -377,6 +378,7 @@ precision mediump float;
 
 uniform mat4    u_modelViewProjectionMatrix;
 in      vec4    a_position;
+out     vec4    v_position;
 out     vec2    v_texcoord;
 
 #ifdef MODEL_VERTEX_NORMAL
@@ -509,6 +511,7 @@ precision mediump float;
 
 uniform mat4    u_modelViewProjectionMatrix;
 in      vec4    a_position;
+out     vec4    v_position;
 out     vec2    v_texcoord;
 
 #ifdef MODEL_VERTEX_NORMAL

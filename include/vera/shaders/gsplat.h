@@ -67,9 +67,6 @@ void main() {
     
     // Fetch 4 pixels
     vec4 p1 = texture2D(u_tex0, vec2((colStart + 0.5) / width, v));
-    vec4 p2 = texture2D(u_tex0, vec2((colStart + 1.5) / width, v));
-    vec4 p3 = texture2D(u_tex0, vec2((colStart + 2.5) / width, v));
-    vec4 p4 = texture2D(u_tex0, vec2((colStart + 3.5) / width, v));
 
     // p1: pos.xyz, valid
     // p2: cov.xx, cov.xy, cov.xz, cov.yy
@@ -89,6 +86,10 @@ void main() {
         return;
     }
     
+    vec4 p2 = texture2D(u_tex0, vec2((colStart + 1.5) / width, v));
+    vec4 p3 = texture2D(u_tex0, vec2((colStart + 2.5) / width, v));
+    vec4 p4 = texture2D(u_tex0, vec2((colStart + 3.5) / width, v));
+
     // Construct covariance matrix
     mat3 Vrk = mat3(
         p2.x, p2.y, p2.z,
