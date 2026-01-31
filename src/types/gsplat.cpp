@@ -211,7 +211,7 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
         r = s.r; g = s.g; b = s.b; a = s.a;
         rot_0 = s.rot_0; rot_1 = s.rot_1; rot_2 = s.rot_2; rot_3 = s.rot_3;
         
-        m_positions[i] = glm::vec3(x, y, z);
+        m_positions[i] = glm::vec3(x, -y, -z);
         m_scales[i] = glm::vec3(sx, sy, sz);
         
         // Color
@@ -226,8 +226,10 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
         
         // Common packing: rot_0, rot_1, rot_2, rot_3 -> x, y, z, w ? 
         glm::quat q(r0, r1, r2, r3); // x, y, z, w
-        // glm::quat q(r3, r0, r1, r2); // w, x, y, 
-        m_rotations[i] = glm::normalize(q);
+        
+        // Rotate 180 degrees around X axis to match OpenGL coordinates
+        static const glm::quat flipval(0.0f, 1.0f, 0.0f, 0.0f); 
+        m_rotations[i] = glm::normalize(flipval * q);
     }
 
     optimizeDataLayout();
@@ -365,7 +367,7 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
     
     for (size_t i = 0; i < vertexCount; i++) {
         // Position
-        m_positions[i] = glm::vec3(x_data[i], y_data[i], z_data[i]);
+        m_positions[i] = glm::vec3(x_data[i], -y_data[i], -z_data[i]);
         
         // Scale (exponential)
         m_scales[i] = glm::vec3(
@@ -376,7 +378,10 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
         
         // Rotation (quaternion - note: different convention)
         glm::quat q(rot_0_data[i], rot_1_data[i], rot_2_data[i], rot_3_data[i]);
-        m_rotations[i] = glm::normalize(q);
+
+        // Rotate 180 degrees around X axis to match OpenGL coordinates
+        static const glm::quat flipval(0.0f, 1.0f, 0.0f, 0.0f); 
+        m_rotations[i] = glm::normalize(flipval * q);
         
         // Color
         uint8_t r, g, b, a;
