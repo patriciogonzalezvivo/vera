@@ -1288,7 +1288,7 @@ void Gsplat::render(Camera* _camera, glm::mat4 _model, bool _sort) {
     performOcclusionQuery(viewProj);
 }
 
-void Gsplat::renderDebug(Camera* _camera, glm::mat4 _model) {
+void Gsplat::renderBlocks(Camera* _camera, glm::mat4 _model) {
     if (!_camera)
         return;
 

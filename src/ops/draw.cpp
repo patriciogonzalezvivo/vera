@@ -1489,11 +1489,16 @@ void model(const Mesh& _mesh, Shader* _program) {
 
 void model(Gsplat& _gsplat, Shader* _program) {
 
-    if (_program != nullptr) {
-        _gsplat.use(_program);
+    if (fill_enabled) {
+        if (_program != nullptr) {
+            _gsplat.use(_program);
+        }
+    
+        _gsplat.render( camera(), worldMatrix() );
     }
-
-    _gsplat.render( camera(), worldMatrix() );
+    else {
+        _gsplat.renderBlocks(camera(), worldMatrix());
+    }
 }
 
 void model(Vbo& _vbo, Shader* _program) { model(&_vbo, _program); }

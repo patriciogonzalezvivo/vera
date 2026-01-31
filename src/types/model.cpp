@@ -218,10 +218,10 @@ void Model::render(Shader* _shader) {
     if (m_model_vbo)
         m_model_vbo->render(_shader);
 
-    // if (m_model_gsplat) {
-    //     // m_model_gsplat->use(_shader);
-    //     m_model_gsplat->render(_camera, getTransformMatrix());
-    // }
+    if (m_model_gsplat) {
+        // m_model_gsplat->use(_shader);
+        m_model_gsplat->render(vera::camera(), getTransformMatrix());
+    }
 }
 
 void Model::renderBbox(Shader* _shader) {
@@ -230,7 +230,7 @@ void Model::renderBbox(Shader* _shader) {
 
     if (m_model_gsplat) {
         // m_model_gsplat->use(_shader);
-        m_model_gsplat->renderDebug(vera::camera(), getTransformMatrix());
+        m_model_gsplat->renderBlocks(vera::camera(), getTransformMatrix());
     }
 }
 
