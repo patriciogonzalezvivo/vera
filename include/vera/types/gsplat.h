@@ -43,6 +43,10 @@ public:
     void    setOcclusionThreshold(int _threshold);
     void    setOcclusionScale(float _scale);
 
+    int     getGridDim() const { return m_gridDim; }
+    int     getOcclusionThreshold() const { return m_occlusionThreshold; }
+    float   getOcclusionScale() const { return m_occlusionScale; }
+
     void    optimizeDataLayout();
 
 private:

@@ -193,14 +193,6 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
         uint8_t rot_0, rot_1, rot_2, rot_3;
     };
 
-    struct SplatDataNormal {
-        float x, y, z;
-        float sx, sy, sz;
-        uint8_t r, g, b, a;
-        uint8_t rot_0, rot_1, rot_2, rot_3;
-        float nx, ny, nz;
-    };
-
     std::vector<char> buffer(size);
     if (!file.read(buffer.data(), size)) {
          return false;

@@ -88,7 +88,8 @@ void Node::scale(const glm::vec3& _scale) {
 
 void Node::translate(const glm::vec3& _offset) {
     m_position += _offset;
-    m_transformMatrix = glm::translate(m_transformMatrix, m_position);
+    // m_transformMatrix = glm::translate(m_transformMatrix, m_position);
+    createMatrix();
     onPositionChanged();
 }
 
