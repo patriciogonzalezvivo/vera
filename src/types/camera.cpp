@@ -46,7 +46,7 @@ void Camera::setViewport(int _width, int _height){
 //Setting Functions
 void Camera::setProjection(ProjectionType _type) {
     m_projectionType = _type;
-    m_viewMatrix = getTransformMatrix();
+    m_viewMatrix = glm::inverse(getTransformMatrix());
     updateCameraSettings();
 }
 
@@ -90,7 +90,15 @@ void Camera::setVirtualOffset(float scale, int currentViewIndex, int totalViews,
     // modify the view matrix (position)
     // determine the local direction of the offset 
     glm::vec3 offsetLocal = getXAxis() * offset;
-    m_viewMatrix = glm::translate(getTransformMatrix(), offsetLocal);
+    
+    // Original logic seemed to assume Camera Model Matrix = View Matrix? 
+    // If getTransformMatrix() is now Model Matrix (T*R*S).
+    // View Matrix should be Inverse.
+    // Virtual Offset logic modifies View Matrix directly.
+    
+    glm::mat4 m = glm::inverse(getTransformMatrix()); // Standard View Matrix
+    m_viewMatrix = glm::translate(m, offsetLocal); // Apply offset in View Space?
+    
     m_normalMatrix = glm::transpose(glm::inverse(glm::mat3(m_viewMatrix)));
 
     glm::mat4 projectionMatrix = glm::perspective(m_fov, getAspect(), getNearClip(), getFarClip());
@@ -110,10 +118,7 @@ void Camera::setVirtualOffset(float scale, int currentViewIndex, int totalViews,
 }
 
 const glm::mat4& Camera::getViewMatrix() const {
-    if (m_projectionType == ProjectionType::PERSPECTIVE_VIRTUAL_OFFSET )
-        return m_viewMatrix;
-    else 
-        return getTransformMatrix(); 
+    return m_viewMatrix;
 }
 
 glm::ivec4 Camera::getViewport() const {
@@ -138,13 +143,20 @@ void Camera::moveTarget(float deltaX, float deltaY) {
     setTarget(newTarget);
 }
 
+void Camera::move(float right, float up, float forward) {
+    // Forward is -Z in OpenGL/Vera convention
+    glm::vec3 offset = getXAxis() * right + getYAxis() * up - getZAxis() * forward;
+    Node::translate(offset); // Move Position
+    m_target += offset;      // Move Target to keep relative focus consistent
+}
+
 void Camera::orbit(float _azimuth, float _elevation, float _distance) {
     glm::vec3 p = glm::vec3(0.0, 0.0, _distance);
     _elevation = glm::clamp(_elevation, -89.0f, 89.0f);
 
     p = glm::angleAxis(glm::radians(_elevation), glm::vec3(1.0, 0.0, 0.0)) * p;
     p = glm::angleAxis(glm::radians(_azimuth), glm::vec3(0.0, 1.0, 0.0)) * p;
-    p -= m_target;
+    p += m_target;
 
     setPosition(p);
     lookAt(m_target);
@@ -253,10 +265,14 @@ void Camera::updateCameraSettings() {
 }
 
 void Camera::updateProjectionViewMatrix() {
-    m_projectionViewMatrix = m_projectionMatrix * getViewMatrix();
-    m_normalMatrix = glm::transpose(glm::inverse(glm::mat3(getViewMatrix())));
+    if (m_projectionType != ProjectionType::PERSPECTIVE_VIRTUAL_OFFSET) {
+        m_viewMatrix = glm::inverse(getTransformMatrix());
+    }
 
-    m_inverseViewMatrix = vera::inverseMatrix(getViewMatrix());
+    m_projectionViewMatrix = m_projectionMatrix * m_viewMatrix;
+    m_normalMatrix = glm::transpose(glm::inverse(glm::mat3(m_viewMatrix)));
+
+    m_inverseViewMatrix = getTransformMatrix(); // Inverted View is Camera World Transform
     m_inverseProjectionMatrix = vera::inverseMatrix(m_projectionMatrix);
     
     bChange = true;

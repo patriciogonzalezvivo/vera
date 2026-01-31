@@ -332,8 +332,32 @@ void App::orbitControl() {
             cam->setViewport(width, height);
     }
 
+    static bool wasMousePressed = false;
+    if (mouseIsPressed && !wasMousePressed && getQuiltCurrentViewIndex() == 0) {
+        
+        // Recalculate orbital parameters from current camera state to prevent jumps
+        glm::vec3 v = cam->getPosition() - cam->getTarget();
+        float dist = glm::length(v);
+
+        // If the camera was moved with keys (fly mode), the target might remain behind
+        // or be misaligned. Only reset the target if we are not looking at it.
+        // We check if the vector to target ( -v ) is aligned with the camera forward vector ( -zAxis )
+        // Which is equivalent to checking if v is aligned with zAxis (since Orbit camera looks at target)
+        if (dist > 0.001f) {
+            // Re-sync target if we drifted (e.g. via WASD fly mode)
+            if (glm::dot(glm::normalize(v), cam->getZAxis()) < 0.99f) {
+                cam->setTarget(cam->getPosition() - cam->getZAxis() * dist);
+                v = cam->getPosition() - cam->getTarget();
+            }
+
+            cameraLon = -glm::degrees(asinf(glm::clamp(v.y / dist, -1.0f, 1.0f)));
+            cameraLat = glm::degrees(atan2f(v.x, v.z));
+        }
+    }
+    wasMousePressed = mouseIsPressed;
+
     if (mouseIsPressed && getQuiltCurrentViewIndex() == 0) {
-        float currentDistance = glm::length(cam->getPosition());
+        float currentDistance = glm::length(cam->getPosition() - cam->getTarget());
         bool shiftPressed = isShiftPressed();
         bool ctrlPressed = isControlPressed();
 
@@ -358,9 +382,7 @@ void App::orbitControl() {
             
         }
         else if (mouseButton == 1 && ctrlPressed) {
-            cam->truck(.01f * vel_x);
-            cam->boom(.01f * -vel_y);
-            cam->moveTarget(-vel_x * 0.01f, vel_y * 0.01f);
+            cam->move(-vel_x * 0.01f, 0.0f, vel_y * 0.01f);
         }
         else if (mouseButton == 2) {
             // Right-button or Shift+Ctrl+Left: Zoom (change distance)

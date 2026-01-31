@@ -106,7 +106,7 @@ void Node::rotateAround(const glm::quat& _q, const glm::vec3& _point) {
 }
 
 void Node::lookAt(const glm::vec3& _lookAtPosition, glm::vec3 _upVector ) {
-    setOrientation( glm::lookAt(-m_position, _lookAtPosition, _upVector) );
+    setOrientation( glm::inverse( glm::lookAt(m_position, _lookAtPosition, _upVector) ) );
 }
 
 void Node::apply(const glm::mat4& _m) {
@@ -121,21 +121,21 @@ void Node::reset(){
 
 void Node::createMatrix() {
     m_transformMatrix = glm::scale(m_scale);
-    m_transformMatrix = glm::toMat4(m_orientation) * m_transformMatrix;
-    m_transformMatrix = glm::translate(m_transformMatrix, m_position);
+    m_transformMatrix = glm::toMat4(m_orientation) * m_transformMatrix; // R * S
+    m_transformMatrix = glm::translate(glm::mat4(1.0), m_position) * m_transformMatrix; // T * R * S
 
     updateAxis();
 }
 
 void Node::updateAxis() {
     if(m_scale[0]>0)
-        m_axis[0] = glm::vec3(glm::row(getTransformMatrix(),0))/m_scale[0];
+        m_axis[0] = glm::vec3(getTransformMatrix()[0])/m_scale[0];
 
     if(m_scale[1]>0)
-        m_axis[1] = glm::vec3(glm::row(getTransformMatrix(),1))/m_scale[1];
+        m_axis[1] = glm::vec3(getTransformMatrix()[1])/m_scale[1];
 
     if(m_scale[2]>0)
-        m_axis[2] = glm::vec3(glm::row(getTransformMatrix(),2))/m_scale[2];
+        m_axis[2] = glm::vec3(getTransformMatrix()[2])/m_scale[2];
 
     bChange = true;
 }
