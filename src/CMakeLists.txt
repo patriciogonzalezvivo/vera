@@ -96,7 +96,7 @@ set(VERA_SOURCES
 add_library(vera ${VERA_SOURCES})
 
 set_target_properties(vera PROPERTIES
-    CXX_STANDARD 11
+    CXX_STANDARD 14
     CXX_STANDARD_REQUIRED ON
 )
 

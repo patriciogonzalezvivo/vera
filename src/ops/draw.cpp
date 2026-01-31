@@ -570,14 +570,31 @@ void line(const Triangle& _triangle, Shader* _program) {
 }
 
 void line(const BoundingBox& _bbox, Shader* _program) {
-    std::vector<glm::vec3> positions;
-    positions.push_back( _bbox.min );
-    positions.push_back( glm::vec3( _bbox.min.x, _bbox.min.y, _bbox.max.z ) );
+    std::vector<glm::vec3> p;
+    p.reserve(17); 
+    glm::vec3 v0(_bbox.min.x, _bbox.min.y, _bbox.min.z);
+    glm::vec3 v1(_bbox.max.x, _bbox.min.y, _bbox.min.z);
+    glm::vec3 v2(_bbox.max.x, _bbox.max.y, _bbox.min.z);
+    glm::vec3 v3(_bbox.min.x, _bbox.max.y, _bbox.min.z);
+    glm::vec3 v4(_bbox.min.x, _bbox.min.y, _bbox.max.z);
+    glm::vec3 v5(_bbox.max.x, _bbox.min.y, _bbox.max.z);
+    glm::vec3 v6(_bbox.max.x, _bbox.max.y, _bbox.max.z);
+    glm::vec3 v7(_bbox.min.x, _bbox.max.y, _bbox.max.z);
 
-    // TODO:
-    //  - finsih this
+    // 0-1-2-3-0
+    p.push_back(v0); p.push_back(v1); p.push_back(v2); p.push_back(v3); p.push_back(v0);
+    // 0-4
+    p.push_back(v4);
+    // 4-5-6-7-4
+    p.push_back(v5); p.push_back(v6); p.push_back(v7); p.push_back(v4);
+    // 4-5-1
+    p.push_back(v5); p.push_back(v1);
+    // 1-2-6
+    p.push_back(v2); p.push_back(v6);
+    // 6-7-3
+    p.push_back(v7); p.push_back(v3);
 
-    line(positions, _program);
+    line(p, _program);
 }
 
 void lineBoundingBox(const glm::vec4& _bbox, Shader* _program) {

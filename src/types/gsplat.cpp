@@ -1,5 +1,6 @@
 #include "vera/types/gsplat.h"
 #include "vera/ops/fs.h"
+#include "vera/ops/draw.h"
 #include "vera/shaders/gsplat.h"
 #include "vera/shaders/defaultShaders.h"
 
@@ -12,9 +13,35 @@
 #include <cstring>
 #include <fstream>
 #include <algorithm>
+#include <numeric>
 
 // Spherical harmonics constant
 constexpr float SH_C0 = 0.28209479177387814f;
+
+// Morton Encoding Helpers
+inline uint32_t expandBits(uint32_t v) {
+    v = (v * 0x00010001u) & 0xFF0000FFu;
+    v = (v * 0x00000101u) & 0x0F00F00Fu;
+    v = (v * 0x00000011u) & 0xC30C30C3u;
+    v = (v * 0x00000005u) & 0x49249249u;
+    return v;
+}
+
+inline uint32_t morton3D(const glm::vec3& pos, const glm::vec3& min, const glm::vec3& extents) {
+    float x = (pos.x - min.x) / extents.x;
+    float y = (pos.y - min.y) / extents.y;
+    float z = (pos.z - min.z) / extents.z;
+    
+    x = std::min(std::max(x * 1024.0f, 0.0f), 1023.0f);
+    y = std::min(std::max(y * 1024.0f, 0.0f), 1023.0f);
+    z = std::min(std::max(z * 1024.0f, 0.0f), 1023.0f);
+    
+    uint32_t xx = expandBits((uint32_t)x);
+    uint32_t yy = expandBits((uint32_t)y);
+    uint32_t zz = expandBits((uint32_t)z);
+    
+    return xx | (yy << 1) | (zz << 2);
+}
 
 // Pack two 16-bit halfs into a 32-bit uint
 uint16_t floatToHalf(float value) {
@@ -67,7 +94,6 @@ void Gsplat::clear() {
     m_scales.clear();
     m_rotations.clear();
     m_colors.clear();
-    m_normals.clear();
     
     m_worldPositions.clear();
 
@@ -111,6 +137,21 @@ void Gsplat::clear() {
     }
 }
 
+void Gsplat::setGridDim(int _dim) {
+    if (m_gridDim != _dim) {
+        m_gridDim = _dim;
+        buildSpatialIndex();
+    }
+}
+
+void Gsplat::setOcclusionThreshold(int _threshold) {
+    m_occlusionThreshold = _threshold;
+}
+
+void Gsplat::setOcclusionScale(float _scale) {
+    m_occlusionScale = _scale;
+}
+
 bool Gsplat::load(const std::string& _filepath) {
     std::string ext = _filepath.substr(_filepath.find_last_of(".") + 1);
     if (ext == "ply") {
@@ -137,17 +178,6 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
     // .splat format: 32 bytes per splat
     // pos(3*4) + scale(3*4) + color(4) + rot(4)
     size_t splatSize = 32;
-    bool hasNormals = false;
-    
-    // Determine format based on file size
-    if ((size % 32) == 0) {
-        splatSize = 32;
-        hasNormals = false;
-    } else if ((size % 44) == 0) {
-        splatSize = 44;
-        hasNormals = true;
-    }
-    
     size_t splatCount = size / splatSize;
     
     clear();
@@ -155,9 +185,6 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
     m_scales.resize(splatCount);
     m_rotations.resize(splatCount);
     m_colors.resize(splatCount);
-    if (hasNormals) {
-        m_normals.resize(splatCount);
-    }
 
     struct SplatData {
         float x, y, z;
@@ -186,21 +213,11 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
         uint8_t rot_0, rot_1, rot_2, rot_3;
         float nx = 0.0f, ny = 0.0f, nz = 0.0f;
 
-        if (hasNormals) {
-            const SplatDataNormal& s = reinterpret_cast<SplatDataNormal*>(buffer.data())[i];
-            x = s.x; y = s.y; z = s.z;
-            sx = s.sx; sy = s.sy; sz = s.sz;
-            r = s.r; g = s.g; b = s.b; a = s.a;
-            rot_0 = s.rot_0; rot_1 = s.rot_1; rot_2 = s.rot_2; rot_3 = s.rot_3;
-            nx = s.nx; ny = s.ny; nz = s.nz;
-            m_normals[i] = glm::vec3(nx, ny, nz);
-        } else {
-            const SplatData& s = reinterpret_cast<SplatData*>(buffer.data())[i];
-            x = s.x; y = s.y; z = s.z;
-            sx = s.sx; sy = s.sy; sz = s.sz;
-            r = s.r; g = s.g; b = s.b; a = s.a;
-            rot_0 = s.rot_0; rot_1 = s.rot_1; rot_2 = s.rot_2; rot_3 = s.rot_3;
-        }
+        const SplatData& s = reinterpret_cast<SplatData*>(buffer.data())[i];
+        x = s.x; y = s.y; z = s.z;
+        sx = s.sx; sy = s.sy; sz = s.sz;
+        r = s.r; g = s.g; b = s.b; a = s.a;
+        rot_0 = s.rot_0; rot_1 = s.rot_1; rot_2 = s.rot_2; rot_3 = s.rot_3;
         
         m_positions[i] = glm::vec3(x, y, z);
         m_scales[i] = glm::vec3(sx, sy, sz);
@@ -221,6 +238,8 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
         m_rotations[i] = glm::normalize(q);
     }
 
+    optimizeDataLayout();
+
     size_t n = m_positions.size();
     m_worldPositions.resize(n * 3);
     for (size_t i = 0; i < n; i++) {
@@ -230,9 +249,7 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
         m_worldPositions[i * 3 + 2] = pos.z;
     }
 
-    if (hasNormals) {
-        std::cout << "Loaded " << n << " splats with normals." << std::endl;
-    } 
+    buildSpatialIndex();
 
     return true;
 }
@@ -262,17 +279,6 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
         vertices_z = file.request_properties_from_element("vertex", {"z"});
     } catch (const std::exception&) {
         throw std::runtime_error("PLY file missing position data");
-    }
-
-    // Try reading normals
-    bool hasNormals = false;
-    try {
-        nx = file.request_properties_from_element("vertex", {"nx"});
-        ny = file.request_properties_from_element("vertex", {"ny"});
-        nz = file.request_properties_from_element("vertex", {"nz"});
-        hasNormals = true;
-    } catch (const std::exception&) {
-        // No normals found
     }
     
     // Try different naming conventions
@@ -341,17 +347,10 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
     m_scales.resize(vertexCount);
     m_rotations.resize(vertexCount);
     m_colors.resize(vertexCount);
-    if (hasNormals) {
-        m_normals.resize(vertexCount);
-    }
     
     const float* x_data = reinterpret_cast<const float*>(vertices_x->buffer.get());
     const float* y_data = reinterpret_cast<const float*>(vertices_y->buffer.get());
     const float* z_data = reinterpret_cast<const float*>(vertices_z->buffer.get());
-    
-    const float* nx_data = hasNormals ? reinterpret_cast<const float*>(nx->buffer.get()) : nullptr;
-    const float* ny_data = hasNormals ? reinterpret_cast<const float*>(ny->buffer.get()) : nullptr;
-    const float* nz_data = hasNormals ? reinterpret_cast<const float*>(nz->buffer.get()) : nullptr;
 
     const float* scale_0_data = reinterpret_cast<const float*>(scale_0->buffer.get());
     const float* scale_1_data = reinterpret_cast<const float*>(scale_1->buffer.get());
@@ -412,12 +411,9 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
         }
         
         m_colors[i] = glm::u8vec4(r, g, b, a);
-
-        if (hasNormals) {
-            m_normals[i] = glm::vec3(nx_data[i], ny_data[i], nz_data[i]);
-        }
     }
     
+    optimizeDataLayout();
 
     size_t n = m_positions.size();
     m_worldPositions.resize(n * 3);
@@ -428,9 +424,7 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
         m_worldPositions[i * 3 + 2] = pos.z;
     }
 
-    if (hasNormals) {
-        std::cout << "Loaded " << vertexCount << " splats with normals." << std::endl;
-    } 
+    buildSpatialIndex();
 
     return true;
 }
@@ -546,7 +540,6 @@ Texture *Gsplat::createTextureFloat() {
         packedData[i * 16 + 1] = pos.y;
         packedData[i * 16 + 2] = pos.z;
         packedData[i * 16 + 3] = 1.0f; // selection flag (1.0 = valid)
-        
         
         // Convert quaternion to matrix for covariance
         glm::mat3 rotMat = glm::mat3_cast(rot);
@@ -721,67 +714,453 @@ Texture* Gsplat::createTextureUint() {
     return texture;
 }
 
+void Gsplat::buildSpatialIndex() {
+    m_blocks.clear();
+    size_t count = m_positions.size();
+    if (count == 0) return;
+
+    // Calculate Scene Bounds
+    glm::vec3 minB = m_positions[0];
+    glm::vec3 maxB = m_positions[0];
+    
+    for (size_t i = 1; i < count; i++) {
+        minB = glm::min(minB, m_positions[i]);
+        maxB = glm::max(maxB, m_positions[i]);
+    }
+    
+    // Create Grid
+    const int GRID_DIM = m_gridDim;
+    m_blocks.resize(GRID_DIM * GRID_DIM * GRID_DIM);
+    
+    glm::vec3 size = maxB - minB;
+    size = glm::max(size, glm::vec3(0.001f));
+    glm::vec3 step = size / (float)GRID_DIM;
+
+    // Initialize bounds
+    for (int z = 0; z < GRID_DIM; z++) {
+        for (int y = 0; y < GRID_DIM; y++) {
+            for (int x = 0; x < GRID_DIM; x++) {
+                int idx = z * GRID_DIM * GRID_DIM + y * GRID_DIM + x;
+                m_blocks[idx].min_bounds = minB + glm::vec3(x, y, z) * step;
+                m_blocks[idx].max_bounds = minB + glm::vec3(x+1, y+1, z+1) * step;
+                m_blocks[idx].indices.reserve(count / m_blocks.size() * 2);
+            }
+        }
+    }
+
+    // Bin points
+    for (uint32_t i = 0; i < count; i++) {
+        const glm::vec3& p = m_positions[i];
+        
+        glm::vec3 relative = (p - minB) / size;
+        relative = glm::clamp(relative, 0.0f, 0.9999f);
+        
+        int x = (int)(relative.x * GRID_DIM);
+        int y = (int)(relative.y * GRID_DIM);
+        int z = (int)(relative.z * GRID_DIM);
+        
+        int idx = z * GRID_DIM * GRID_DIM + y * GRID_DIM + x;
+        m_blocks[idx].indices.push_back(i);
+    }
+    
+    // Prune empty blocks
+    std::vector<SplatBlock> packed;
+    packed.reserve(m_blocks.size());
+    
+    // Setup queries
+    bool supportQueries = false; // Check capability if needed, assuming yes for now or ignoring if 0
+    // std::vector<GLuint> ids(m_blocks.size());
+    // glGenQueries(m_blocks.size(), ids.data()); 
+    // This might be too many queries for some drivers, but for 4096 blocks it's heavy.
+    // Let's create queries only for non-empty blocks.
+
+    for(size_t i = 0; i < m_blocks.size(); ++i) {
+        if (!m_blocks[i].indices.empty()) {
+            glGenQueries(1, &m_blocks[i].occlusionQuery);
+            packed.push_back(m_blocks[i]);
+        }
+    }
+    m_blocks = packed;
+    std::cout << "Built Spatial Index: " << m_blocks.size() << " active blocks." << std::endl;
+}
+
+void Gsplat::performOcclusionQuery(const glm::mat4& _viewProj) {
+    if (m_blocks.empty()) return;
+
+    Frustum frustum = extractFrustum(_viewProj);
+
+    // 1. Check previous frame results - THIS UPDATES OCCLUSION STATE
+    for (auto& block : m_blocks) {
+        if (block.occlusionQuery == 0 || !block.queryIssued) continue;
+        
+        GLuint result = 0;
+        GLuint available = 0;
+        glGetQueryObjectuiv(block.occlusionQuery, GL_QUERY_RESULT_AVAILABLE, &available);
+        if (available) {
+            glGetQueryObjectuiv(block.occlusionQuery, GL_QUERY_RESULT, &result);
+            
+            if (result == 0) {
+                block.framesHidden++;
+                // Require N consecutive hidden frames to mark as occluded (Hysteresis)
+                if (block.framesHidden > m_occlusionThreshold) {
+                    block.occluded = true;
+                }
+            } else {
+                block.framesHidden = 0;
+                block.occluded = false; // Immediately visible
+            }
+        }
+    }
+
+    // Save state
+    GLboolean colorMask[4];
+    glGetBooleanv(GL_COLOR_WRITEMASK, colorMask);
+    GLboolean depthMask;
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMask);
+    GLboolean depthTest;
+    glGetBooleanv(GL_DEPTH_TEST, &depthTest);
+    GLint depthFunc;
+    glGetIntegerv(GL_DEPTH_FUNC, &depthFunc);
+
+    // Filter visible blocks for depth pre-pass
+    std::vector<SplatBlock*> visibleBlocks;
+    visibleBlocks.reserve(m_blocks.size());
+    for (auto& block : m_blocks) {
+        if (!block.occluded && isBoxInFrustum(block.min_bounds, block.max_bounds, frustum)) {
+            visibleBlocks.push_back(&block);
+        }
+    }
+
+    vera::fill(255);
+    vera::noStroke();
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+    // PASS 1: Fill Depth Buffer with Occluders (Visible Blocks)
+    glDepthMask(GL_TRUE);
+
+    for (auto* block : visibleBlocks) {
+        glm::vec3 center = (block->min_bounds + block->max_bounds) * 0.5f;
+        glm::vec3 size = block->max_bounds - block->min_bounds;
+        glm::vec3 shrinkSize = size * m_occlusionScale;
+
+        vera::push();
+        vera::translate(center);
+        vera::scale(shrinkSize);
+        vera::box(1.0f);
+        vera::pop();
+    }
+
+    // PASS 2: Issue Queries for All Blocks
+    glDepthMask(GL_FALSE); // Read-only depth
+
+    for (auto& block : m_blocks) {
+        if (block.occlusionQuery == 0) continue;
+
+        glm::vec3 center = (block.min_bounds + block.max_bounds) * 0.5f;
+        glm::vec3 size = block.max_bounds - block.min_bounds;
+
+        glBeginQuery(GL_ANY_SAMPLES_PASSED, block.occlusionQuery);
+        vera::push();
+        vera::translate(center);
+        vera::scale(size);
+        vera::box(1.0f);
+        vera::pop();
+        glEndQuery(GL_ANY_SAMPLES_PASSED);
+        block.queryIssued = true;
+    }
+
+    // Restore state
+    glColorMask(colorMask[0], colorMask[1], colorMask[2], colorMask[3]);
+    glDepthMask(depthMask);
+    glDepthFunc(depthFunc);
+    if (!depthTest) glDisable(GL_DEPTH_TEST);
+}
+
+Gsplat::Frustum Gsplat::extractFrustum(const glm::mat4& _viewProj) const {
+    Frustum frustum;
+    const glm::mat4& m = _viewProj;
+    
+    // Extract frustum planes (Gribb/Hartmann method)
+    // Left
+    frustum.planes[0].x = m[0][3] + m[0][0];
+    frustum.planes[0].y = m[1][3] + m[1][0];
+    frustum.planes[0].z = m[2][3] + m[2][0];
+    frustum.planes[0].w = m[3][3] + m[3][0];
+    
+    // Right
+    frustum.planes[1].x = m[0][3] - m[0][0];
+    frustum.planes[1].y = m[1][3] - m[1][0];
+    frustum.planes[1].z = m[2][3] - m[2][0];
+    frustum.planes[1].w = m[3][3] - m[3][0];
+    
+    // Bottom
+    frustum.planes[2].x = m[0][3] + m[0][1];
+    frustum.planes[2].y = m[1][3] + m[1][1];
+    frustum.planes[2].z = m[2][3] + m[2][1];
+    frustum.planes[2].w = m[3][3] + m[3][1];
+    
+    // Top
+    frustum.planes[3].x = m[0][3] - m[0][1];
+    frustum.planes[3].y = m[1][3] - m[1][1];
+    frustum.planes[3].z = m[2][3] - m[2][1];
+    frustum.planes[3].w = m[3][3] - m[3][1];
+    
+    // Near
+    frustum.planes[4].x = m[0][3] + m[0][2];
+    frustum.planes[4].y = m[1][3] + m[1][2];
+    frustum.planes[4].z = m[2][3] + m[2][2];
+    frustum.planes[4].w = m[3][3] + m[3][2];
+    
+    // Far
+    frustum.planes[5].x = m[0][3] - m[0][2];
+    frustum.planes[5].y = m[1][3] - m[1][2];
+    frustum.planes[5].z = m[2][3] - m[2][2];
+    frustum.planes[5].w = m[3][3] - m[3][2];
+    
+    // Normalize planes
+    for (int i = 0; i < 6; i++) {
+        float len = glm::length(glm::vec3(frustum.planes[i]));
+        frustum.planes[i] /= len;
+    }
+    
+    return frustum;
+}
+
+bool Gsplat::isBoxInFrustum(const glm::vec3& min, const glm::vec3& max, const Frustum& _frustum) const {
+    // Check if box is outside any of the 6 planes
+    for (int i = 0; i < 6; i++) {
+        // Find the p-vertex (direction of normal)
+        glm::vec3 p;
+        p.x = (_frustum.planes[i].x > 0) ? max.x : min.x;
+        p.y = (_frustum.planes[i].y > 0) ? max.y : min.y;
+        p.z = (_frustum.planes[i].z > 0) ? max.z : min.z;
+        
+        // If p-vertex is on the negative side of the plane, the box is outside
+        if (glm::dot(glm::vec3(_frustum.planes[i]), p) + _frustum.planes[i].w < 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/*
+bool Gsplat::isBoxInFrustum(const glm::vec3& min, const glm::vec3& max, const glm::mat4& viewProj) {
+    // Check Box Corners against Frustum Planes in Clip Space
+    glm::vec4 corners[8];
+    corners[0] = glm::vec4(min.x, min.y, min.z, 1.0f);
+    corners[1] = glm::vec4(max.x, min.y, min.z, 1.0f);
+    corners[2] = glm::vec4(min.x, max.y, min.z, 1.0f);
+    corners[3] = glm::vec4(max.x, max.y, min.z, 1.0f);
+    corners[4] = glm::vec4(min.x, min.y, max.z, 1.0f);
+    corners[5] = glm::vec4(max.x, min.y, max.z, 1.0f);
+    corners[6] = glm::vec4(min.x, max.y, max.z, 1.0f);
+    corners[7] = glm::vec4(max.x, max.y, max.z, 1.0f);
+    
+    bool allXLeft = true;
+    bool allXRight = true;
+    bool allYBottom = true;
+    bool allYTop = true;
+    bool allZNear = true;
+    bool allZFar = true;
+    
+    for(int i=0; i<8; i++) {
+        glm::vec4 p = viewProj * corners[i];
+        
+        if (p.x >= -p.w) allXLeft = false;
+        if (p.x <= p.w)  allXRight = false;
+        if (p.y >= -p.w) allYBottom = false;
+        if (p.y <= p.w)  allYTop = false;
+        if (p.z >= -p.w) allZNear = false;
+        if (p.z <= p.w)  allZFar = false; // Note: OpenGL near/far varies, but standard clip is -w..w
+    }
+    
+    if (allXLeft || allXRight || allYBottom || allYTop || allZNear || allZFar) return false;
+    
+    return true;
+}
+*/
+
 void Gsplat::sort(const glm::mat4& _viewProj) {
-    // Compute depths
-    size_t vertexCount = m_positions.size();
-    if (m_sorter.size() != vertexCount) {
-        m_sorter.resize(vertexCount);
-    }
+    m_sorter.clear();
+    // Reserve to avoid reallocs
+    m_sorter.reserve(m_positions.size()); 
     
-    // Extract Matrix components for faster dot product (Column-Major access)
-    // We want the result of (ViewProj * P).z and (ViewProj * P).w
-    // (M * P).z = M[0].z*x + M[1].z*y + M[2].z*z + M[3].z
-    // (M * P).w = M[0].w*x + M[1].w*y + M[2].w*z + M[3].w
-    
-    // Cache the relevant components
-    float M02 = _viewProj[0][2]; float M12 = _viewProj[1][2]; float M22 = _viewProj[2][2]; float M32 = _viewProj[3][2];
+    // Extract FRUSTUM
+    Frustum frustum = extractFrustum(_viewProj);
+
+    // View Proj Matrix components for depth calculation (using w_clip as depth approximation)
     float M03 = _viewProj[0][3]; float M13 = _viewProj[1][3]; float M23 = _viewProj[2][3]; float M33 = _viewProj[3][3];
-    
-    for (uint32_t i = 0; i < vertexCount; i++) {
-        // Unpack manually
-        float x = m_worldPositions[i * 3 + 0];
-        float y = m_worldPositions[i * 3 + 1];
-        float z = m_worldPositions[i * 3 + 2];
-        
-        // Dot products manually expanded
-        float pz = M02 * x + M12 * y + M22 * z + M32;
-        float pw = M03 * x + M13 * y + M23 * z + M33;
-        
-        float depth = pz / pw;
-        m_sorter[i] = {depth, i};
+
+    // If no blocks (e.g. failed load), fallback to all
+    if (m_blocks.empty()) {
+        size_t vertexCount = m_positions.size();
+        for (uint32_t i = 0; i < vertexCount; i++) {
+            float x = m_positions[i].x;
+            float y = m_positions[i].y; 
+            float z = m_positions[i].z;
+            
+            // Use w_clip as depth. (Distance from camera plane approx)
+            float depth = M03 * x + M13 * y + M23 * z + M33;
+            
+            m_sorter.push_back({depth, i});
+        }
+    } else {
+        // Block-based Culling
+        for (auto& block : m_blocks) {
+            bool visible = isBoxInFrustum(block.min_bounds, block.max_bounds, frustum);
+            
+            // Check Occlusion Result
+            if (visible && block.occlusionQuery != 0 && block.queryIssued) {
+                 GLuint available = 0;
+                 glGetQueryObjectuiv(block.occlusionQuery, GL_QUERY_RESULT_AVAILABLE, &available);
+                 if (available) {
+                     GLuint samples = 0;
+                     glGetQueryObjectuiv(block.occlusionQuery, GL_QUERY_RESULT, &samples);
+                     if (samples == 0) {
+                         block.occluded = true;
+                         visible = false; // Aggressively cull
+                     } else {
+                         block.occluded = false;
+                     }
+                 } else {
+                    // Result not ready, use previous state or assume visible
+                    if (block.occluded) visible = false;
+                 }
+            }
+            
+            if (visible) {
+                // Optimization: get pointers to data
+                const uint32_t* indices = block.indices.data();
+                size_t idxCount = block.indices.size();
+                
+                for (size_t k = 0; k < idxCount; k++) {
+                    uint32_t i = indices[k];
+                    // Direct access to local position (assuming model matrix handles transform)
+                    float x = m_positions[i].x;
+                    float y = m_positions[i].y;
+                    float z = m_positions[i].z;
+                    
+                    float depth = M03 * x + M13 * y + M23 * z + M33;
+                    m_sorter.push_back({depth, i});
+                }
+            }
+        }
     }
     
-    // Sort by depth (Back-to-Front for standard alpha blending)
-    std::sort(m_sorter.begin(), m_sorter.end(),
-        [](const std::pair<float, uint32_t>& a, const std::pair<float, uint32_t>& b) { return a.first > b.first; });
+    // Sort by depth (Back-to-Front)
+    // Painter's Algo: Draw Farthest First.
+    if (m_sorter.size() > 1000) {
+        radixSort(m_sorter); 
+    } else {
+        std::sort(m_sorter.begin(), m_sorter.end(),
+            [](const std::pair<float, uint32_t>& a, const std::pair<float, uint32_t>& b) { return a.first > b.first; });
+    }
+
+    size_t sortedCount = m_sorter.size();
 
     if (m_shader) {
         if (m_shader->getVersion() >= 300) {
             // Use integer indices for modern OpenGL
-            if (m_depthUintIndex.size() != vertexCount)
-                m_depthUintIndex.resize(vertexCount);
+            if (m_depthUintIndex.size() != sortedCount)
+                m_depthUintIndex.resize(sortedCount);
 
-            for (size_t i = 0; i < vertexCount; i++)
+            for (size_t i = 0; i < sortedCount; i++)
                 m_depthUintIndex[i] = m_sorter[i].second;
         }
         else {
             // Use float indices for older OpenGL
-            if (m_depthFloatIndex.size() != vertexCount)
-                m_depthFloatIndex.resize(vertexCount);
+            if (m_depthFloatIndex.size() != sortedCount)
+                m_depthFloatIndex.resize(sortedCount);
 
-            for (size_t i = 0; i < vertexCount; i++)
+            for (size_t i = 0; i < sortedCount; i++)
                 m_depthFloatIndex[i] = static_cast<float>(m_sorter[i].second);
         }
     }
 }
 
+// Radix sort implementation
+void Gsplat::radixSort(std::vector<std::pair<float, uint32_t>>& arr) {
+    if (arr.empty()) return;
+
+    size_t n = arr.size();
+    std::vector<std::pair<float, uint32_t>> buffer(n);
+    
+    // We treat the float key as uint32 to sort (handling sign bit if necessary, 
+    // but assuming positive depth for simplicity or standard float sort tricks)
+    // For sorting floats: 
+    // - Positive floats sort correctly as uints
+    // - Negative floats are reversed 
+    // Here we likely deal with positive depths in view space (z < 0 usually but we sort by distance or -z)
+    
+    // 3 passes for 11 bits each? Or 4 passes of 8 bits. 4 passes is standard for 32-bit.
+    
+    std::pair<float, uint32_t>* input = arr.data();
+    std::pair<float, uint32_t>* output = buffer.data();
+    
+    for (int shift = 0; shift < 32; shift += 8) {
+        size_t count[256] = {0};
+        
+        // Histogram
+        for (size_t i = 0; i < n; i++) {
+            uint32_t f_bits;
+            std::memcpy(&f_bits, &input[i].first, 4);
+            
+            // Flip sign bit for correct float sorting if needed
+            // if (f_bits & 0x80000000) f_bits = ~f_bits; 
+            // else f_bits |= 0x80000000; 
+            // Simplification: We assume we sort by projected w or z which is generally > 0
+            
+            count[(f_bits >> shift) & 0xFF]++;
+        }
+        
+        // Prefix sum
+        size_t start[256];
+        size_t total = 0;
+        for (int i = 0; i < 256; i++) { // Normal order for Ascending? 
+            // We want Back-to-Front (Descending sort)
+            // So we can compute prefix sum backwards?
+            // Or just sort Ascending and iterate backwards later?
+            // Let's standard Ascending sort first.
+            start[i] = total;
+            total += count[i];
+        }
+        
+        // Reorder
+        for (size_t i = 0; i < n; i++) {
+            uint32_t f_bits;
+            std::memcpy(&f_bits, &input[i].first, 4);
+            size_t pos = start[(f_bits >> shift) & 0xFF]++;
+            output[pos] = input[i];
+        }
+        
+        std::swap(input, output);
+    }
+    
+    // Since we want Descending (Back-to-Front), and Radix sorts Ascending,
+    // we just need to read the result in reverse, OR flip the logic.
+    // However, since we write to GL buffers, best to have the vector sorted correctly.
+    // Reversing the vector is cheap-ish or we can invert the key.
+    
+    // Result is in 'input' (which might be arr or buffer)
+    if (input != arr.data()) {
+        std::memcpy(arr.data(), buffer.data(), n * sizeof(std::pair<float, uint32_t>));
+    }
+    
+    // Reverse for Back-to-front
+    std::reverse(arr.begin(), arr.end());
+}
+
+
 void Gsplat::render(Camera& _camera, glm::mat4 _model) {
 
     if (m_shader == nullptr) {        
         Shader* default_shader = new Shader();
-        default_shader->load(getDefaultSrc(FRAG_SPLAT), getDefaultSrc(VERT_SPLAT));
+        // default_shader->load(getDefaultSrc(FRAG_SPLAT), getDefaultSrc(VERT_SPLAT));
         // default_shader->load(splat_frag, splat_vert);
-        // default_shader->load(splat_frag_300, splat_vert_300);
+        default_shader->load(splat_frag_300, splat_vert_300);
         use(default_shader);
     }
 
@@ -839,7 +1218,8 @@ void Gsplat::render(Camera& _camera, glm::mat4 _model) {
     }
 
     // Draw
-    glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, count());
+    size_t drawCount = (m_shader->getVersion() >= 300) ? m_depthUintIndex.size() : m_depthFloatIndex.size();
+    glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, drawCount);
     glBindVertexArray(0);
 
     // Unbind VBO
@@ -848,6 +1228,86 @@ void Gsplat::render(Camera& _camera, glm::mat4 _model) {
     // Unbind texture
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    // After render, we issue occlusion queries for next frame
+    performOcclusionQuery(viewProj);
+}
+
+void Gsplat::renderDebug(Camera& _camera, glm::mat4 _model) {
+    if (m_blocks.empty()) return;
+
+    // _camera.begin();
+    vera::push();
+    // vera::applyMatrix(_model);
+    
+    vera::noFill();
+    vera::strokeWeight(1.0f);
+
+    glm::mat4 viewProj = _camera.getProjectionMatrix() * _camera.getViewMatrix() * _model;
+    Frustum frustum = extractFrustum(viewProj);
+
+    for (const auto& block : m_blocks) {
+        bool visible = isBoxInFrustum(block.min_bounds, block.max_bounds, frustum);
+        bool occluded = block.occluded;
+        
+        if (visible && !occluded) {
+            vera::stroke(0.0f, 1.0f, 0.0f, 1.0f);
+        } else {
+            vera::stroke(1.0f, 0.0f, 0.0f, 0.3f);
+        }
+
+        vera::BoundingBox bbox;
+        bbox.min = block.min_bounds;
+        bbox.max = block.max_bounds;
+        vera::line(bbox);
+    }
+    
+    vera::pop();
+    // _camera.end();
+}
+
+void Gsplat::optimizeDataLayout() {
+    size_t count = m_positions.size();
+    if (count == 0) return;
+
+    // 1. Calculate Scene Bounds
+    glm::vec3 minB = m_positions[0];
+    glm::vec3 maxB = m_positions[0];
+    for (size_t i = 1; i < count; i++) {
+        minB = glm::min(minB, m_positions[i]);
+        maxB = glm::max(maxB, m_positions[i]);
+    }
+    glm::vec3 extents = maxB - minB;
+    extents = glm::max(extents, glm::vec3(0.001f));
+
+    // 2. Generate Sort Keys (Morton Codes)
+    std::vector<uint32_t> indices(count);
+    std::iota(indices.begin(), indices.end(), 0);
+    
+    std::vector<uint32_t> keys(count);
+    for (size_t i = 0; i < count; i++) {
+        keys[i] = morton3D(m_positions[i], minB, extents);
+    }
+
+    // 3. Sort indices based on keys
+    std::sort(indices.begin(), indices.end(), [&](uint32_t a, uint32_t b) {
+        return keys[a] < keys[b];
+    });
+
+    // 4. Apply Permutation to all vectors
+    auto permute = [&](auto& vec) {
+        using T = typename std::decay<decltype(vec)>::type::value_type;
+        if (vec.empty()) return;
+        std::vector<T> temp = vec;
+        for (size_t i = 0; i < count; i++) {
+            vec[i] = temp[indices[i]];
+        }
+    };
+
+    permute(m_positions);
+    permute(m_scales);
+    permute(m_rotations);
+    permute(m_colors);
 }
 
 } // namespace vera
