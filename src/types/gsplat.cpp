@@ -211,7 +211,7 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
         r = s.r; g = s.g; b = s.b; a = s.a;
         rot_0 = s.rot_0; rot_1 = s.rot_1; rot_2 = s.rot_2; rot_3 = s.rot_3;
         
-        m_positions[i] = glm::vec3(x, y, z);
+        m_positions[i] = glm::vec3(x, -y, -z);
         m_scales[i] = glm::vec3(sx, sy, sz);
         
         // Color
@@ -226,8 +226,10 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
         
         // Common packing: rot_0, rot_1, rot_2, rot_3 -> x, y, z, w ? 
         glm::quat q(r0, r1, r2, r3); // x, y, z, w
-        // glm::quat q(r3, r0, r1, r2); // w, x, y, 
-        m_rotations[i] = glm::normalize(q);
+        
+        // Rotate 180 degrees around X axis to match OpenGL coordinates
+        static const glm::quat flipval(0.0f, 1.0f, 0.0f, 0.0f); 
+        m_rotations[i] = glm::normalize(flipval * q);
     }
 
     optimizeDataLayout();
@@ -365,7 +367,7 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
     
     for (size_t i = 0; i < vertexCount; i++) {
         // Position
-        m_positions[i] = glm::vec3(x_data[i], y_data[i], z_data[i]);
+        m_positions[i] = glm::vec3(x_data[i], -y_data[i], -z_data[i]);
         
         // Scale (exponential)
         m_scales[i] = glm::vec3(
@@ -376,7 +378,10 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
         
         // Rotation (quaternion - note: different convention)
         glm::quat q(rot_0_data[i], rot_1_data[i], rot_2_data[i], rot_3_data[i]);
-        m_rotations[i] = glm::normalize(q);
+
+        // Rotate 180 degrees around X axis to match OpenGL coordinates
+        static const glm::quat flipval(0.0f, 1.0f, 0.0f, 0.0f); 
+        m_rotations[i] = glm::normalize(flipval * q);
         
         // Color
         uint8_t r, g, b, a;
@@ -790,9 +795,28 @@ void Gsplat::buildSpatialIndex() {
 
 BoundingBox Gsplat::getBoundingBox() const {
     BoundingBox bbox;
-    for (const glm::vec3& pos : m_positions) {
-        bbox.expand(pos);
+    
+    if (m_positions.empty())
+        return bbox;
+
+    glm::vec3 mean(0.0f);
+    for (const auto& p : m_positions) mean += p;
+    mean /= (float)m_positions.size();
+
+    glm::vec3 accum(0.0f);
+    for (const auto& p : m_positions) accum += (p - mean) * (p - mean);
+    glm::vec3 dev = glm::sqrt(accum / (float)m_positions.size());
+
+    // Filter outliers ( > 3 standard deviations )
+    glm::vec3 limit = glm::max(dev * 3.0f, glm::vec3(0.00001f));
+
+    for (const auto& p : m_positions) {
+        glm::vec3 d = glm::abs(p - mean);
+        if (d.x <= limit.x && d.y <= limit.y && d.z <= limit.z) {
+            bbox.expand(p);
+        }
     }
+
     return bbox;
 }
 
@@ -1167,7 +1191,7 @@ void Gsplat::radixSort(std::vector<std::pair<float, uint32_t>>& arr) {
 }
 
 
-void Gsplat::render(Camera* _camera, glm::mat4 _model) {
+void Gsplat::render(Camera* _camera, glm::mat4 _model, bool _sort) {
     if (!_camera)
         return;
 
@@ -1191,7 +1215,7 @@ void Gsplat::render(Camera* _camera, glm::mat4 _model) {
     // Sort splats by depth
     glm::mat4 viewProj = _camera->getProjectionMatrix() * _camera->getViewMatrix() * _model;
     
-    bool needsSort = _camera->bChange;
+    bool needsSort = _camera->bChange || _sort;
     // Also check if valid indices exist (first frame)
     if (m_depthUintIndex.empty() && m_depthFloatIndex.empty()) {
         needsSort = true;
@@ -1242,8 +1266,15 @@ void Gsplat::render(Camera* _camera, glm::mat4 _model) {
     }
 
     // Draw
+    GLboolean depthMask;
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMask);
+    glDepthMask(GL_FALSE);  // Disable depth writes for transparency
+
     size_t drawCount = (m_shader->getVersion() >= 300) ? m_depthUintIndex.size() : m_depthFloatIndex.size();
     glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, drawCount);
+    
+    glDepthMask(depthMask); // Restore depth mask
+
     glBindVertexArray(0);
 
     // Unbind VBO
@@ -1257,7 +1288,7 @@ void Gsplat::render(Camera* _camera, glm::mat4 _model) {
     performOcclusionQuery(viewProj);
 }
 
-void Gsplat::renderDebug(Camera* _camera, glm::mat4 _model) {
+void Gsplat::renderBlocks(Camera* _camera, glm::mat4 _model) {
     if (!_camera)
         return;
 

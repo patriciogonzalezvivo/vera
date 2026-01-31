@@ -79,10 +79,6 @@ void Scene::load(const std::string& _filename, bool _verbose) {
 
         if (gsplat->load(_filename)) {
             Model* model = new Model( _filename, gsplat );
-            // rotate to put Z as up axis
-            // model->rotate( glm::quat( glm::radians(-90.0f), glm::vec3(1.0f,0.0f,0.0f) ) );
-            model->scale( glm::vec3(100.0f) );
-            // scale up the model x10 times
             models[ model->getName() ] = model;
             if (_verbose) {
                 std::cout << "// " << _filename << " loaded as Gsplat model: " << model->getName() << std::endl;
