@@ -135,13 +135,28 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
 
     // .splat format: 32 bytes per splat
     // pos(3*4) + scale(3*4) + color(4) + rot(4)
-    size_t splatCount = size / 32;
+    size_t splatSize = 32;
+    bool hasNormals = false;
+    
+    // Determine format based on file size
+    if ((size % 32) == 0) {
+        splatSize = 32;
+        hasNormals = false;
+    } else if ((size % 44) == 0) {
+        splatSize = 44;
+        hasNormals = true;
+    }
+    
+    size_t splatCount = size / splatSize;
     
     clear();
     m_positions.resize(splatCount);
     m_scales.resize(splatCount);
     m_rotations.resize(splatCount);
     m_colors.resize(splatCount);
+    if (hasNormals) {
+        m_normals.resize(splatCount);
+    }
 
     struct SplatData {
         float x, y, z;
@@ -150,26 +165,54 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
         uint8_t rot_0, rot_1, rot_2, rot_3;
     };
 
-    std::vector<SplatData> buffer(splatCount);
-    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
+    struct SplatDataNormal {
+        float x, y, z;
+        float sx, sy, sz;
+        uint8_t r, g, b, a;
+        uint8_t rot_0, rot_1, rot_2, rot_3;
+        float nx, ny, nz;
+    };
+
+    std::vector<char> buffer(size);
+    if (!file.read(buffer.data(), size)) {
          return false;
     }
 
     for (size_t i = 0; i < splatCount; i++) {
-        const SplatData& s = buffer[i];
+        float x, y, z;
+        float sx, sy, sz;
+        uint8_t r, g, b, a;
+        uint8_t rot_0, rot_1, rot_2, rot_3;
+        float nx = 0.0f, ny = 0.0f, nz = 0.0f;
+
+        if (hasNormals) {
+            const SplatDataNormal& s = reinterpret_cast<SplatDataNormal*>(buffer.data())[i];
+            x = s.x; y = s.y; z = s.z;
+            sx = s.sx; sy = s.sy; sz = s.sz;
+            r = s.r; g = s.g; b = s.b; a = s.a;
+            rot_0 = s.rot_0; rot_1 = s.rot_1; rot_2 = s.rot_2; rot_3 = s.rot_3;
+            nx = s.nx; ny = s.ny; nz = s.nz;
+            m_normals[i] = glm::vec3(nx, ny, nz);
+        } else {
+            const SplatData& s = reinterpret_cast<SplatData*>(buffer.data())[i];
+            x = s.x; y = s.y; z = s.z;
+            sx = s.sx; sy = s.sy; sz = s.sz;
+            r = s.r; g = s.g; b = s.b; a = s.a;
+            rot_0 = s.rot_0; rot_1 = s.rot_1; rot_2 = s.rot_2; rot_3 = s.rot_3;
+        }
         
-        m_positions[i] = glm::vec3(s.x, s.y, s.z);
-        m_scales[i] = glm::vec3(s.sx, s.sy, s.sz);
+        m_positions[i] = glm::vec3(x, y, z);
+        m_scales[i] = glm::vec3(sx, sy, sz);
         
         // Color
-        m_colors[i] = glm::u8vec4(s.r, s.g, s.b, s.a);
+        m_colors[i] = glm::u8vec4(r, g, b, a);
         
         // Rotation (mapping uint8 0..255 to -1.0..1.0)
         // (val - 128) / 128.0
-        float r0 = (s.rot_0 - 128) / 128.0f;
-        float r1 = (s.rot_1 - 128) / 128.0f;
-        float r2 = (s.rot_2 - 128) / 128.0f;
-        float r3 = (s.rot_3 - 128) / 128.0f;
+        float r0 = (rot_0 - 128) / 128.0f;
+        float r1 = (rot_1 - 128) / 128.0f;
+        float r2 = (rot_2 - 128) / 128.0f;
+        float r3 = (rot_3 - 128) / 128.0f;
         
         // Common packing: rot_0, rot_1, rot_2, rot_3 -> x, y, z, w ? 
         glm::quat q(r0, r1, r2, r3); // x, y, z, w
@@ -185,6 +228,10 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
         m_worldPositions[i * 3 + 1] = pos.y;
         m_worldPositions[i * 3 + 2] = pos.z;
     }
+
+    if (hasNormals) {
+        std::cout << "Loaded " << n << " splats with normals." << std::endl;
+    } 
 
     return true;
 }
@@ -206,6 +253,7 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
     std::shared_ptr<tinyply::PlyData> f_dc_0, f_dc_1, f_dc_2;
     std::shared_ptr<tinyply::PlyData> opacity;
     std::shared_ptr<tinyply::PlyData> red, green, blue;
+    std::shared_ptr<tinyply::PlyData> nx, ny, nz;
     
     try {
         vertices_x = file.request_properties_from_element("vertex", {"x"});
@@ -213,6 +261,17 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
         vertices_z = file.request_properties_from_element("vertex", {"z"});
     } catch (const std::exception&) {
         throw std::runtime_error("PLY file missing position data");
+    }
+
+    // Try reading normals
+    bool hasNormals = false;
+    try {
+        nx = file.request_properties_from_element("vertex", {"nx"});
+        ny = file.request_properties_from_element("vertex", {"ny"});
+        nz = file.request_properties_from_element("vertex", {"nz"});
+        hasNormals = true;
+    } catch (const std::exception&) {
+        // No normals found
     }
     
     // Try different naming conventions
@@ -281,11 +340,18 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
     m_scales.resize(vertexCount);
     m_rotations.resize(vertexCount);
     m_colors.resize(vertexCount);
+    if (hasNormals) {
+        m_normals.resize(vertexCount);
+    }
     
     const float* x_data = reinterpret_cast<const float*>(vertices_x->buffer.get());
     const float* y_data = reinterpret_cast<const float*>(vertices_y->buffer.get());
     const float* z_data = reinterpret_cast<const float*>(vertices_z->buffer.get());
     
+    const float* nx_data = hasNormals ? reinterpret_cast<const float*>(nx->buffer.get()) : nullptr;
+    const float* ny_data = hasNormals ? reinterpret_cast<const float*>(ny->buffer.get()) : nullptr;
+    const float* nz_data = hasNormals ? reinterpret_cast<const float*>(nz->buffer.get()) : nullptr;
+
     const float* scale_0_data = reinterpret_cast<const float*>(scale_0->buffer.get());
     const float* scale_1_data = reinterpret_cast<const float*>(scale_1->buffer.get());
     const float* scale_2_data = reinterpret_cast<const float*>(scale_2->buffer.get());
@@ -345,6 +411,10 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
         }
         
         m_colors[i] = glm::u8vec4(r, g, b, a);
+
+        if (hasNormals) {
+            m_normals[i] = glm::vec3(nx_data[i], ny_data[i], nz_data[i]);
+        }
     }
     
 
@@ -356,6 +426,10 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
         m_worldPositions[i * 3 + 1] = pos.y;
         m_worldPositions[i * 3 + 2] = pos.z;
     }
+
+    if (hasNormals) {
+        std::cout << "Loaded " << vertexCount << " splats with normals." << std::endl;
+    } 
 
     return true;
 }

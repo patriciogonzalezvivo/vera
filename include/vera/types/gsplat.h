@@ -22,6 +22,8 @@ public:
     void    clear();
     size_t  count() const { return m_positions.size(); }
     
+    void    computeNormals();
+
     void    render(Camera& _camera, glm::mat4 _model = glm::mat4(1.0f));
 
 private:
@@ -33,10 +35,11 @@ private:
 
     void    sort(const glm::mat4& _viewProj);
 
-    std::vector<glm::u8vec4> m_colors;
-    std::vector<glm::quat>  m_rotations;
-    std::vector<glm::vec3>  m_positions;
-    std::vector<glm::vec3>  m_scales;
+    std::vector<glm::u8vec4>    m_colors;
+    std::vector<glm::quat>      m_rotations;
+    std::vector<glm::vec3>      m_positions;
+    std::vector<glm::vec3>      m_normals;
+    std::vector<glm::vec3>      m_scales;
     
     // Sorting cache to avoid reallocation
     std::vector<std::pair<float, uint32_t>> m_sorter;
