@@ -37,7 +37,7 @@ public:
     size_t  count() const { return m_positions.size(); }
     
     void    renderDebug(Camera* _camera, glm::mat4 _model = glm::mat4(1.0f));
-    void    render(Camera* _camera, glm::mat4 _model = glm::mat4(1.0f));
+    void    render(Camera* _camera, glm::mat4 _model = glm::mat4(1.0f), bool _sort = false);
 
     void    setGridDim(int _dim);
     void    setOcclusionThreshold(int _threshold);

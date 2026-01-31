@@ -790,9 +790,28 @@ void Gsplat::buildSpatialIndex() {
 
 BoundingBox Gsplat::getBoundingBox() const {
     BoundingBox bbox;
-    for (const glm::vec3& pos : m_positions) {
-        bbox.expand(pos);
+    
+    if (m_positions.empty())
+        return bbox;
+
+    glm::vec3 mean(0.0f);
+    for (const auto& p : m_positions) mean += p;
+    mean /= (float)m_positions.size();
+
+    glm::vec3 accum(0.0f);
+    for (const auto& p : m_positions) accum += (p - mean) * (p - mean);
+    glm::vec3 dev = glm::sqrt(accum / (float)m_positions.size());
+
+    // Filter outliers ( > 3 standard deviations )
+    glm::vec3 limit = glm::max(dev * 3.0f, glm::vec3(0.00001f));
+
+    for (const auto& p : m_positions) {
+        glm::vec3 d = glm::abs(p - mean);
+        if (d.x <= limit.x && d.y <= limit.y && d.z <= limit.z) {
+            bbox.expand(p);
+        }
     }
+
     return bbox;
 }
 
@@ -1167,7 +1186,7 @@ void Gsplat::radixSort(std::vector<std::pair<float, uint32_t>>& arr) {
 }
 
 
-void Gsplat::render(Camera* _camera, glm::mat4 _model) {
+void Gsplat::render(Camera* _camera, glm::mat4 _model, bool _sort) {
     if (!_camera)
         return;
 
@@ -1191,7 +1210,7 @@ void Gsplat::render(Camera* _camera, glm::mat4 _model) {
     // Sort splats by depth
     glm::mat4 viewProj = _camera->getProjectionMatrix() * _camera->getViewMatrix() * _model;
     
-    bool needsSort = _camera->bChange;
+    bool needsSort = _camera->bChange || _sort;
     // Also check if valid indices exist (first frame)
     if (m_depthUintIndex.empty() && m_depthFloatIndex.empty()) {
         needsSort = true;
@@ -1242,8 +1261,15 @@ void Gsplat::render(Camera* _camera, glm::mat4 _model) {
     }
 
     // Draw
+    GLboolean depthMask;
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMask);
+    glDepthMask(GL_FALSE);  // Disable depth writes for transparency
+
     size_t drawCount = (m_shader->getVersion() >= 300) ? m_depthUintIndex.size() : m_depthFloatIndex.size();
     glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, drawCount);
+    
+    glDepthMask(depthMask); // Restore depth mask
+
     glBindVertexArray(0);
 
     // Unbind VBO

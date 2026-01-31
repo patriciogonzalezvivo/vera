@@ -208,8 +208,10 @@ void Model::render(){
 
     if (m_model_gsplat) {
         // m_model_gsplat->use(&mainShader);
-        m_model_gsplat->render(vera::camera(), getTransformMatrix());
+        m_model_gsplat->render(vera::camera(), getTransformMatrix(), bChange);
     }
+    
+    bChange = false;
 }
 
 void Model::render(Shader* _shader) {
