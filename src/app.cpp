@@ -371,7 +371,7 @@ void App::orbitControl() {
         if (mouseButton == 1 && !shiftPressed && !ctrlPressed) {
             // Update orbital angles
             cameraLat -= vel_x * 0.5f;
-            cameraLon += vel_y * 0.5f;
+            cameraLon -= vel_y * 0.5f;
             
             // Clamp elevation to prevent gimbal lock
             cameraLon = glm::clamp(cameraLon, -89.0f, 89.0f);
