@@ -627,7 +627,7 @@ Texture* Gsplat::createTextureUint() {
     size_t texWidth = splatsPerRow * 4;  // 4 texels per splat
     size_t texHeight = std::max(1, (int)std::ceil(splatCount / (float)splatsPerRow));
 
-    std::vector<float>  packedData;
+    std::vector<uint32_t>  packedData;
     packedData.resize(splatCount * 8);
     for (size_t i = 0; i < splatCount; i++) {
         const glm::vec3& pos = m_positions[i];
@@ -671,7 +671,7 @@ Texture* Gsplat::createTextureUint() {
         packedData[i * 8 + 6] = packHalf2x16(sigma[4], sigma[5]); // yz, zz
         
         // Pack color as RGBA in a single uint32
-        uint32_t packedColor = color.r | (color.g << 8) | (color.b << 16) | (color.a << 24);
+        uint32_t packedColor = (uint32_t)color.r | ((uint32_t)color.g << 8) | ((uint32_t)color.b << 16) | ((uint32_t)color.a << 24);
         packedData[i * 8 + 7] = packedColor;
     }
 
@@ -776,6 +776,19 @@ void Gsplat::buildSpatialIndex() {
 
     for(size_t i = 0; i < m_blocks.size(); ++i) {
         if (!m_blocks[i].indices.empty()) {
+            
+            // Recalculate bounds to fit actual content
+            glm::vec3 bMin = m_positions[m_blocks[i].indices[0]];
+            glm::vec3 bMax = bMin;
+
+            for (size_t k = 1; k < m_blocks[i].indices.size(); k++) {
+                const glm::vec3& p = m_positions[m_blocks[i].indices[k]];
+                bMin = glm::min(bMin, p);
+                bMax = glm::max(bMax, p);
+            }
+            m_blocks[i].min_bounds = bMin;
+            m_blocks[i].max_bounds = bMax;
+
             glGenQueries(1, &m_blocks[i].occlusionQuery);
             packed.push_back(m_blocks[i]);
         }
@@ -879,7 +892,7 @@ void Gsplat::performOcclusionQuery(const glm::mat4& _viewProj) {
     if (!depthTest) glDisable(GL_DEPTH_TEST);
 }
 
-Gsplat::Frustum Gsplat::extractFrustum(const glm::mat4& _viewProj) const {
+Frustum Gsplat::extractFrustum(const glm::mat4& _viewProj) const {
     Frustum frustum;
     const glm::mat4& m = _viewProj;
     
@@ -1158,9 +1171,9 @@ void Gsplat::render(Camera& _camera, glm::mat4 _model) {
 
     if (m_shader == nullptr) {        
         Shader* default_shader = new Shader();
-        // default_shader->load(getDefaultSrc(FRAG_SPLAT), getDefaultSrc(VERT_SPLAT));
+        default_shader->load(getDefaultSrc(FRAG_SPLAT), getDefaultSrc(VERT_SPLAT));
         // default_shader->load(splat_frag, splat_vert);
-        default_shader->load(splat_frag_300, splat_vert_300);
+        // default_shader->load(splat_frag_300, splat_vert_300);
         use(default_shader);
     }
 

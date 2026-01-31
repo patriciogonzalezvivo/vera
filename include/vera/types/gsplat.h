@@ -10,6 +10,20 @@
 
 namespace vera {
 
+struct SplatBlock {
+    glm::vec3 min_bounds;
+    glm::vec3 max_bounds;
+    std::vector<uint32_t> indices;
+    unsigned int occlusionQuery = 0;
+    bool occluded = false;
+    int framesHidden = 0;
+    bool queryIssued = false;
+};
+
+struct Frustum {
+    glm::vec4 planes[6];
+};
+
 class Gsplat {
 public:
 
@@ -32,20 +46,6 @@ public:
     void    optimizeDataLayout();
 
 private:
-    struct SplatBlock {
-        glm::vec3 min_bounds;
-        glm::vec3 max_bounds;
-        std::vector<uint32_t> indices;
-        unsigned int occlusionQuery = 0;
-        bool occluded = false;
-        int framesHidden = 0;
-        bool queryIssued = false;
-    };
-
-    struct Frustum {
-        glm::vec4 planes[6];
-    };
-
     // Radix sort helper
     void    radixSort(std::vector<std::pair<float, uint32_t>>& arr);
 
@@ -64,8 +64,8 @@ private:
     bool    isBoxInFrustum(const glm::vec3& min, const glm::vec3& max, const Frustum& _frustum) const;
 
     int     m_gridDim               = 16;
-    int     m_occlusionThreshold    = 100; 
-    float   m_occlusionScale        = 0.5f;
+    int     m_occlusionThreshold    = 10;
+    float   m_occlusionScale        = 0.8f;
 
 
     std::vector<glm::u8vec4>    m_colors;
