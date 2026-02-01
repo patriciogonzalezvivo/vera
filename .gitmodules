@@ -1,0 +1,3 @@
+[submodule "deps/lygia"]
+	path = deps/lygia
+	url = git@github.com:patriciogonzalezvivo/lygia.git

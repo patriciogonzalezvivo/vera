@@ -29,3 +29,6 @@ endif (WIN32)
 if (EMSCRIPTEN)
     add_subdirectory(emscripten-webxr)
 endif (EMSCRIPTEN)
+
+## Lygia
+add_subdirectory(lygia)

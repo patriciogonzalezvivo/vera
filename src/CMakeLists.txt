@@ -94,6 +94,7 @@ set(VERA_SOURCES
 # C++ LIBRAY
 #
 add_library(vera ${VERA_SOURCES})
+target_link_libraries(vera PRIVATE lygia)
 
 set_target_properties(vera PROPERTIES
     CXX_STANDARD 14

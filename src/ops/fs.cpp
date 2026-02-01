@@ -1,5 +1,6 @@
 #include "vera/ops/fs.h"
 #include "vera/ops/string.h"
+#include "lygia.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +8,7 @@
 
 #include <iostream>     // cout
 #include <fstream>      // File
+#include <sstream>      // stringstream
 #include <iterator>     // std::back_inserter
 #include <algorithm>    // std::unique
 #include <sys/stat.h>
@@ -78,6 +80,26 @@ std::string getAbsPath(const std::string& _path) {
     else return "";
 }
 
+std::string purifyPath(const std::string& path) {
+    std::string p = path;
+    std::replace(p.begin(), p.end(), '\\', '/');
+    std::vector<std::string> parts = split(p, '/');
+    std::vector<std::string> stack;
+    for (const auto& part : parts) {
+        if (part == "..") {
+            if (!stack.empty()) stack.pop_back();
+        } else if (part != "." && !part.empty()) {
+            stack.push_back(part);
+        }
+    }
+    std::string result = "";
+    for (size_t i = 0; i < stack.size(); i++) {
+        result += stack[i];
+        if (i < stack.size() - 1) result += "/";
+    }
+    return result;
+}
+
 std::string urlResolve(const std::string& _path, const StringList &_include_folders) {
     // .. search on the include path
     for ( uint32_t i = 0; i < _include_folders.size(); i++) {
@@ -85,6 +107,11 @@ std::string urlResolve(const std::string& _path, const StringList &_include_fold
         if (urlExists(new_path)) 
             return realpath(new_path.c_str(), NULL);
     }
+
+    std::string purified = purifyPath(_path);
+    if (!getLygiaFile(purified).empty()) 
+        return purified;
+    
     return _path;
 }
 
@@ -94,6 +121,10 @@ std::string urlResolve(const std::string& _path, const std::string& _pwd, const 
     // If the path is not in the same directory
     if (urlExists(url)) 
         return realpath(url.c_str(), NULL);
+    
+    std::string purified = purifyPath(url);
+    if (!getLygiaFile(purified).empty()) 
+        return purified;
 
     // .. search on the include path
     else
@@ -146,24 +177,13 @@ bool loadGlslFrom(const std::string &_path, std::string *_into) {
     return loadGlslFrom(_path, _into, folders, &deps);
 }
 
-bool loadGlslFrom(const std::string &_path, std::string *_into, const std::vector<std::string> &_include_folders, StringList *_dependencies) {
-    std::ifstream file;
-    file.open(_path.c_str());
-
-    // Skip if it's already open
-    if (!file.is_open()) 
-        return false;
-
-    // Get absolute home folder
-    std::string original_path = getAbsPath(_path);
-
-    // Get absolute home folder
+void processGlsl(std::istream& in, const std::string& original_path, std::string *_into, const std::vector<std::string> &_include_folders, StringList *_dependencies) {
     std::string line;
     std::string dependency;
     std::string newBuffer;
-    while (!file.eof()) {
+    while (!in.eof()) {
         dependency = "";
-        getline(file, line);
+        getline(in, line);
 
         if (extractDependency(line, &dependency)) {
             dependency = urlResolve(dependency, original_path, _include_folders);
@@ -183,6 +203,31 @@ bool loadGlslFrom(const std::string &_path, std::string *_into, const std::vecto
         else
             (*_into) += line + "\n";
     }
+}
+
+bool loadGlslFrom(const std::string &_path, std::string *_into, const std::vector<std::string> &_include_folders, StringList *_dependencies) {
+    std::string content = getLygiaFile(_path);
+    if (!content.empty()) {
+        std::stringstream ss(content);
+        std::string dir = "";
+        std::size_t found = _path.find_last_of("/\\");
+        if (found != std::string::npos) 
+            dir = _path.substr(0, found);
+        processGlsl(ss, dir, _into, _include_folders, _dependencies);
+        return true;
+    }
+
+    std::ifstream file;
+    file.open(_path.c_str());
+
+    // Skip if it's already open
+    if (!file.is_open()) 
+        return false;
+
+    // Get absolute home folder
+    std::string original_path = getAbsPath(_path);
+
+    processGlsl(file, original_path, _into, _include_folders, _dependencies);
 
     file.close();
     return true;

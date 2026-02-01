@@ -120,7 +120,10 @@ std::string getDefaultSrc( DefaultShaders _type ) {
             rta += default_scene_vert_300;
     }
     else if (_type == FRAG_DEFAULT_SCENE) {
-        rta += default_scene_frag0 + default_scene_frag1 + default_scene_frag2 + default_scene_frag3;
+        if (versionNumber < 130)
+            rta += default_scene_frag;
+        else if (versionNumber >= 130) 
+            rta += default_scene_frag_300;
     }
     else if (_type == VERT_BILLBOARD) {
         if (versionNumber < 130)
