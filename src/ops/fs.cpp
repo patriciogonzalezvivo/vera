@@ -122,6 +122,9 @@ std::string urlResolve(const std::string& _path, const std::string& _pwd, const 
     if (urlExists(url)) 
         return realpath(url.c_str(), NULL);
     
+    if (!getLygiaFile(_path).empty())
+        return _path;
+
     std::string purified = purifyPath(url);
     if (!getLygiaFile(purified).empty()) 
         return purified;
