@@ -67,6 +67,18 @@
     #define GL_SILENCE_DEPRECATION
     #include <OpenGL/gl.h>
     #include <OpenGL/glext.h>
+
+    #define GL_RGBA32UI                 0x8D70
+    #define GL_RGBA_INTEGER             0x8D99
+    #define GL_ANY_SAMPLES_PASSED       0x8C2F
+
+    #define glDeleteVertexArrays        glDeleteVertexArraysAPPLE
+    #define glGenVertexArrays           glGenVertexArraysAPPLE
+    #define glBindVertexArray           glBindVertexArrayAPPLE
+
+    #define glVertexAttribIPointer      glVertexAttribIPointerEXT
+    #define glVertexAttribDivisor       glVertexAttribDivisorARB
+    #define glDrawArraysInstanced       glDrawArraysInstancedARB
     
 // WINDOWS
 #elif defined(_WIN32)
