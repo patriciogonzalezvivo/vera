@@ -176,6 +176,11 @@ bool Model::setGeom(Gsplat* _gsplat) {
 
 void Model::setShader(const std::string& _fragStr, const std::string& _vertStr) {
     mainShader.setSource(_fragStr, _vertStr);
+
+    // if (m_model_gsplat) {
+    //     mainShader.reload();
+    //     m_model_gsplat->use(&mainShader);
+    // }
 }
 
 void Model::setBufferShader(const std::string _name, const std::string& _fragStr, const std::string& _vertStr) {
@@ -207,7 +212,10 @@ void Model::render(){
         m_model_vbo->render(&mainShader);
 
     if (m_model_gsplat) {
-        // m_model_gsplat->use(&mainShader);
+        if (mainShader.isDirty()) {
+            mainShader.reload();
+        }
+        m_model_gsplat->use(&mainShader);
         m_model_gsplat->render(vera::camera(), getTransformMatrix(), bChange);
     }
     

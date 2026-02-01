@@ -7,8 +7,8 @@ const std::string splat_vert = R"(
 precision highp float;
 #endif
 
-uniform sampler2D   u_tex0;
-uniform vec2        u_tex0Resolution; // Must be passed: vec2(4096.0, height)
+uniform sampler2D   u_GsplatData;
+uniform vec2        u_GsplatDataResolution; // Must be passed: vec2(4096.0, height)
 
 uniform mat4        u_projectionMatrix;
 uniform mat4        u_viewMatrix;
@@ -25,36 +25,19 @@ varying vec4        v_position;
 varying vec4        v_color;
 varying vec2        v_texcoord;
 
-#if !defined(FNC_TRANSPOSE) && (__VERSION__ < 120)
-#define FNC_TRANSPOSE
 mat3 transpose(in mat3 m) {
     return mat3(    m[0][0], m[1][0], m[2][0],
                     m[0][1], m[1][1], m[2][1],
                     m[0][2], m[1][2], m[2][2] );
 }
 
-mat4 transpose(in mat4 m) {
-    return mat4(    vec4(m[0][0], m[1][0], m[2][0], m[3][0]),
-                    vec4(m[0][1], m[1][1], m[2][1], m[3][1]),
-                    vec4(m[0][2], m[1][2], m[2][2], m[3][2]),
-                    vec4(m[0][3], m[1][3], m[2][3], m[3][3])    );
-}
-#endif
-
-#ifndef FNC_TOMAT3
-#define FNC_TOMAT3
 mat3 toMat3(mat4 m) {
-    #if __VERSION__ >= 300
-    return mat3(m);
-    #else
     return mat3(m[0].xyz, m[1].xyz, m[2].xyz);
-    #endif
 }
-#endif
 
 void main() {
-    float width = u_tex0Resolution.x;
-    float height = u_tex0Resolution.y;
+    float width = u_GsplatDataResolution.x;
+    float height = u_GsplatDataResolution.y;
     vec2 pixel = 1.0 / u_resolution;
 
     // Fetch gaussian data from texture
@@ -67,7 +50,7 @@ void main() {
     float v = (row + 0.5) / height;
     
     // Fetch 4 pixels
-    vec4 p1 = texture2D(u_tex0, vec2((colStart + 0.5) / width, v));
+    vec4 p1 = texture2D(u_GsplatData, vec2((colStart + 0.5) / width, v));
 
     // p1: pos.xyz, valid
     // p2: cov.xx, cov.xy, cov.xz, cov.yy
@@ -88,9 +71,9 @@ void main() {
         return;
     }
     
-    vec4 p2 = texture2D(u_tex0, vec2((colStart + 1.5) / width, v));
-    vec4 p3 = texture2D(u_tex0, vec2((colStart + 2.5) / width, v));
-    vec4 p4 = texture2D(u_tex0, vec2((colStart + 3.5) / width, v));
+    vec4 p2 = texture2D(u_GsplatData, vec2((colStart + 1.5) / width, v));
+    vec4 p3 = texture2D(u_GsplatData, vec2((colStart + 2.5) / width, v));
+    vec4 p4 = texture2D(u_GsplatData, vec2((colStart + 3.5) / width, v));
 
     // Construct covariance matrix
     mat3 Vrk = mat3(
@@ -201,7 +184,7 @@ precision highp float;
 precision highp int;
 precision highp usampler2D;
 
-uniform usampler2D  u_tex0;
+uniform usampler2D  u_GsplatData;
 
 uniform mat4        u_projectionMatrix;
 uniform mat4        u_viewMatrix;
@@ -221,7 +204,7 @@ void main() {
     vec2 pixel = 1.0 / u_resolution;
 
     // Fetch gaussian data from texture
-    uvec4 cen = texelFetch(u_tex0, ivec2((uint(a_index) & 0x3ffu) << 1, uint(a_index) >> 10), 0);
+    uvec4 cen = texelFetch(u_GsplatData, ivec2((uint(a_index) & 0x3ffu) << 1, uint(a_index) >> 10), 0);
     
     // Transform position to camera space
     v_position = vec4(uintBitsToFloat(cen.xyz), 1.0);
@@ -238,7 +221,7 @@ void main() {
     }
     
     // Fetch covariance data
-    uvec4 cov = texelFetch(u_tex0, ivec2(((uint(a_index) & 0x3ffu) << 1) | 1u, uint(a_index) >> 10), 0);
+    uvec4 cov = texelFetch(u_GsplatData, ivec2(((uint(a_index) & 0x3ffu) << 1) | 1u, uint(a_index) >> 10), 0);
     
     // Unpack half-precision covariance
     vec2 u1 = unpackHalf2x16(cov.x);

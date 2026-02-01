@@ -101,6 +101,8 @@ private:
     // Cached attribute locations
     GLint                   m_position = -1;
     GLint                   m_index = -1;
+
+    bool                    m_borrowedShader = false;
 };
 
 }

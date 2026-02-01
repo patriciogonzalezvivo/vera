@@ -107,7 +107,7 @@ void Gsplat::clear() {
         m_texture = nullptr;
     }
 
-    if (m_shader) {
+    if (m_shader && !m_borrowedShader) {
         delete m_shader;
         m_shader = nullptr;
     }
@@ -428,26 +428,33 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
 
 void Gsplat::use(Shader* _shader) {
 
-    if (!_shader || _shader != m_shader) {
+    if (_shader) {
 
-        bool different = false;
-        if (m_shader && _shader->getProgram() != m_shader->getProgram()) {
-            different = true;
+        bool different = true;
+        if (m_shader && _shader->getProgram() == m_shader->getProgram()) {
+            different = false;
         }
 
-        if (m_shader && (
-            _shader->getVersion() != m_shader->getVersion()
-        ) ) {
+        if (m_shader && _shader->getVersion() != m_shader->getVersion()) {
             different = true;
+
+            // Clear existing texture if GLSL version changes and we pack the data differently
             if (m_texture) {
                 m_texture->clear();
                 delete m_texture;
                 m_texture = nullptr;
             }
         }
-        m_shader = _shader;
-     
+
+        if (m_shader && different && !m_borrowedShader) {
+            delete m_shader;
+        }
+        
         if (different) {
+            m_borrowedShader = true;
+            m_shader = _shader;
+
+            std::cout << "Gsplat shader changed, rebuilding buffers." << std::endl;
             // Invalidate VAO and VBOs
             if (m_vao != -1) {
                 glDeleteVertexArrays(1, &m_vao);
@@ -1201,6 +1208,7 @@ void Gsplat::render(Camera* _camera, glm::mat4 _model, bool _sort) {
         // default_shader->load(splat_frag, splat_vert);
         // default_shader->load(splat_frag_300, splat_vert_300);
         use(default_shader);
+        m_borrowedShader = false;
     }
 
     if (!m_texture) {
@@ -1210,6 +1218,7 @@ void Gsplat::render(Camera* _camera, glm::mat4 _model, bool _sort) {
         else {
             m_texture = createTextureFloat();
         }
+        std::cout << "Created Gsplat Texture: " << m_texture->getWidth() << " x " << m_texture->getHeight() << std::endl;
     }
 
     // Sort splats by depth
@@ -1239,8 +1248,8 @@ void Gsplat::render(Camera* _camera, glm::mat4 _model, bool _sort) {
     glBindVertexArray(m_vao);
 
     // Set uniforms
-    m_shader->setUniformTexture("u_tex0", m_texture, 0); // Use member variable directly
-    m_shader->setUniform("u_tex0Resolution", glm::vec2(m_texture->getWidth(), m_texture->getHeight()));
+    m_shader->setUniformTexture("u_GsplatData", m_texture, 0); // Use member variable directly
+    m_shader->setUniform("u_GsplatDataResolution", glm::vec2(m_texture->getWidth(), m_texture->getHeight()));
 
     m_shader->setUniform("u_modelMatrix", _model);
     m_shader->setUniform("u_normalMatrix", _camera->getNormalMatrix());
