@@ -454,7 +454,8 @@ void Gsplat::use(Shader* _shader) {
             m_borrowedShader = true;
             m_shader = _shader;
 
-            std::cout << "Gsplat shader changed, rebuilding buffers." << std::endl;
+            // std::cout << "Gsplat shader changed, rebuilding buffers." << std::endl;
+
             // Invalidate VAO and VBOs
             if (m_vao != -1) {
                 glDeleteVertexArrays(1, &m_vao);
@@ -797,7 +798,7 @@ void Gsplat::buildSpatialIndex() {
         }
     }
     m_blocks = packed;
-    std::cout << "Built Spatial Index: " << m_blocks.size() << " active blocks." << std::endl;
+    // std::cout << "Built Spatial Index: " << m_blocks.size() << " active blocks." << std::endl;
 }
 
 BoundingBox Gsplat::getBoundingBox() const {
@@ -1218,7 +1219,7 @@ void Gsplat::render(Camera* _camera, glm::mat4 _model, bool _sort) {
         else {
             m_texture = createTextureFloat();
         }
-        std::cout << "Created Gsplat Texture: " << m_texture->getWidth() << " x " << m_texture->getHeight() << std::endl;
+        // std::cout << "Created Gsplat Texture: " << m_texture->getWidth() << " x " << m_texture->getHeight() << std::endl;
     }
 
     // Sort splats by depth
