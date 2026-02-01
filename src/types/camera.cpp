@@ -99,8 +99,6 @@ void Camera::setVirtualOffset(float scale, int currentViewIndex, int totalViews,
     glm::mat4 m = glm::inverse(getTransformMatrix()); // Standard View Matrix
     m_viewMatrix = glm::translate(m, offsetLocal); // Apply offset in View Space?
     
-    m_normalMatrix = glm::transpose(glm::inverse(glm::mat3(m_viewMatrix)));
-
     glm::mat4 projectionMatrix = glm::perspective(m_fov, getAspect(), getNearClip(), getFarClip());
 
     // modify the projection matrix, relative to the camera size and aspect ratio
@@ -112,6 +110,8 @@ void Camera::setVirtualOffset(float scale, int currentViewIndex, int totalViews,
 
     m_inverseViewMatrix = vera::inverseMatrix(m_viewMatrix);
     m_inverseProjectionMatrix = vera::inverseMatrix(m_projectionMatrix);
+
+    m_normalMatrix = glm::transpose(glm::mat3(m_inverseViewMatrix));
     
     bChange = true;
     // updateProjectionViewMatrix();
@@ -267,12 +267,15 @@ void Camera::updateCameraSettings() {
 void Camera::updateProjectionViewMatrix() {
     if (m_projectionType != ProjectionType::PERSPECTIVE_VIRTUAL_OFFSET) {
         m_viewMatrix = glm::inverse(getTransformMatrix());
+        m_inverseViewMatrix = getTransformMatrix(); // Inverted View is Camera World Transform
+    }
+    else {
+        m_inverseViewMatrix = vera::inverseMatrix(m_viewMatrix);
     }
 
     m_projectionViewMatrix = m_projectionMatrix * m_viewMatrix;
-    m_normalMatrix = glm::transpose(glm::inverse(glm::mat3(m_viewMatrix)));
+    m_normalMatrix = glm::transpose(glm::mat3(m_inverseViewMatrix));
 
-    m_inverseViewMatrix = getTransformMatrix(); // Inverted View is Camera World Transform
     m_inverseProjectionMatrix = vera::inverseMatrix(m_projectionMatrix);
     
     bChange = true;
