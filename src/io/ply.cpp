@@ -16,9 +16,12 @@ namespace vera {
 
 
 bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose) {
-    std::cout << "Loading w TinyPly " << _filename < std::endl;
+    if (_verbose)
+        std::cout << "Loading w TinyPly " << _filename << std::endl;
 
-    std::string name = filename.substr(0, filename.size()-4);
+    std::string name = _filename;
+    if (name.size() > 4)
+        name = name.substr(0, name.size()-4);
 
     Material default_material;
     std::vector<glm::vec4> mesh_colors;
@@ -31,9 +34,9 @@ bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose) {
     std::unique_ptr<std::istream> file_stream;
     try
     {
-        file_stream.reset(new std::ifstream(filename, std::ios::binary));
+        file_stream.reset(new std::ifstream(_filename, std::ios::binary));
 
-        if (!file_stream || file_stream->fail()) throw std::runtime_error("file_stream failed to open " + filename);
+        if (!file_stream || file_stream->fail()) throw std::runtime_error("file_stream failed to open " + _filename);
 
         std::vector<std::string> colors_names, texcoords_names, faces_name, edges_name;
 
@@ -241,7 +244,9 @@ bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose) {
 }
 
 bool loadPLY(const std::string& _filename, Mesh& _mesh ) {
-    std::string name = _filename.substr(0, filename.size()-4);
+    std::string name = _filename;
+    if (name.size() > 4)
+        name = name.substr(0, name.size()-4);
 
     std::vector<glm::vec4> mesh_colors;
     std::vector<glm::vec3> mesh_vertices;
@@ -253,9 +258,9 @@ bool loadPLY(const std::string& _filename, Mesh& _mesh ) {
     std::unique_ptr<std::istream> file_stream;
     try
     {
-        file_stream.reset(new std::ifstream(filename, std::ios::binary));
+        file_stream.reset(new std::ifstream(_filename, std::ios::binary));
 
-        if (!file_stream || file_stream->fail()) throw std::runtime_error("file_stream failed to open " + filename);
+        if (!file_stream || file_stream->fail()) throw std::runtime_error("file_stream failed to open " + _filename);
 
         std::vector<std::string> colors_names, texcoords_names, faces_name, edges_name;
 
@@ -457,7 +462,7 @@ bool loadPLY(const std::string& _filename, Mesh& _mesh ) {
 bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose) {    
     std::fstream is(_filename.c_str(), std::ios::in);
     if (is.is_open()) {
-
+        try {
         if (_scene->materials.find("default") == _scene->materials.end())
             _scene->materials["default"] = new Material("default");
         
@@ -724,6 +729,10 @@ bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose) {
     clean:
         std::cout << "ERROR glMesh, load(): " << lineNum << ":" << error << std::endl;
         std::cout << "ERROR glMesh, load(): \"" << line << "\"" << std::endl;
+
+        } catch (const std::exception& e) {
+            std::cerr << "Caught exception in loadPLY: " << e.what() << std::endl;
+        }
 
     }
 

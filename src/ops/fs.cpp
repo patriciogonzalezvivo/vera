@@ -8,7 +8,6 @@
 
 #include <iostream>     // cout
 #include <fstream>      // File
-#include <sstream>      // stringstream
 #include <iterator>     // std::back_inserter
 #include <algorithm>    // std::unique
 #include <sys/stat.h>
@@ -73,31 +72,26 @@ const char* realpath(const char* str, void*)
     return str;
 }
 #endif 
-std::string getAbsPath(const std::string& _path) {
-    std::string abs_path = realpath(_path.c_str(), NULL);
-    std::size_t found = abs_path.find_last_of("\\/");
-    if (found) return abs_path.substr(0, found);
-    else return "";
+
+std::string getRealPath(const std::string& _path) {
+#if defined(_WIN32)
+    return _path;
+#else
+    char *res = realpath(_path.c_str(), NULL);
+    if (res) {
+        std::string s(res);
+        free(res);
+        return s;
+    }
+    return "";
+#endif
 }
 
-std::string purifyPath(const std::string& path) {
-    std::string p = path;
-    std::replace(p.begin(), p.end(), '\\', '/');
-    std::vector<std::string> parts = split(p, '/');
-    std::vector<std::string> stack;
-    for (const auto& part : parts) {
-        if (part == "..") {
-            if (!stack.empty()) stack.pop_back();
-        } else if (part != "." && !part.empty()) {
-            stack.push_back(part);
-        }
-    }
-    std::string result = "";
-    for (size_t i = 0; i < stack.size(); i++) {
-        result += stack[i];
-        if (i < stack.size() - 1) result += "/";
-    }
-    return result;
+std::string getAbsPath(const std::string& _path) {
+    std::string abs_path = getRealPath(_path);
+    std::size_t found = abs_path.find_last_of("\\/");
+    if (found != std::string::npos) return abs_path.substr(0, found);
+    else return "";
 }
 
 std::string urlResolve(const std::string& _path, const StringList &_include_folders) {
@@ -105,13 +99,9 @@ std::string urlResolve(const std::string& _path, const StringList &_include_fold
     for ( uint32_t i = 0; i < _include_folders.size(); i++) {
         std::string new_path = _include_folders[i] + "/" + _path;
         if (urlExists(new_path)) 
-            return realpath(new_path.c_str(), NULL);
+            return getRealPath(new_path);
     }
 
-    std::string purified = purifyPath(_path);
-    if (!getLygiaFile(purified).empty()) 
-        return purified;
-    
     return _path;
 }
 
@@ -120,14 +110,7 @@ std::string urlResolve(const std::string& _path, const std::string& _pwd, const 
 
     // If the path is not in the same directory
     if (urlExists(url)) 
-        return realpath(url.c_str(), NULL);
-    
-    if (!getLygiaFile(_path).empty())
-        return _path;
-
-    std::string purified = purifyPath(url);
-    if (!getLygiaFile(purified).empty()) 
-        return purified;
+        return getRealPath(url);
 
     // .. search on the include path
     else
@@ -161,6 +144,35 @@ bool alreadyInclude(const std::string &_path, StringList *_dependencies) {
     return false;
 }
 
+std::string simplifyPath(const std::string& _path) {
+    std::string path = _path;
+    std::replace(path.begin(), path.end(), '\\', '/');
+    std::vector<std::string> parts = split(path, '/', false);
+    std::vector<std::string> stack;
+    for (size_t i = 0; i < parts.size(); i++) {
+        if (parts[i] == "." || parts[i].empty()) continue;
+        if (parts[i] == "..") {
+            if (!stack.empty() && stack.back() != "..")
+                stack.pop_back();
+            else
+                stack.push_back(parts[i]);
+        } else {
+            stack.push_back(parts[i]);
+        }
+    }
+    
+    std::string result = "";
+    if (!_path.empty() && _path[0] == '/') 
+        result = "/";
+
+    for (size_t i = 0; i < stack.size(); i++) {
+        if (result.length() > 1 || (result.length() == 1 && result[0] != '/'))
+            result += "/";
+        result += stack[i];
+    }
+    return result;
+}
+
 std::string loadGlslFrom(const std::string& _path) {
     const std::vector<std::string> folders;
     StringList deps;
@@ -180,46 +192,7 @@ bool loadGlslFrom(const std::string &_path, std::string *_into) {
     return loadGlslFrom(_path, _into, folders, &deps);
 }
 
-void processGlsl(std::istream& in, const std::string& original_path, std::string *_into, const std::vector<std::string> &_include_folders, StringList *_dependencies) {
-    std::string line;
-    std::string dependency;
-    std::string newBuffer;
-    while (!in.eof()) {
-        dependency = "";
-        getline(in, line);
-
-        if (extractDependency(line, &dependency)) {
-            dependency = urlResolve(dependency, original_path, _include_folders);
-            newBuffer = "";
-            if (loadGlslFrom(dependency, &newBuffer, _include_folders, _dependencies)) {
-                if (!alreadyInclude(dependency, _dependencies)) {
-                    // Insert the content of the dependency
-                    (*_into) += "\n" + newBuffer + "\n";
-
-                    // Add dependency to dependency list
-                    _dependencies->push_back(dependency);
-                }
-            }
-            else
-                std::cerr << "Error: " << dependency << " not found at " << original_path << std::endl;
-        }
-        else
-            (*_into) += line + "\n";
-    }
-}
-
 bool loadGlslFrom(const std::string &_path, std::string *_into, const std::vector<std::string> &_include_folders, StringList *_dependencies) {
-    std::string content = getLygiaFile(_path);
-    if (!content.empty()) {
-        std::stringstream ss(content);
-        std::string dir = "";
-        std::size_t found = _path.find_last_of("/\\");
-        if (found != std::string::npos) 
-            dir = _path.substr(0, found);
-        processGlsl(ss, dir, _into, _include_folders, _dependencies);
-        return true;
-    }
-
     std::ifstream file;
     file.open(_path.c_str());
 
@@ -230,7 +203,76 @@ bool loadGlslFrom(const std::string &_path, std::string *_into, const std::vecto
     // Get absolute home folder
     std::string original_path = getAbsPath(_path);
 
-    processGlsl(file, original_path, _into, _include_folders, _dependencies);
+    // Get absolute home folder
+    std::string line;
+    std::string dependency;
+    std::string newBuffer;
+    while (!file.eof()) {
+        try {
+        if (_into->size() > 1024 * 1024 * 2) { // 2MB Limit
+            std::cerr << "Error: Shader size exceeded 2MB (loadGlslFrom). Aborting resolution." << std::endl;
+            return false;
+        }
+
+        dependency = "";
+        getline(file, line);
+
+        if (extractDependency(line, &dependency)) {
+            dependency = urlResolve(dependency, original_path, _include_folders);
+            dependency = simplifyPath(dependency);
+            newBuffer = "";
+
+            if (_dependencies->size() > 200) {
+                std::cerr << "Error: Cyclic dependency or too many includes. Stopping at: " << dependency << std::endl;
+                return false; 
+            }
+
+            if (alreadyInclude(dependency, _dependencies)) 
+                continue;
+            
+            _dependencies->push_back(dependency);
+
+            if (loadGlslFrom(dependency, &newBuffer, _include_folders, _dependencies)) {
+                // Check size
+                if (_into->size() + newBuffer.size() > 1024 * 1024 * 2) return false;
+                // Insert the content of the dependency
+                (*_into) += '\n';
+                (*_into) += newBuffer;
+                (*_into) += '\n';
+            }
+            else {
+                // Try to load from lygia
+                newBuffer = getLygiaFile(dependency);
+                
+                if (newBuffer.empty()) {
+                    std::cerr << "Error: " << dependency << " not found at " << original_path << std::endl;
+                    continue;
+                }
+
+                // resolve lygia dependencies recursively
+                std::string processedBuffer;
+
+                // Get the folder of the dependency to be use as PWD for recursive calls
+                std::string depFolder = getBaseDir(dependency);
+
+                resolveGlsl(newBuffer, depFolder, &processedBuffer, _include_folders, _dependencies);
+                
+                // Check size
+                if (_into->size() + processedBuffer.size() > 1024 * 1024 * 2) return false;
+
+                // Insert the content of the dependency
+                (*_into) += '\n';
+                (*_into) += processedBuffer;
+                (*_into) += '\n';
+            }
+        }
+        else
+            (*_into) += line + "\n";
+        } catch (const std::exception& e) {
+            std::cerr << "Resolution error (loadGlslFrom): " << e.what() << std::endl;
+            return false;
+        }
+    }
 
     file.close();
     return true;
@@ -238,34 +280,103 @@ bool loadGlslFrom(const std::string &_path, std::string *_into, const std::vecto
 
 std::string resolveGlsl(const std::string& _src, const StringList& _include_folders, StringList *_dependencies) {
     std::string str = "";
-    resolveGlsl(_src, &str, _include_folders, _dependencies);
+    try {
+        resolveGlsl(_src, "", &str, _include_folders, _dependencies);
+    } catch (const std::exception& e) {
+        std::cerr << "Top-level resolveGlsl error: " << e.what() << std::endl;
+    }
     return str;
 }
 
 bool resolveGlsl(const std::string& _src, std::string *_into, const StringList& _include_folders, StringList *_dependencies) {
+    return resolveGlsl(_src, "", _into, _include_folders, _dependencies);
+}
+
+bool resolveGlsl(const std::string& _src, const std::string& _pwd, std::string *_into, const StringList& _include_folders, StringList *_dependencies) {
+    if (_src.size() > 1024 * 1024 * 2) { // 2MB Limit
+        std::cerr << "Error: Source string too large (resolveGlsl) " << _src.size() << std::endl;
+        return false;
+    }
+    
     std::vector<std::string> lines = split(_src, '\n');
 
     std::string dependency = "";
     std::string newBuffer;
     for (size_t i = 0; i < lines.size(); i++) {
+        try {
+        if (_into->size() > 1024 * 1024 * 2) { // 2MB Limit
+            std::cerr << "Error: Shader size exceeded 2MB. Aborting resolution." << std::endl;
+            return false;
+        }
+
         dependency = "";
         if (extractDependency(lines[i], &dependency)) {
-            dependency = urlResolve(dependency, _include_folders);
-            newBuffer = "";
-            if (loadGlslFrom(dependency, &newBuffer, _include_folders, _dependencies)) {
-                if (!alreadyInclude(dependency, _dependencies)) {
-                    // Insert the content of the dependency
-                    (*_into) += "\n" + newBuffer + "\n";
-
-                    // Add dependency to dependency list
-                    _dependencies->push_back(dependency);
-                }
+            // First check if it exist on one of the include folders
+            std::string potentialDiskPath = urlResolve(dependency, _pwd, _include_folders);
+            if (urlExists(potentialDiskPath)) {
+                dependency = potentialDiskPath;
             }
-            else
-                std::cerr << "Error: " << dependency << " not found." <<  std::endl;
+            else {
+                // If not, might be a virtual file reletive to the PWD
+                if (!_pwd.empty())
+                    dependency = _pwd + "/" + dependency;
+            }
+
+            dependency = simplifyPath(dependency);
+            newBuffer = "";
+
+            if (_dependencies->size() > 200) {
+                std::cerr << "Error: Cyclic dependency or too many includes (resolveGlsl). Stopping at: " << dependency << std::endl;
+                 // Stop processing this file to prevent further depth, but maybe continue gives a chance for other branches?
+                 // But length_error is global size.
+                 return false; 
+            }
+
+            if (alreadyInclude(dependency, _dependencies)) 
+                continue;
+            
+            _dependencies->push_back(dependency);
+
+            if (loadGlslFrom(dependency, &newBuffer, _include_folders, _dependencies)) {
+                // Check size
+                if (_into->size() + newBuffer.size() > 1024 * 1024 * 2) return false;
+                // Insert the content of the dependency
+                (*_into) += '\n';
+                (*_into) += newBuffer;
+                (*_into) += '\n';
+            }
+            else  {
+                // Try to load from lygia
+                newBuffer = getLygiaFile(dependency);
+                
+                if (newBuffer.empty()) {
+                    std::cerr << "Error: " << dependency << " not found at " << std::endl;
+                    continue;
+                }
+
+                // resolve lygia dependencies recursively
+                std::string processedBuffer;
+                
+                // Get the folder of the dependency to be use as PWD for recursive calls
+                std::string depFolder = getBaseDir(dependency);
+
+                resolveGlsl(newBuffer, depFolder, &processedBuffer, _include_folders, _dependencies);
+
+                // Check size
+                if (_into->size() + processedBuffer.size() > 1024 * 1024 * 2) return false;
+
+                // Insert the content of the dependency
+                (*_into) += '\n';
+                (*_into) += processedBuffer;
+                (*_into) += '\n';
+            }
         }
         else
             (*_into) += lines[i] + "\n";
+        } catch (const std::exception& e) {
+            std::cerr << "Resolution error: " << e.what() << std::endl;
+            return false;
+        }
     }
 
     return true;
