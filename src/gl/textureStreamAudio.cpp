@@ -1,6 +1,9 @@
 #include "vera/gl/textureStreamAudio.h"
 #include "vera/ops/string.h"
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 #include <iostream>
 #include <mutex>
 
