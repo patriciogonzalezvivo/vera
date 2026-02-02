@@ -53,6 +53,14 @@ Shader::~Shader() {
 }
 
 void Shader::operator = (const Shader &_parent ) {
+    // Compare sources to avoid unnecessary reload
+    if (m_fragmentSource == _parent.m_fragmentSource && m_vertexSource == _parent.m_vertexSource)
+        return;
+
+    // Compare defines to avoid unnecessary reload
+    if (m_defines == _parent.m_defines)
+        return;
+    
     m_fragmentSource = _parent.m_fragmentSource;
     m_vertexSource = _parent.m_vertexSource;
     m_defineChange = true;
@@ -60,12 +68,16 @@ void Shader::operator = (const Shader &_parent ) {
 }
 
 void Shader::setSource(const std::string& _fragmentSrc, const std::string& _vertexSrc) {
+    if (m_fragmentSource == _fragmentSrc && m_vertexSource == _vertexSrc)
+        return;
+
     m_fragmentSource = _fragmentSrc;
     m_vertexSource = _vertexSrc;
     m_needsReloading = true;
 }
 
 bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc, ShaderErrorResolve _onError, bool _verbose) {
+    // std::cout << "Reloading shader" << std::endl;
 
     // Attempt to 
     setVersionFromCode(_fragmentSrc);
@@ -194,6 +206,15 @@ bool Shader::reload() {
 
 void Shader::use() {
     if (isDirty()) {
+        // if (m_needsReloading)
+        //     std::cout << "Shader needs reloading" << std::endl;
+
+        // if (m_defineChange)
+        //     std::cout << "Shader defines changed" << std::endl;
+
+        // if (m_program == 0)
+        //     std::cout << "Shader program is 0" << std::endl;
+
         reload();
     }
     
@@ -207,7 +228,9 @@ void Shader::use() {
 }
 
 bool Shader::inUse() const {
-    if (getProgram() == 0) return false;
+    if (getProgram() == 0) 
+        return false;
+    
     GLint currentProgram = 0;
     glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
     return (getProgram() == (GLuint)currentProgram);
