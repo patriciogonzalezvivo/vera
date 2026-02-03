@@ -1,4 +1,3 @@
-
 #include "vera/shaders/defaultShaders.h"
 
 #include "vera/shaders/default.h"
@@ -21,7 +20,7 @@
 #include "vera/shaders/draw.h"
 #include "vera/shaders/devlook.h"
 
-
+#include "vera/ops/fs.h"
 #include "vera/ops/string.h"
 
 namespace vera {
@@ -99,7 +98,7 @@ std::string getVersionLine() {
 }
 
 std::string getDefaultSrc( DefaultShaders _type ) {
-    std::string rta = versionLine;
+    std::string rta = versionLine + "\n";
 
     if (_type == VERT_DEFAULT) {
         if (versionNumber < 130)
@@ -260,9 +259,9 @@ std::string getDefaultSrc( DefaultShaders _type ) {
 
     else if (_type == FRAG_PLOT) {
         if (versionNumber < 130)
-            rta += plot_frag;
+            rta += vera::resolveGlsl(plot_frag);
         else if (versionNumber >= 130) 
-            rta += plot_frag_300;
+            rta += vera::resolveGlsl(plot_frag_300);
     }
     else if (_type == FRAG_FXAA) {
         if (versionNumber < 130)

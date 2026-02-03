@@ -382,6 +382,17 @@ bool resolveGlsl(const std::string& _src, const std::string& _pwd, std::string *
     return true;
 }
 
+std::string resolveGlsl(const std::string& _src) {
+    const std::vector<std::string> folders;
+    StringList deps;
+    std::string str = "";
+    try {
+        resolveGlsl(_src, "", &str, folders, &deps);
+    } catch (const std::exception& e) {
+        std::cerr << "Top-level resolveGlsl error: " << e.what() << std::endl;
+    }
+    return str;
+}
 
 std::vector<std::string> glob(const std::string& _pattern) {
     std::vector<std::string> files;
