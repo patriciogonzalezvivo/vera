@@ -1439,8 +1439,12 @@ int initGL(WindowProperties _prop) {
 
     // callback when the mouse cursor moves
     glfwSetCursorPosCallback(window, [](GLFWwindow* _window, double x, double y) {
+
+        #if !defined(__EMSCRIPTEN__)
+        // The browser already accounts for device pixel ratio
         x *= device_pixel_ratio;
         y *= device_pixel_ratio;
+        #endif
 
         // mouse.pos.x,mouse.pos.y is the current cursor position, constrained
         // mouse.vel.x,mouse.vel.y is the distance the mouse cursor has moved
