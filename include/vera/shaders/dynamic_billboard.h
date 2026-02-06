@@ -42,15 +42,9 @@ uniform float       u_cameraDistance;
 
 varying vec2        v_texcoord;
 
-float linearizeDepth(float depth) {
-    depth = 2.0 * depth - 1.0;
-    return (2.0 * u_cameraNearClip * u_cameraFarClip) / (u_cameraFarClip + u_cameraNearClip - depth * (u_cameraFarClip - u_cameraNearClip));
-}
+#include "lygia/space/linearizeDepth.glsl"
+#include "lygia/color/palette/heatmap.glsl"
 
-vec3 heatmap(float v) {
-    vec3 r = v * 2.1 - vec3(1.8, 1.14, 0.3);
-    return 1.0 - r * r;
-}
 
 void main(void) { 
     vec4 color = u_color;
@@ -61,8 +55,8 @@ void main(void) {
     
     if (u_depth > 0.0) {
         float depth = color.r;
-        color.rgb = vec3( depth );
-        color.rgb = heatmap( fract(linearizeDepth(depth) * 0.1) );
+        color.rgb = heatmap( fract(linearizeDepth(depth, u_cameraNearClip, u_cameraFarClip) * 0.1) );
+        color.a = 1.0;
     }
 
     if (u_tex0TotalFrames > 0.0)
@@ -106,23 +100,15 @@ uniform vec4        u_color;
 uniform vec2        u_scale;
 
 uniform float       u_depth;
-// uniform float       u_cameraNearClip;
-// uniform float       u_cameraFarClip;
-// uniform float       u_cameraDistance;
-
-varying vec2        v_texcoord;
+uniform float       u_cameraNearClip;
+uniform float       u_cameraFarClip;
+uniform float       u_cameraDistance;
 
 in      vec2        v_texcoord;
 out     vec4        fragColor;
 
-// float linearizeDepth(float zoverw) {
-// 	return (2.0 * u_cameraNearClip) / (u_cameraFarClip + u_cameraNearClip - zoverw * (u_cameraFarClip - u_cameraNearClip));
-// }
-
-vec3 heatmap(float v) {
-    vec3 r = v * 2.1 - vec3(1.8, 1.14, 0.3);
-    return 1.0 - r * r;
-}
+#include "lygia/space/linearizeDepth.glsl"
+#include "lygia/color/palette/heatmap.glsl"
 
 void main(void) { 
     vec4 color = u_color;
@@ -132,9 +118,9 @@ void main(void) {
     color += texture(u_tex0, st);
     
     if (u_depth > 0.0) {
-        color.r = vec3(color.r);
-        // color.r = linearizeDepth(color.r) * u_cameraFarClip;
-        // color.rgb = heatmap(1.0 - (color.r - u_cameraDistance) * 0.01);
+        float depth = color.r;
+        color.rgb = heatmap( fract(linearizeDepth(depth, u_cameraNearClip, u_cameraFarClip) * 0.1) );
+        color.a = 1.0;
     }
 
     if (u_tex0TotalFrames > 0.0)

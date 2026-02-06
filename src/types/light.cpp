@@ -80,14 +80,15 @@ const glm::mat4& Light::getMVPMatrix( const glm::mat4 &_model, float _area) {
 void Light::bindShadowMap() {
     glGetIntegerv(GL_VIEWPORT, m_viewport);
 
-    if (m_shadowMap.getDepthTextureId() == 0)
-    #if defined(PLATFORM_RPI)
-        m_shadowMap.allocate(512, 512, DEPTH_TEXTURE);
-    #elif defined(PLATFORM_OSX)
-        m_shadowMap.allocate(2048, 2048, COLOR_DEPTH_TEXTURES);
-    #else
-        m_shadowMap.allocate(2048, 2048, DEPTH_TEXTURE);
-    #endif
+    if (m_shadowMap.getDepthTextureId() == 0) {
+        #if defined(PLATFORM_RPI)
+            m_shadowMap.allocate(512, 512, DEPTH_TEXTURE);
+        #elif defined(PLATFORM_OSX)
+            m_shadowMap.allocate(2048, 2048, COLOR_DEPTH_TEXTURES);
+        #else
+            m_shadowMap.allocate(2048, 2048, DEPTH_TEXTURE);
+        #endif
+    }
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);

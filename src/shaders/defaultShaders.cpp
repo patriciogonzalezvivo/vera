@@ -138,9 +138,9 @@ std::string getDefaultSrc( DefaultShaders _type ) {
     }
     else if (_type == FRAG_DYNAMIC_BILLBOARD) {
         if (versionNumber < 130)
-            rta += dynamic_billboard_frag;
+            rta += vera::resolveGlsl(dynamic_billboard_frag);
         else if (versionNumber >= 130) 
-            rta += dynamic_billboard_frag_300;
+            rta += vera::resolveGlsl(dynamic_billboard_frag_300);
     }
     else if (_type == VERT_CUBEMAP) {
         if (versionNumber < 130)
