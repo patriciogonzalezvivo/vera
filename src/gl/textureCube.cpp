@@ -40,7 +40,7 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
 
         if (m_height > m_width) {
 
-            if (m_width/6 == m_height) {
+            if (m_height/6 == m_width) {
                 // Vertical Row
                 splitFacesFromVerticalRow<unsigned char>(data, m_width, m_height, 3, faces);
             }
@@ -71,6 +71,7 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
             }
         }
         
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         for (int i = 0; i < 6; i++) {
             faces[i]->upload();
             sh_samples += faces[i]->calculateSH(SH);
@@ -94,7 +95,7 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
 
         if (m_height > m_width) {
             // Vertical Row
-            if (m_width/6 == m_height)
+            if (m_height/6 == m_width)
                 splitFacesFromVerticalRow<float>(data, m_width, m_height, channels, faces);
             
             // Vertical Cross
@@ -123,6 +124,7 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
                 splitFacesFromHorizontalCross<float>(data, m_width, m_height, channels, faces);
         }
 
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         for (int i = 0; i < 6; i++) {
             faces[i]->upload();
             sh_samples += faces[i]->calculateSH(SH);
@@ -143,7 +145,7 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
     for (int i = 0; i < 9; i++)
         SH[i] = SH[i] * factor;
 
-#if defined(PLATFORM_RPI) || defined(DRIVER_DRM) || defined(__EMSCRIPTEN__)
+#if defined(PLATFORM_RPI) || defined(DRIVER_DRM)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -178,7 +180,7 @@ bool TextureCube::load(size_t _width, size_t _height, size_t _channels, const fl
 
     if (m_height > m_width) {
         // Vertical Row
-        if (m_width/6 == m_height)
+        if (m_height/6 == m_width)
             splitFacesFromVerticalRow<float>(_data, m_width, m_height, _channels, faces);
         
         // Vertical Cross
@@ -207,6 +209,7 @@ bool TextureCube::load(size_t _width, size_t _height, size_t _channels, const fl
             splitFacesFromHorizontalCross<float>(_data, m_width, m_height, _channels, faces);
     }
 
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     for (int i = 0; i < 6; i++) {
         faces[i]->upload();
         sh_samples += faces[i]->calculateSH(SH);
@@ -222,7 +225,7 @@ bool TextureCube::load(size_t _width, size_t _height, size_t _channels, const fl
     for (int i = 0; i < 9; i++)
         SH[i] = SH[i] * factor;
 
-#if defined(PLATFORM_RPI) || defined(DRIVER_DRM) || defined(__EMSCRIPTEN__)
+#if defined(PLATFORM_RPI) || defined(DRIVER_DRM)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -264,6 +267,7 @@ bool TextureCube::load(SkyData* _sky, int _width, bool _vFlip) {
 
     CubemapFace<float> **faces = skyCubemap(_sky, m_width, _vFlip);
     
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     for (int i = 0; i < 6; i++) {
         faces[i]->upload();
         sh_samples += faces[i]->calculateSH(SH);
@@ -280,7 +284,7 @@ bool TextureCube::load(SkyData* _sky, int _width, bool _vFlip) {
     for (int i = 0; i < 9; i++)
         SH[i] = SH[i] * factor;
 
-#if defined(PLATFORM_RPI) || defined(DRIVER_DRM) || defined(__EMSCRIPTEN__)
+#if defined(PLATFORM_RPI) || defined(DRIVER_DRM)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

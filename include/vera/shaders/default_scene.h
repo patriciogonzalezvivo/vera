@@ -4,7 +4,7 @@
 // -----------------------------------------------------
 const std::string default_scene_vert = R"(
 #ifdef GL_ES
-precision highp float;
+precision mediump float;
 #endif
 
 uniform mat4        u_modelViewProjectionMatrix;
@@ -183,7 +183,7 @@ void main(void) {
 
 const std::string default_scene_vert_300 = R"(
 #ifdef GL_ES
-precision highp float;
+precision mediump float;
 precision highp int;
 precision highp usampler2D;
 #endif
@@ -352,7 +352,7 @@ void main(void) {
 
 const std::string default_scene_frag = R"(
 #ifdef GL_ES
-precision highp float;
+precision mediump float;
 #endif
 
 uniform sampler2D   u_scene;
@@ -451,7 +451,7 @@ void main(void) {
 )";
 const std::string default_scene_frag_300 = R"(
 #ifdef GL_ES
-precision highp float;
+precision mediump float;
 #endif
 
 uniform sampler2D   u_scene;

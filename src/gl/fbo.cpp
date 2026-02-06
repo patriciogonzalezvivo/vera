@@ -129,8 +129,7 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
 #if !defined(DRIVER_DRM)
     // Depth Buffer
     if (m_depth) {
-        glBindRenderbuffer(GL_RENDERBUFFER, m_depth_buffer);
-
+        
         GLenum depth_format = GL_DEPTH_COMPONENT;
         GLenum depth_type = GL_UNSIGNED_SHORT;
 
@@ -146,23 +145,22 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
     #endif
 
 #elif defined(__EMSCRIPTEN__)
-        depth_format = (getWebGLVersionNumber() == 1)? GL_DEPTH_COMPONENT : GL_DEPTH_COMPONENT16;
+        // Force 16-bit depth for maximum compatibility in WASM/WebGL
+        depth_format = GL_DEPTH_COMPONENT16;
+        depth_type = GL_UNSIGNED_SHORT;
 
 #else 
         depth_format = GL_DEPTH_COMPONENT32F;
         depth_type = GL_UNSIGNED_INT;
 
 #endif
-        glRenderbufferStorage(GL_RENDERBUFFER, depth_format, m_width, m_height);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depth_buffer);
-    
         if (depth_texture) {
-
             // Generate a texture to hold the depth buffer
             if (m_depth_id == 0)
                 glGenTextures(1, &m_depth_id);
 
             glBindTexture(GL_TEXTURE_2D, m_depth_id);
+            
             glTexImage2D(GL_TEXTURE_2D, 0, depth_format, m_width, m_height, 0, GL_DEPTH_COMPONENT, depth_type, 0);
 
             #if defined(__EMSCRIPTEN__)
@@ -176,6 +174,11 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depth_id, 0);
+        }
+        else {
+            glBindRenderbuffer(GL_RENDERBUFFER, m_depth_buffer);
+            glRenderbufferStorage(GL_RENDERBUFFER, depth_format, m_width, m_height);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depth_buffer);
         }
     }
     #endif
