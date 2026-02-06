@@ -355,9 +355,6 @@ const std::string default_scene_frag = R"(
 precision mediump float;
 #endif
 
-uniform sampler2D   u_scene;
-uniform sampler2D   u_sceneDepth;
-
 uniform mat4        u_projectionMatrix;
 
 uniform vec3        u_camera;
@@ -453,9 +450,6 @@ const std::string default_scene_frag_300 = R"(
 #ifdef GL_ES
 precision mediump float;
 #endif
-
-uniform sampler2D   u_scene;
-uniform sampler2D   u_sceneDepth;
 
 uniform mat4        u_projectionMatrix;
 
