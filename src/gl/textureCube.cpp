@@ -39,7 +39,6 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
         CubemapFace<unsigned char> **faces = new CubemapFace<unsigned char>*[6];
 
         if (m_height > m_width) {
-
             if (m_height/6 == m_width) {
                 // Vertical Row
                 splitFacesFromVerticalRow<unsigned char>(data, m_width, m_height, 3, faces);

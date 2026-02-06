@@ -149,12 +149,25 @@ struct CubemapFace {
         
         GLenum internalFormat = GL_RGB;
         GLenum format = GL_RGB;
+        const void* dataPtr = data;
+        bool deleteData = false;
 
     #if defined(__EMSCRIPTEN__)
         if (sizeof(T) == sizeof(float)) {
-            internalFormat = GL_RGB16F;
-            // format = GL_RGB16F;
-            // type = GL_HALF_FLOAT;
+            internalFormat = GL_RGBA16F;
+            format = GL_RGBA;
+            
+            // Convert RGB to RGBA
+            float* newData = new float[width * height * 4];
+            float* oldData = (float*)data;
+            for (int i = 0; i < width * height; i++) {
+                newData[i * 4 + 0] = oldData[i * 3 + 0];
+                newData[i * 4 + 1] = oldData[i * 3 + 1];
+                newData[i * 4 + 2] = oldData[i * 3 + 2];
+                newData[i * 4 + 3] = 1.0f;
+            }
+            dataPtr = newData;
+            deleteData = true;
         }
 
     #elif defined (_WIN32)
@@ -163,7 +176,11 @@ struct CubemapFace {
         internalFormat = GL_RGB;
     #endif
 
-        glTexImage2D(cubemapFaceId[id], 0, internalFormat, width, height, 0, format, type, data);
+        glTexImage2D(cubemapFaceId[id], 0, internalFormat, width, height, 0, format, type, dataPtr);
+
+        if (deleteData) {
+            delete[] (float*)dataPtr;
+        }
     }
 
     int     id;
