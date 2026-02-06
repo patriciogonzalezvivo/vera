@@ -146,7 +146,29 @@ if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm32" OR
     endif()
 endif()
 
-find_package(FFMPEG)
+if (EMSCRIPTEN)
+    # Check in CMAKE_SOURCE_DIR (root of glslViewer) first
+    set(FFMPEG_ROOT "${CMAKE_SOURCE_DIR}/deps/ffmpeg/install")
+    if (NOT EXISTS "${FFMPEG_ROOT}/lib/libavformat.a")
+        # Fallback to Vera's own deps if built standalone or differently
+        set(FFMPEG_ROOT "${PROJECT_SOURCE_DIR}/deps/ffmpeg/install")
+    endif()
+
+    if (EXISTS "${FFMPEG_ROOT}/lib/libavformat.a")
+        set(FFMPEG_INCLUDE_DIRS "${FFMPEG_ROOT}/include")
+        set(FFMPEG_LIBRARIES
+            "${FFMPEG_ROOT}/lib/libavformat.a"
+            "${FFMPEG_ROOT}/lib/libavcodec.a"
+            "${FFMPEG_ROOT}/lib/libavutil.a"
+            "${FFMPEG_ROOT}/lib/libswscale.a"
+        )
+        set(FFMPEG_FOUND TRUE)
+    else()
+        message(WARNING "FFmpeg not found for Emscripten at ${FFMPEG_ROOT}. Please run 'scripts/build_ffmpeg_wasm.sh' to build it.")
+    endif()
+else()
+    find_package(FFMPEG)
+endif()
 if (FFMPEG_FOUND)
     message(STATUS "LIBAV Supported")
     target_include_directories(vera PUBLIC ${FFMPEG_INCLUDE_DIRS})

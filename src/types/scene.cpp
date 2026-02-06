@@ -380,34 +380,34 @@ bool Scene::addStreamingTexture( const std::string& _name, const std::string& _u
 #endif
         else {
 #if defined(SUPPORT_LIBAV)
-        TextureStreamAV* tex = new TextureStreamAV(_device);
+            TextureStreamAV* tex = new TextureStreamAV(_device);
 
-        // load an image into the texture
-        if (tex->load(_url, _vflip)) {
-            // the image is loaded finish add the texture to the uniform list
-            textures[_name] = (Texture*)tex;
-            streams[_name] = (TextureStream*)tex;
+            // load an image into the texture
+            if (tex->load(_url, _vflip)) {
+                // the image is loaded finish add the texture to the uniform list
+                textures[_name] = (Texture*)tex;
+                streams[_name] = (TextureStream*)tex;
 
-            if (_verbose) {
-                std::cout << "// " << _url << " loaded as streaming texture: " << std::endl;
-                std::cout << "uniform sampler2D   " << _name  << ";"<< std::endl;
-                std::cout << "uniform sampler2D   " << _name  << "Prev[STREAMS_PREVS];"<< std::endl;
-                std::cout << "uniform vec2        " << _name  << "Resolution;"<< std::endl;
+                if (_verbose) {
+                    std::cout << "// " << _url << " loaded as streaming texture: " << std::endl;
+                    std::cout << "uniform sampler2D   " << _name  << ";"<< std::endl;
+                    std::cout << "uniform sampler2D   " << _name  << "Prev[STREAMS_PREVS];"<< std::endl;
+                    std::cout << "uniform vec2        " << _name  << "Resolution;"<< std::endl;
 
-                if (!_device) {
-                    std::cout << "uniform float       " << _name  << "Time;" << std::endl;
-                    std::cout << "uniform float       " << _name  << "Duration;" << std::endl;
-                    std::cout << "uniform float       " << _name  << "CurrentFrame;" << std::endl;
-                    std::cout << "uniform float       " << _name  << "TotalFrames;" << std::endl;
-                    std::cout << "uniform float       " << _name  << "Fps;" << std::endl;
+                    if (!_device) {
+                        std::cout << "uniform float       " << _name  << "Time;" << std::endl;
+                        std::cout << "uniform float       " << _name  << "Duration;" << std::endl;
+                        std::cout << "uniform float       " << _name  << "CurrentFrame;" << std::endl;
+                        std::cout << "uniform float       " << _name  << "TotalFrames;" << std::endl;
+                        std::cout << "uniform float       " << _name  << "Fps;" << std::endl;
+                    }
                 }
-            }
 
-            m_changed = true;
-            return true;
-        }
-        else
-            delete tex;
+                m_changed = true;
+                return true;
+            }
+            else
+                delete tex;
 #endif
         }
 

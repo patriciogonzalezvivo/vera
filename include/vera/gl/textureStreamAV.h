@@ -9,7 +9,9 @@ extern "C" {
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libavfilter/avfilter.h>
+#ifndef PLATFORM_EMSCRIPTEN
 #include <libavdevice/avdevice.h>
+#endif
 #include <libswscale/swscale.h>
 }
 

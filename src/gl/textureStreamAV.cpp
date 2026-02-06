@@ -51,7 +51,9 @@ TextureStreamAV::TextureStreamAV() :
     avformat_network_init();
 
     // https://gist.github.com/shakkhar/619fd90ccbd17734089b
+#ifndef PLATFORM_EMSCRIPTEN
     avdevice_register_all();
+#endif
 }
 
 TextureStreamAV::TextureStreamAV( bool _isDevice ) : 
@@ -77,7 +79,9 @@ TextureStreamAV::TextureStreamAV( bool _isDevice ) :
     avformat_network_init();
     
     // https://gist.github.com/shakkhar/619fd90ccbd17734089b
+#ifndef PLATFORM_EMSCRIPTEN
     avdevice_register_all();
+#endif
 }
 
 TextureStreamAV::~TextureStreamAV() {
@@ -107,6 +111,7 @@ bool TextureStreamAV::load(const std::string& _path, bool _vFlip, TextureFilter 
 
     int input_lodaded = -1;
     if (m_device) {
+#ifndef PLATFORM_EMSCRIPTEN
         std::string driver = "video4linux2";
 
         #ifdef PLATFORM_OSX 
@@ -120,6 +125,10 @@ bool TextureStreamAV::load(const std::string& _path, bool _vFlip, TextureFilter 
         // std::cout << "Opening " << driver << " at " << _path << std::endl;
 
         input_lodaded = avformat_open_input(&av_format_ctx, _path.c_str(), av_find_input_format(driver.c_str()) , &options);
+#else
+        std::cout << "Device input not supported on Emscripten" << std::endl;
+        input_lodaded = -1;
+#endif
     }
     else 
         input_lodaded = avformat_open_input(&av_format_ctx, _path.c_str(), NULL, NULL);
