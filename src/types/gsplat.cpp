@@ -169,7 +169,6 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
     std::ifstream file(_filepath, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
         throw std::runtime_error("Failed to open SPLAT file: " + _filepath);
-        return false;
     }
 
     std::streamsize size = file.tellg();
@@ -252,7 +251,6 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
     std::ifstream ss(_filepath, std::ios::binary);
     if (!ss.is_open()) {
         throw std::runtime_error("Failed to open PLY file: " + _filepath);
-        return false;
     }
     
     tinyply::PlyFile file;
@@ -1191,7 +1189,7 @@ void Gsplat::radixSort(std::vector<std::pair<float, uint32_t>>& arr) {
     
     // Result is in 'input' (which might be arr or buffer)
     if (input != arr.data()) {
-        std::memcpy(arr.data(), buffer.data(), n * sizeof(std::pair<float, uint32_t>));
+        std::memcpy((void*)arr.data(), (const void*)buffer.data(), n * sizeof(std::pair<float, uint32_t>));
     }
     
     // Reverse for Back-to-front
