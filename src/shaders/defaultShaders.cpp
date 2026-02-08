@@ -275,11 +275,17 @@ std::string getDefaultSrc( DefaultShaders _type ) {
         else if (versionNumber >= 130) 
             rta += poissonfill_frag_300;
     } 
+    else if (_type == FRAG_JUMPFLOOD_ENCODE) {
+        if (versionNumber < 130)
+            rta += vera::resolveGlsl(jumpflood_encode_frag);
+        else if (versionNumber >= 130) 
+            rta += vera::resolveGlsl(jumpflood_encode_frag_300);
+    }
     else if (_type == FRAG_JUMPFLOOD) {
         if (versionNumber < 130)
-            rta += jumpflood_frag;
+            rta += vera::resolveGlsl(jumpflood_frag);
         else if (versionNumber >= 130) 
-            rta += jumpflood_frag_300;
+            rta += vera::resolveGlsl(jumpflood_frag_300);
     }
     else if (_type == VERT_DEVLOOK_BILLBOARD) {
         if (versionNumber < 130)
