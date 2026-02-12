@@ -26,6 +26,10 @@ if(GIT_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.gitmodules")
     endif()
 endif()
 
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/deps/glfw/CMakeLists.txt")
+    message(FATAL_ERROR "The submodules were not downloaded! Please run: git submodule update --init --recursive")
+endif()
+
 # The compiled library code is here
 add_subdirectory(deps)
 add_subdirectory(src)

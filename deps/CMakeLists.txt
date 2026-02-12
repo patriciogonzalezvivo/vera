@@ -5,6 +5,15 @@ if (NOT NO_X11 AND NOT FORCE_DRM AND NOT EMSCRIPTEN)
     set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "")
     set(GLFW_BUILD_TESTS OFF CACHE BOOL "")
     set(GLFW_INSTALL OFF CACHE BOOL "")
+
+    if(UNIX AND NOT APPLE)
+        find_program(WAYLAND_SCANNER_EXECUTABLE NAMES wayland-scanner)
+        if (NOT WAYLAND_SCANNER_EXECUTABLE)
+            message(STATUS "wayland-scanner not found, disabling GLFW Wayland support")
+            set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "Build support for Wayland" FORCE)
+        endif()
+    endif()
+
     add_subdirectory(glfw)
 
     if(APPLE)
