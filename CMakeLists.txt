@@ -33,4 +33,6 @@ endif()
 # The compiled library code is here
 add_subdirectory(deps)
 add_subdirectory(src)
-add_subdirectory(examples)
+if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    add_subdirectory(examples)
+endif()
