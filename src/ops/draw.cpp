@@ -743,8 +743,44 @@ void rect(const BoundingBox& _bbox, Shader* _program) {
         line(coorners, _program);
 }
 
+// SQUARE
+void square(float _x, float _y, float _s, Shader* _program) {
+    rect(_x, _y, _s, _s, _program);
+}
+
+// QUAD
+void quad(float _x1, float _y1, float _x2, float _y2, float _x3, float _y3, float _x4, float _y4, Shader* _program) {
+    quad(glm::vec2(_x1, _y1), glm::vec2(_x2, _y2), glm::vec2(_x3, _y3), glm::vec2(_x4, _y4), _program);
+}
+
+void quad(const glm::vec2& _p1, const glm::vec2& _p2, const glm::vec2& _p3, const glm::vec2& _p4, Shader* _program) {
+    if (fill_enabled) {
+        std::vector<glm::vec2> tris = { _p1, _p2, _p3, _p3, _p4, _p1 };
+        triangles(tris, _program);
+    }
+    if (stroke_enabled) {
+        std::vector<glm::vec2> outline = { _p1, _p2, _p3, _p4, _p1 };
+        line(outline, _program);
+    }
+}
+
+void quad(float _x1, float _y1, float _z1, float _x2, float _y2, float _z2, float _x3, float _y3, float _z3, float _x4, float _y4, float _z4, Shader* _program) {
+    quad(glm::vec3(_x1, _y1, _z1), glm::vec3(_x2, _y2, _z2), glm::vec3(_x3, _y3, _z3), glm::vec3(_x4, _y4, _z4), _program);
+}
+
+void quad(const glm::vec3& _p1, const glm::vec3& _p2, const glm::vec3& _p3, const glm::vec3& _p4, Shader* _program) {
+    if (fill_enabled) {
+        std::vector<glm::vec3> tris = { _p1, _p2, _p3, _p3, _p4, _p1 };
+        triangles(tris, _program);
+    }
+    if (stroke_enabled) {
+        std::vector<glm::vec3> outline = { _p1, _p2, _p3, _p4, _p1 };
+        line(outline, _program);
+    }
+}
+
 // CIRCLES
-void circleResolution(int _resolution) { 
+void circleResolution(int _resolution) {
     cached_circle_coorners.clear();
     const float angleStep = TWO_PI / (float)_resolution;
     for (int i = 0; i < _resolution; i++) {
@@ -779,6 +815,79 @@ void circle(const glm::vec2& _pos, float _radius, Shader* _program) {
         }
         lines.push_back( lines[0] ); // close the circle
         line(lines, _program);
+    }
+}
+
+// ELLIPSE
+void ellipse(float _x, float _y, float _w, float _h, Shader* _program) { ellipse(glm::vec2(_x, _y), _w, _h, _program); }
+void ellipse(const glm::vec2& _pos, float _w, float _h, Shader* _program) {
+    if (cached_circle_coorners.size() == 0)
+        circleResolution();
+
+    const int numSegments = cached_circle_coorners.size();
+    const float hw = _w * 0.5f;
+    const float hh = _h * 0.5f;
+
+    if (fill_enabled) {
+        std::vector<glm::vec2> tris;
+        for (int i = 0; i < numSegments; i++) {
+            tris.push_back(_pos);
+            tris.push_back(glm::vec2(cached_circle_coorners[i].x * hw, cached_circle_coorners[i].y * hh) + _pos);
+            tris.push_back(glm::vec2(cached_circle_coorners[(i+1) % numSegments].x * hw, cached_circle_coorners[(i+1) % numSegments].y * hh) + _pos);
+        }
+        triangles(tris, _program);
+    }
+
+    if (stroke_enabled) {
+        std::vector<glm::vec2> lines;
+        for (int i = 0; i < numSegments; i++)
+            lines.push_back(glm::vec2(cached_circle_coorners[i].x * hw, cached_circle_coorners[i].y * hh) + _pos);
+        lines.push_back(lines[0]);
+        line(lines, _program);
+    }
+}
+
+// ARC
+void arc(float _x, float _y, float _w, float _h, float _start, float _stop, ArcMode _mode, Shader* _program) {
+    if (cached_circle_coorners.size() == 0)
+        circleResolution();
+
+    const int numSegments = cached_circle_coorners.size();
+    const float angleStep = TWO_PI / (float)numSegments;
+    const float hw = _w * 0.5f;
+    const float hh = _h * 0.5f;
+    glm::vec2 center(_x, _y);
+
+    // Collect points on the arc
+    std::vector<glm::vec2> arcPoints;
+    arcPoints.push_back(glm::vec2(cos(_start) * hw, sin(_start) * hh) + center);
+    for (int i = 0; i < numSegments; i++) {
+        float angle = angleStep * i;
+        if (angle > _start && angle < _stop)
+            arcPoints.push_back(glm::vec2(cos(angle) * hw, sin(angle) * hh) + center);
+    }
+    arcPoints.push_back(glm::vec2(cos(_stop) * hw, sin(_stop) * hh) + center);
+
+    // Fill
+    if (fill_enabled) {
+        std::vector<glm::vec2> tris;
+        for (size_t i = 0; i < arcPoints.size() - 1; i++) {
+            tris.push_back(center);
+            tris.push_back(arcPoints[i]);
+            tris.push_back(arcPoints[i + 1]);
+        }
+        triangles(tris, _program);
+    }
+
+    // Stroke — depends on mode
+    if (stroke_enabled) {
+        std::vector<glm::vec2> outline;
+        if (_mode == PIE_MODE)
+            outline.push_back(center);
+        outline.insert(outline.end(), arcPoints.begin(), arcPoints.end());
+        if (_mode == PIE_MODE || _mode == CHORD_MODE)
+            outline.push_back(outline[0]); // close
+        line(outline, _program);
     }
 }
 

@@ -41,6 +41,12 @@ enum PointShape {
     X_SHAPE
 };
 
+enum ArcMode {
+    OPEN_MODE = 0,   // Arc outline only (no closing line)
+    CHORD_MODE,      // Arc closed with straight line between endpoints
+    PIE_MODE         // Arc closed with lines to center (pie slice)
+};
+
 // GENERAL GL STATE
 // ---------------------------------
 bool fullscreen();
@@ -152,7 +158,7 @@ void line(const Triangle& _triangle, Shader* _program = nullptr);
 void line(const BoundingBox& _bbox, Shader* _program = nullptr);
 void lineBoundingBox(const glm::vec4& _bbox, Shader* _program = nullptr);
 
-// arc()
+void arc(float _x, float _y, float _w, float _h, float _start, float _stop, ArcMode _mode = PIE_MODE, Shader* _program = nullptr);
 
 // 2D Primitives
 void triangle(const glm::vec2& _center, float angle = 0.0, float _radius = 1.0,  Shader* _program = nullptr);
@@ -172,12 +178,16 @@ void rect(float _x, float _y, float _w, float _h, Shader* _program = nullptr);
 void rect(const glm::vec2& _pos, const glm::vec2& _size, Shader* _program = nullptr);
 void rect(const BoundingBox& _bbox, Shader* _program = nullptr);
 
-// quad()
-// square()s
+void quad(float _x1, float _y1, float _x2, float _y2, float _x3, float _y3, float _x4, float _y4, Shader* _program = nullptr);
+void quad(const glm::vec2& _p1, const glm::vec2& _p2, const glm::vec2& _p3, const glm::vec2& _p4, Shader* _program = nullptr);
+void quad(float _x1, float _y1, float _z1, float _x2, float _y2, float _z2, float _x3, float _y3, float _z3, float _x4, float _y4, float _z4, Shader* _program = nullptr);
+void quad(const glm::vec3& _p1, const glm::vec3& _p2, const glm::vec3& _p3, const glm::vec3& _p4, Shader* _program = nullptr);
+void square(float _x, float _y, float _s, Shader* _program = nullptr);
 void circleResolution(int _res = CIRCLE_RESOLUTION);
 void circle(float _x, float _y, float _r, Shader* _program = nullptr);
 void circle(const glm::vec2& _pos, float _r, Shader* _program = nullptr);
-// ellipse()
+void ellipse(float _x, float _y, float _w, float _h, Shader* _program = nullptr);
+void ellipse(const glm::vec2& _pos, float _w, float _h, Shader* _program = nullptr);
 
 HorizontalAlign rectHorizontalAlign();
 VerticalAlign   rectVerticalAlign();
