@@ -33,3 +33,4 @@ endif()
 # The compiled library code is here
 add_subdirectory(deps)
 add_subdirectory(src)
+add_subdirectory(examples)
