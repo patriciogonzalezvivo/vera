@@ -7,7 +7,9 @@ namespace vera {
 // files
 bool urlExists(const std::string& _filename);
 bool haveExt(const std::string& _filename, const std::string& _ext);
+
 std::string getExt(const std::string& _filename);
+std::string getFilename(const std::string& _filepath);
 
 bool isFolder(const std::string& _path);
 

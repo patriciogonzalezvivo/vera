@@ -38,6 +38,16 @@ std::string getExt(const std::string& _filename) {
     return "";
 }
 
+// Extract the filename from a path, without folder (for POSIX or Windows)
+std::string getFilename(const std::string& _filepath) {
+    std::string filename = _filepath;
+    size_t pos = filename.find_last_of("/\\");
+    if (pos != std::string::npos) {
+        filename = filename.substr(pos + 1);
+    }
+    return filename;
+}
+
 bool isFolder(const std::string& _path) {
     struct stat info;
 
