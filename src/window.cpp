@@ -1328,7 +1328,9 @@ int initGL(WindowProperties _prop) {
             window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", NULL, NULL);
         }
 
+        #if defined(GLFW_VERSION_3_4) || (defined(GLFW_VERSION_MAJOR) && defined(GLFW_VERSION_MINOR) && (GLFW_VERSION_MAJOR > 3 || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 4)))
         if (glfwGetPlatform() != GLFW_PLATFORM_WAYLAND)
+        #endif
             glfwSetWindowPos(window, properties.screen_x, properties.screen_y);
     }
     else {
@@ -1341,7 +1343,9 @@ int initGL(WindowProperties _prop) {
         if (properties.screen_y == -1)
             properties.screen_y = getDisplayHeight() / 2 - properties.screen_height / 2;
 
+        #if defined(GLFW_VERSION_3_4) || (defined(GLFW_VERSION_MAJOR) && defined(GLFW_VERSION_MINOR) && (GLFW_VERSION_MAJOR > 3 || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 4)))
         if (glfwGetPlatform() != GLFW_PLATFORM_WAYLAND)
+        #endif
             glfwSetWindowPos(window, properties.screen_x, properties.screen_y);
         #endif
     }
@@ -1897,7 +1901,10 @@ const float getDisplayPixelRatio(bool _compute) {
 
 void setWindowIcon(unsigned char* _data, size_t _width, size_t _height) {
 #if defined(DRIVER_GLFW)
-    if (glfwGetPlatform() != GLFW_PLATFORM_WAYLAND) {
+    #if defined(GLFW_VERSION_3_4) || (defined(GLFW_VERSION_MAJOR) && defined(GLFW_VERSION_MINOR) && (GLFW_VERSION_MAJOR > 3 || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 4)))
+    if (glfwGetPlatform() != GLFW_PLATFORM_WAYLAND)
+    #endif
+    {
         GLFWimage image;
         image.pixels = _data;
         image.width = _width;
@@ -2003,7 +2010,10 @@ void    setMousePosition( float _x, float _y ) {
     mouse.vel = glm::vec2(0.0f, 0.0f);
     mouse.drag = glm::vec2(_x, _y);
     #if defined(DRIVER_GLFW)
-    if (glfwGetPlatform() != GLFW_PLATFORM_WAYLAND) {
+    #if defined(GLFW_VERSION_3_4) || (defined(GLFW_VERSION_MAJOR) && defined(GLFW_VERSION_MINOR) && (GLFW_VERSION_MAJOR > 3 || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 4)))
+    if (glfwGetPlatform() != GLFW_PLATFORM_WAYLAND)
+    #endif
+    {
         float h = getWindowHeight();
         float y = _y;//h - glm::clamp(_y, 0.0f, h);
         glfwSetCursorPos(window, _x / device_pixel_ratio , y / device_pixel_ratio);
@@ -2013,7 +2023,10 @@ void    setMousePosition( float _x, float _y ) {
 
 void    setMouseVisibility(bool _visible) {
     #if defined(DRIVER_GLFW)
-    if (glfwGetPlatform() != GLFW_PLATFORM_WAYLAND) {
+    #if defined(GLFW_VERSION_3_4) || (defined(GLFW_VERSION_MAJOR) && defined(GLFW_VERSION_MINOR) && (GLFW_VERSION_MAJOR > 3 || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 4)))
+    if (glfwGetPlatform() != GLFW_PLATFORM_WAYLAND)
+    #endif
+    {
         if (_visible)
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         else

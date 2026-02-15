@@ -1477,6 +1477,7 @@ Shader* shader(Shader* _program) {
         _program->setUniform("u_cameraDistance", main_scene->activeCamera->getDistance());
         _program->setUniform("u_cameraNearClip", main_scene->activeCamera->getNearClip());
         _program->setUniform("u_cameraFarClip", main_scene->activeCamera->getFarClip());
+        _program->setUniform("u_cameraFov", main_scene->activeCamera->getFOV());
         _program->setUniform("u_cameraEv100", main_scene->activeCamera->getEv100());
         _program->setUniform("u_cameraExposure", float(main_scene->activeCamera->getExposure()));
         _program->setUniform("u_cameraAperture", main_scene->activeCamera->getAperture());
