@@ -1328,7 +1328,8 @@ int initGL(WindowProperties _prop) {
             window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", NULL, NULL);
         }
 
-        glfwSetWindowPos(window, properties.screen_x, properties.screen_y);
+        if (glfwGetPlatform() != GLFW_PLATFORM_WAYLAND)
+            glfwSetWindowPos(window, properties.screen_x, properties.screen_y);
     }
     else {
         window = glfwCreateWindow(properties.screen_width, properties.screen_height, "", NULL, NULL);
@@ -1340,7 +1341,8 @@ int initGL(WindowProperties _prop) {
         if (properties.screen_y == -1)
             properties.screen_y = getDisplayHeight() / 2 - properties.screen_height / 2;
 
-        glfwSetWindowPos(window, properties.screen_x, properties.screen_y);
+        if (glfwGetPlatform() != GLFW_PLATFORM_WAYLAND)
+            glfwSetWindowPos(window, properties.screen_x, properties.screen_y);
         #endif
     }
 
@@ -1895,11 +1897,13 @@ const float getDisplayPixelRatio(bool _compute) {
 
 void setWindowIcon(unsigned char* _data, size_t _width, size_t _height) {
 #if defined(DRIVER_GLFW)
-    GLFWimage image;
-    image.pixels = _data;
-    image.width = _width;
-    image.height = _height;
-    glfwSetWindowIcon(window, 1, &image);
+    if (glfwGetPlatform() != GLFW_PLATFORM_WAYLAND) {
+        GLFWimage image;
+        image.pixels = _data;
+        image.width = _width;
+        image.height = _height;
+        glfwSetWindowIcon(window, 1, &image);
+    }
 #endif
 }
 
@@ -1999,19 +2003,22 @@ void    setMousePosition( float _x, float _y ) {
     mouse.vel = glm::vec2(0.0f, 0.0f);
     mouse.drag = glm::vec2(_x, _y);
     #if defined(DRIVER_GLFW)
-    float h = getWindowHeight();
-    float y = _y;//h - glm::clamp(_y, 0.0f, h);
-    glfwSetCursorPos(window, _x / device_pixel_ratio , y / device_pixel_ratio);
+    if (glfwGetPlatform() != GLFW_PLATFORM_WAYLAND) {
+        float h = getWindowHeight();
+        float y = _y;//h - glm::clamp(_y, 0.0f, h);
+        glfwSetCursorPos(window, _x / device_pixel_ratio , y / device_pixel_ratio);
+    }
     #endif
 }
 
 void    setMouseVisibility(bool _visible) {
     #if defined(DRIVER_GLFW)
-    if (_visible)
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    else
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-    
+    if (glfwGetPlatform() != GLFW_PLATFORM_WAYLAND) {
+        if (_visible)
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        else
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    }
     #endif
 }
 
