@@ -1311,8 +1311,14 @@ int initGL(WindowProperties _prop) {
         glfwWindowHint(GLFW_OPENGL_PROFILE,GLFW_OPENGL_CORE_PROFILE);
     }
 
+    // On Emscripten MSAA is handled via a manual FBO + glBlitFramebuffer,
+    // so we must NOT request antialias on the default backbuffer (GLFW_SAMPLES
+    // maps to the WebGL context's antialias attribute). Blitting from a
+    // multisampled FBO to a multisampled default framebuffer is illegal in WebGL2.
+    #if !defined(__EMSCRIPTEN__)
     if (properties.msaa != 0)
         glfwWindowHint(GLFW_SAMPLES, properties.msaa);
+    #endif
 
     if (properties.style == HEADLESS)
         glfwWindowHint(GLFW_VISIBLE, GL_FALSE);

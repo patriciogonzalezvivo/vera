@@ -265,9 +265,9 @@ std::string getDefaultSrc( DefaultShaders _type ) {
     }
     else if (_type == FRAG_FXAA) {
         if (versionNumber < 130)
-            rta += fxaa_frag;
+            rta += vera::resolveGlsl(fxaa_frag);
         else if (versionNumber >= 130) 
-            rta += fxaa_frag_300;
+            rta += vera::resolveGlsl(fxaa_frag_300);
     }
     else if (_type == FRAG_POISSONFILL) {
         if (versionNumber < 130)

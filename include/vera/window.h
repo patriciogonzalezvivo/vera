@@ -158,7 +158,6 @@ struct WindowProperties {
     size_t      minor   = 0;
     #endif
     size_t      msaa    = 0;
-    bool        fxaa    = false;
     
     std::string vendor = "";
     std::string renderer = "";
