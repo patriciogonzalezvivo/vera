@@ -4,6 +4,7 @@
 #include "vera/ops/pixel.h"
 #include "vera/ops/time.h"
 
+#include <chrono>
 #include <iostream>
 
 #if defined(__EMSCRIPTEN__)
@@ -126,13 +127,20 @@ void App::run(WindowProperties _properties) {
         mouseMoved();
     } );
     
-    setMousePressCallback( [&](float _x, float _y, int _button) { 
+    auto lastClickTime = std::chrono::steady_clock::time_point{};
+    setMousePressCallback( [&, lastClickTime](float _x, float _y, int _button) mutable { 
         mouseButton = _button;
         mouseIsPressed = true;
 
         onMousePress(_x, _y, _button); 
         mousePressed();
         mouseClicked();
+
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastClickTime).count();
+        if (elapsed < 300)
+            mouseDoubleClicked();
+        lastClickTime = now;
     } );
 
     setMouseDragCallback( [&](float _x, float _y, int _button) { 

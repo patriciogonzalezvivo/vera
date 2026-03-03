@@ -38,6 +38,7 @@ public:
     virtual void onMouseMove(float _x, float _y) {};
     
     virtual void mouseClicked() {};
+    virtual void mouseDoubleClicked() {};
     virtual void mousePressed() {};
     virtual void onMousePress(float _x, float _y, int _button) {};
 
