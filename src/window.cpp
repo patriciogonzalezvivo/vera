@@ -67,6 +67,8 @@ static bool                     bControl        = false;
         #include <emscripten/html5.h>
         #define GL_GLEXT_PROTOTYPES
         #define EGL_EGLEXT_PROTOTYPES
+        #define GLFW_INCLUDE_NONE
+        #include <GLES3/gl3.h>
         #include <GLFW/glfw3.h>
 
     #else
@@ -79,6 +81,10 @@ static bool                     bControl        = false;
     //----------------------------------------------------
     static bool                     left_mouse_button_down = false;
     static GLFWwindow*              window;
+
+    static GLuint                   msaa_fbo        = 0;
+    static GLuint                   msaa_color_rbo  = 0;
+    static GLuint                   msaa_depth_rbo  = 0;
 
     #if defined(PLATFORM_RPI)
     #include "GLFW/glfw3native.h"
@@ -910,6 +916,48 @@ static bool                     bControl        = false;
     }
 #endif
 
+#if defined(DRIVER_GLFW)
+
+    static void createMSAAFramebuffer(int _width, int _height) {
+        if (properties.msaa == 0 || _width <= 0 || _height <= 0) return;
+
+        // Release previous resources
+        if (msaa_fbo) {
+            glDeleteFramebuffers(1, &msaa_fbo);
+            glDeleteRenderbuffers(1, &msaa_color_rbo);
+            glDeleteRenderbuffers(1, &msaa_depth_rbo);
+            msaa_fbo = msaa_color_rbo = msaa_depth_rbo = 0;
+        }
+
+        glGenFramebuffers(1, &msaa_fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, msaa_fbo);
+
+        // Multisampled color renderbuffer
+        glGenRenderbuffers(1, &msaa_color_rbo);
+        glBindRenderbuffer(GL_RENDERBUFFER, msaa_color_rbo);
+        glRenderbufferStorageMultisample(GL_RENDERBUFFER, (GLsizei)properties.msaa, GL_RGBA8, _width, _height);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, msaa_color_rbo);
+
+        // Multisampled depth renderbuffer
+        glGenRenderbuffers(1, &msaa_depth_rbo);
+        glBindRenderbuffer(GL_RENDERBUFFER, msaa_depth_rbo);
+        #if defined(__EMSCRIPTEN__)
+        glRenderbufferStorageMultisample(GL_RENDERBUFFER, (GLsizei)properties.msaa, GL_DEPTH_COMPONENT16, _width, _height);
+        #else
+        glRenderbufferStorageMultisample(GL_RENDERBUFFER, (GLsizei)properties.msaa, GL_DEPTH_COMPONENT24, _width, _height);
+        #endif
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, msaa_depth_rbo);
+
+        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE)
+            std::cerr << "MSAA FBO incomplete: 0x" << std::hex << status << std::dec << std::endl;
+
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+        // Leave msaa_fbo bound so the first frame renders into it
+    }
+
+#endif // DRIVER_GLFW
+
 #if defined(__EMSCRIPTEN__)
 
     static void update_canvas_size() {
@@ -918,6 +966,7 @@ static bool                     bControl        = false;
         width *= emscripten_get_device_pixel_ratio();
         height *= emscripten_get_device_pixel_ratio();
         setWindowSize(width, height);
+        createMSAAFramebuffer((int)width, (int)height);
     } 
 
     static EM_BOOL on_canvassize_changed(int eventType, const void *reserved, void *userData) {
@@ -1586,6 +1635,11 @@ const bool isGL() {
 void updateGL() {
     // Update time
     // --------------------------------------------------------------------
+#if defined(__EMSCRIPTEN__)
+    // Bind the MSAA FBO so all scene draws this frame land in it
+    if (msaa_fbo)
+        glBindFramebuffer(GL_FRAMEBUFFER, msaa_fbo);
+#endif
     double now = getTimeSec();
     float diff = now - elapsed_time;
     if (diff < rest_sec) {
@@ -1689,6 +1743,17 @@ void renderGL(){
     // glFinish();
 
 #if defined(DRIVER_GLFW)
+#if defined(__EMSCRIPTEN__)
+    // Resolve the MSAA FBO into the default (0) framebuffer then swap
+    if (msaa_fbo) {
+        int w = (int)viewport.z;
+        int h = (int)viewport.w;
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, msaa_fbo);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+#endif
     glfwSwapBuffers(window);
     glfwPollEvents();
 
