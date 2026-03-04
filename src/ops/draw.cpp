@@ -1279,7 +1279,7 @@ void text(const std::string& _text, float _x, float _y, Font* _font) {
     glGetIntegerv(GL_VIEWPORT, viewport);
 
     // glm::vec4 pos = projectionViewWorldMatrix() * glm::vec4(_x, _y, 0.0f, 1.0f);
-    glm::vec4 pos = glm::ortho(0.0f, (float)viewport[2], (float)viewport[3], 0.0f) * glm::vec4(_x, _y, 0.0f, 1.0f);
+    glm::vec4 pos = glm::ortho(0.0f, (float)viewport[2], (float)viewport[3], 0.0f) * matrix_world * glm::vec4(_x, _y, 0.0f, 1.0f);
     pos.x /= pos.w;
     pos.y /= pos.w;
     pos.x = (pos.x + 1.0f) * 0.5f * viewport[2];
