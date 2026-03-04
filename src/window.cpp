@@ -963,10 +963,9 @@ static bool                     bControl        = false;
     static void update_canvas_size() {
         double width, height;
         emscripten_get_element_css_size("#canvas", &width, &height);
-        // Pass CSS (logical) pixels; setWindowSize + getDisplayPixelRatio handle
-        // the render-scale conversion so that the canvas, viewport and MSAA FBO
-        // all end up with the same physical dimensions and no black border appears.
-        setWindowSize((int)width, (int)height);
+        width *= emscripten_get_device_pixel_ratio();
+        height *= emscripten_get_device_pixel_ratio();
+        setWindowSize(width, height);
         createMSAAFramebuffer(getWindowWidth(), getWindowHeight());
     } 
 
