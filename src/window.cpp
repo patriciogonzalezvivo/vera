@@ -966,7 +966,7 @@ static bool                     bControl        = false;
         width *= emscripten_get_device_pixel_ratio();
         height *= emscripten_get_device_pixel_ratio();
         setWindowSize(width, height);
-        createMSAAFramebuffer((int)width, (int)height);
+        createMSAAFramebuffer(getWindowWidth(), getWindowHeight());
     } 
 
     static EM_BOOL on_canvassize_changed(int eventType, const void *reserved, void *userData) {
@@ -1752,8 +1752,8 @@ void renderGL(){
 #if defined(__EMSCRIPTEN__)
     // Resolve the MSAA FBO into the default (0) framebuffer then swap
     if (msaa_fbo) {
-        int w = (int)viewport.z;
-        int h = (int)viewport.w;
+        int w = getWindowWidth();
+        int h = getWindowHeight();
         glBindFramebuffer(GL_READ_FRAMEBUFFER, msaa_fbo);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
