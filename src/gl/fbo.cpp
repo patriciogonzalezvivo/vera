@@ -102,6 +102,16 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
 #else
         if (_type == COLOR_FLOAT_TEXTURE || 
             _type == GBUFFER_TEXTURE) {
+            #if defined(__EMSCRIPTEN__)
+            // In WebGL2, float color-buffer rendering requires EXT_color_buffer_float.
+            // Blending into float attachments additionally requires EXT_float_blend.
+            bool hasFloatBuffer = enableExtension("EXT_color_buffer_float");
+            bool hasFloatBlend  = enableExtension("EXT_float_blend");
+            if ( hasFloatBuffer && hasFloatBlend ) {
+                format = GL_RGBA32F;  // prefer 32-bit for precision parity with desktop
+                type = GL_FLOAT;
+            }
+            #else
             if ( haveExtension("OES_texture_float") ) {
                 format = GL_RGBA32F;
                 type = GL_FLOAT;
@@ -110,10 +120,7 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
                 format = GL_RGBA16F;
                 type = GL_FLOAT;
             }
-            else {
-                format = GL_RGBA16;
-                type = GL_UNSIGNED_BYTE;
-            }
+            #endif
         }
 #endif
 

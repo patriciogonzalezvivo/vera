@@ -201,6 +201,7 @@ const bool          haveExtension(const std::string& _name);
 
 #if defined(__EMSCRIPTEN__)
 const size_t        getWebGLVersionNumber();
+bool                enableExtension(const std::string& _name);
 #elif defined(PLATFORM_RPI)
 EGLDisplay          getEGLDisplay();
 EGLContext          getEGLContext();

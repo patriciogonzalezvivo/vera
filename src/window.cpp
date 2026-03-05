@@ -974,7 +974,7 @@ static bool                     bControl        = false;
         return EM_FALSE;
     }
 
-    bool enable_extension(const char* name) {
+    static bool enable_extension(const char* name) {
         auto ctx = emscripten_webgl_get_current_context();
         return emscripten_webgl_enable_extension(ctx, name);
     }
@@ -2024,13 +2024,17 @@ const bool haveExtension(const std::string& _name) {
         return true;
 
     if (properties.extensions == "") properties.extensions = std::string((const char*)glGetString(GL_EXTENSIONS));
-    return properties.extensions.find(_name) == std::string::npos; 
+    return properties.extensions.find(_name) != std::string::npos; 
 }
 
 #if defined(__EMSCRIPTEN__)
 const size_t getWebGLVersionNumber() {
     if (properties.webgl == 0) properties.webgl = (beginsWith( getGLVersion(), "OpenGL ES 2.0"))? 1 : 2 ;
     return properties.webgl;
+}
+
+bool enableExtension(const std::string& _name) {
+    return enable_extension(_name.c_str());
 }
 #endif
 
