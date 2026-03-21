@@ -784,6 +784,8 @@ void Scene::printMaterials() {
 }
 
 void Scene::clearMaterials() {
+    for (MaterialsMap::iterator it = materials.begin(); it != materials.end(); ++it)
+        delete it->second;
     materials.clear();
     m_changed = true;
 }

@@ -11,6 +11,8 @@ Material::Material(const std::string& _name): illuminationModel(0), name(_name) 
 }
 
 Material::~Material() {
+    for (auto& kv : textures)
+        delete kv.second;
 }
 
 void Material::feedProperties(Shader& _shader) const {
