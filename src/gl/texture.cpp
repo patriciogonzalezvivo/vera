@@ -6,6 +6,21 @@
 
 #include "vera/window.h"
 
+// Texture — wraps a single OpenGL 2D texture object.
+// Supports 8-bit, 16-bit and 32-bit (float) RGBA/RGB/RG/R pixel formats.
+// On Raspberry Pi the maximum dimension is clamped to 1024 and the image is
+// rescaled if necessary. On desktop, 32-bit RGBA uses GL_RGBA32F for full
+// HDR precision.
+//
+// Typical usage:
+//   Texture tex;
+//   tex.load("image.png");   // auto-detects format from extension
+//   tex.bind();              // glBindTexture before a draw call
+//   tex.unbind();
+//
+// The load(width, height, id) overload wraps an externally managed texture id
+// without taking ownership of the pixel data.
+
 namespace vera {
 
 // TEXTURE

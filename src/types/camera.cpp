@@ -7,12 +7,19 @@
 
 #include "glm/gtc/matrix_inverse.hpp"
 
-// static const float MIN_APERTURE = 0.5f;
-// static const float MAX_APERTURE = 64.0f;
-// static const float MIN_SHUTTER_SPEED = 1.0f / 25000.0f;
-// static const float MAX_SHUTTER_SPEED = 60.0f;
-// static const float MIN_SENSITIVITY = 10.0f;
-// static const float MAX_SENSITIVITY = 204800.0f;
+// Camera — transforms scene geometry into clip space.
+// Inherits from Node (position + orientation) and adds projection parameters.
+// Supports perspective and orthographic projections, plus a virtual-offset
+// projection used by the Looking Glass HoloPlay display to render views for
+// different horizontal angles of the light field (PERSPECTIVE_VIRTUAL_OFFSET).
+//
+// begin()/end() bracket a render pass: begin() sets the GL viewport (when a
+// sub-viewport is assigned) and triggers a projection rebuild if bChange is
+// set; end() restores the previous viewport.
+//
+// Exposure is modelled after Filament’s physical camera: aperture,
+// shutter speed and ISO sensitivity are combined into an EV100 value that
+// controls scene brightness in PBR shaders (see setExposure()).
 
 namespace vera {
 

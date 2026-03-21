@@ -6,6 +6,17 @@
 #include <map>
 #include <vector>
 
+// Camera — view + projection transform, inherits position/orientation from Node.
+// ProjectionType selects the projection mode:
+//   ORTHO                      — orthographic (no perspective foreshortening).
+//   PERSPECTIVE                — standard pinhole perspective.
+//   PERSPECTIVE_VIRTUAL_OFFSET — laterally-shifted perspective used by the
+//                                Looking Glass HoloPlay multi-view display.
+//   CUSTOM                     — matrix supplied by the caller.
+//
+// Physical camera parameters (aperture, shutterSpeed, sensitivity) are
+// converted to an EV100 exposure value consumed by physically-based shaders.
+
 namespace vera {
 
 enum ProjectionType {

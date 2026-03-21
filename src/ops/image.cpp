@@ -24,35 +24,35 @@
 
 namespace vera {
 
+// sqrt — apply element-wise square-root to every pixel channel.
 void sqrt(Image& _image) {
     int total = _image.getWidth() * _image.getHeight() * _image.getChannels();
     for (int i = 0; i < total; i++)
         _image[i] = std::sqrt(_image[i]);
 }
 
+// invert — negate every pixel channel value (1 - x).
 void invert(Image& _image) {
     int total = _image.getWidth() * _image.getHeight() * _image.getChannels();
     for (int i = 0; i < total; i++)
         _image[i] = 1.0f -_image[i];
 }
 
+// gamma — apply power-curve tone mapping per channel (x^gamma).
 void gamma(Image& _image, float _gamma) {
     int total = _image.getWidth() * _image.getHeight() * _image.getChannels();
     for (int i = 0; i < total; i++)
         _image[i] = std::pow(_image[i], _gamma);
 }
 
+// autolevel — remap all channel values so the minimum becomes 0 and the
+// maximum becomes 1. Scans the pixel data once to find the range, then
+// normalises in a second pass.
 void autolevel(Image& _image){
     float lo = 1.0f;
     float hi = 0.0f;
 
     int total = _image.getWidth() * _image.getHeight() * _image.getChannels();
-    for (int i = 0; i < total; i++) {
-        float data = _image[i];
-        lo = std::min(lo, data);
-        hi = std::max(hi, data);
-    }
-
     for (int i = 0; i < total; i++) {
         float data = _image[i];
         lo = std::min(lo, data);
@@ -67,6 +67,8 @@ void autolevel(Image& _image){
         _image[i] =  (_image[i] - lo) / (hi - lo);
 }
 
+// flip — flip the image vertically in place (swap top and bottom scanlines)
+// using a single heap-allocated row buffer as scratch space.
 void flip(Image& _image) {
     const size_t stride = _image.getWidth() * _image.getChannels();
     float *row = (float*)malloc(stride * sizeof(float));
@@ -80,18 +82,23 @@ void flip(Image& _image) {
     free(row);
 }
 
+// remap — linearly remap every channel value from [_in_min, _in_max] to
+// [_out_min, _out_max].  Optionally clamps the output to the output range.
 void remap(Image& _image, float _in_min, float _int_max, float _out_min, float _out_max, bool _clamp) {
     int total = _image.getWidth() * _image.getHeight() * _image.getChannels();
     for (int i = 0; i < total; i++)
         _image[i] = remap(_image[i], _in_min, _int_max, _out_min, _out_max, _clamp);
 } 
 
+// threshold — binarise the image: channels >= _threshold become 1, others 0.
 void threshold(Image& _image, float _threshold) {
     int total = _image.getWidth() * _image.getHeight() * _image.getChannels();
     for (int i = 0; i < total; i++)
         _image[i] = (_image[i] >= _threshold)? 1.0f : 0.0f;
 }
 
+// mergeChannels (RGB) — combine three single-channel greyscale images into
+// one 3-channel RGB image.  All inputs must have the same dimensions.
 Image mergeChannels(const Image& _red, const Image& _green, const Image& _blue) {
     if (_red.getChannels() > 1 ||
         _green.getChannels() > 1 ||

@@ -9,6 +9,14 @@
 #include "glm/gtc/quaternion.hpp"
 #include "glm/gtx/quaternion.hpp"
 
+// Node — scene-graph transform node.
+// Maintains position (vec3), orientation (quat) and scale (vec3) and keeps an
+// up-to-date T*R*S transform matrix (m_transformMatrix).  Subclasses can
+// override onPositionChanged / onOrientationChanged / onScaleChanged to react
+// to mutations without polling.
+// updateAxis() extracts the three local-space axes from the matrix so that
+// getXAxis/getYAxis/getZAxis are cheap accessors.
+
 namespace vera {
 
 enum NodeType {

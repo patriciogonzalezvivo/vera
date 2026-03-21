@@ -14,6 +14,14 @@
 // tmp
 #include <iostream>
 
+// ShaderErrorResolve — controls what the shader system does when compilation
+// or linking fails.
+//   REVERT_TO_PREVIOUS_SHADER – re-load the last known-good source.
+//   SHOW_MAGENTA_SHADER       – substitute a bright magenta unlit shader so
+//                               broken content is immediately visible (default).
+//   DONT_KEEP_SHADER          – load error shader once; do not remember new src.
+//   KEEP_BROKEN_SHADER        – leave the broken (possibly zero) program.
+
 namespace vera {
 
 enum ShaderErrorResolve {

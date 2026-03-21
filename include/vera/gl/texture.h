@@ -7,6 +7,14 @@
 #include "textureProps.h"
 #include "../types/image.h"
 
+// Texture — OpenGL 2D texture wrapper.
+// Holds a single GL texture id and its metadata (width, height, format, filter
+// mode, wrap mode).  load() is overloaded for file paths, Image objects and raw
+// pixel buffers; update() allows partial pixel uploads without reallocating
+// GPU storage when the dimensions and format are unchanged.
+// Subclasses (TextureBump, TextureCube, TextureStream*) extend for bump maps,
+// cube-maps and streaming sources.
+
 namespace vera {
 
 enum TextureType {

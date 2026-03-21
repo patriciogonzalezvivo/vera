@@ -6,6 +6,10 @@
 #include "vera/types/mesh.h"
 #include "vera/types/image.h"
 
+// Image processing operations that work directly on Image objects.
+// All functions operate in-place unless they return a new Image.
+// Channel values are assumed to be floating-point in [0, 1] unless noted.
+
 namespace vera {
 
 void                sqrt(       Image& _image);

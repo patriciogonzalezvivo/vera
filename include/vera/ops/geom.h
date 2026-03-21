@@ -10,6 +10,11 @@
 #include "../types/triangle.h"
 #include "../types/boundingBox.h"
 
+// Geometry utility functions.
+// 2D operations work on vectors of glm::vec2; 3D on glm::vec3 or Mesh.
+// getConvexHull uses an O(n log n) sort + Graham/Andrew monotone-chain scan.
+// simplify / getSimplify implement Douglas-Peucker polyline simplification.
+
 namespace vera {
 
 // 2D

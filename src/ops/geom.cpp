@@ -12,6 +12,9 @@
 
 namespace vera {
 
+// getArea — compute the signed area of a 2D polygon using the shoelace formula
+// (also known as the surveyor's method).  Returns positive for counter-clockwise
+// winding and negative for clockwise winding.
 float getArea(const std::vector<glm::vec2>& _points) {
     float area = 0.0;
 
@@ -24,19 +27,23 @@ float getArea(const std::vector<glm::vec2>& _points) {
     return area;
 }
 
+// getCentroid — return the arithmetic mean (centroid) of a set of 2D points.
+// Accumulates the sum and divides once at the end, avoiding a per-element
+// division that was previously performed inside the loop.
 glm::vec2 getCentroid(const std::vector<glm::vec2>& _points) {
     glm::vec2 centroid;
-    for (size_t i = 0; i < _points.size(); i++) {
-        centroid += _points[i] / (float)_points.size();
-    }
-    return centroid;
+    for (size_t i = 0; i < _points.size(); i++)
+        centroid += _points[i];
+    return centroid / (float)_points.size();
 }
 
 
+// getBoundingBox (mesh overload) — delegates to the vertex-array overload.
 BoundingBox getBoundingBox(const Mesh& _mesh) {
     return getBoundingBox(_mesh.getVertices());
 }
 
+// getBoundingBox — compute the axis-aligned bounding box of a point cloud.
 BoundingBox getBoundingBox(const std::vector<glm::vec2>& _points ) {
     BoundingBox bbox;
     for (std::vector<glm::vec2>::const_iterator it = _points.begin(); it != _points.end(); ++it)
@@ -70,14 +77,19 @@ BoundingBox getBoundingBox(const std::vector<Triangle>& _triangles) {
     return bbox;
 }
 
+// getCentroid — return the arithmetic mean (centroid) of a set of 3D points.
+// Accumulates the sum and divides once at the end, avoiding a per-element
+// division that was previously performed inside the loop.
 glm::vec3 getCentroid(const std::vector<glm::vec3>& _points) {
     glm::vec3 centroid;
-    for (size_t i = 0; i < _points.size(); i++) {
-        centroid += _points[i] / (float)_points.size();
-    }
-    return centroid;
+    for (size_t i = 0; i < _points.size(); i++)
+        centroid += _points[i];
+    return centroid / (float)_points.size();
 }
 
+// calcNormal — compute the (outward) unit normal of a triangle defined by
+// three vertices _v0, _v1, _v2.  Uses the cross product of the two edge
+// vectors from _v0; the result winding follows the right-hand rule.
 void calcNormal(const glm::vec3& _v0, const glm::vec3& _v1, const glm::vec3& _v2, glm::vec3& _N) {
     glm::vec3 v10 = _v1 - _v0;
     glm::vec3 v20 = _v2 - _v0;

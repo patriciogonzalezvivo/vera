@@ -6,6 +6,16 @@
 #include "vera/types/mesh.h"
 #include "vera/ops/string.h"
 
+// Mesh — in-memory geometry container.
+// Stores per-vertex attributes (positions, colours, normals, tangents,
+// texture coordinates) and an optional flat index list.  DrawMode controls
+// how the GPU interprets the topology (TRIANGLES, LINES, etc.).
+//
+// append() merges another mesh into this one, offsetting its indices so
+// the combined buffer can be uploaded as a single Vbo.
+// computeNormals() recalculates smooth per-vertex normals from triangle face
+// normals, accumulating and normalising them across shared vertices.
+
 namespace vera {
 
 Mesh::Mesh():m_drawMode(TRIANGLES), m_material(nullptr) {

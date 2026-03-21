@@ -3,6 +3,14 @@
 #include "gl.h"
 #include "textureProps.h"
 
+// FboType — selects the attachment configuration of an Fbo:
+//   COLOR_TEXTURE              — colour texture, no depth.
+//   COLOR_TEXTURE_DEPTH_BUFFER — colour texture + depth renderbuffer (default).
+//   COLOR_FLOAT_TEXTURE        — HDR float colour, no depth.
+//   COLOR_DEPTH_TEXTURES       — both colour and depth as samplable textures.
+//   GBUFFER_TEXTURE            — float colour + depth (nearest filter, clamped).
+//   DEPTH_TEXTURE              — depth-only (for shadow maps).
+
 namespace vera {
 
 enum FboType {

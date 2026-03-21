@@ -13,6 +13,13 @@
 
 namespace vera {
 
+// Shader: Manages an OpenGL program composed of a vertex and a fragment stage.
+// The object caches the last-compiled GLSL source and an ordered set of #defines
+// (HaveDefines), and re-links the program lazily when either changes.
+// Uniforms are stored in m_uniforms/m_textures and are replayed automatically
+// every time use() is called (updateUniforms), so callers may set uniforms
+// before or after binding without worrying about order.
+
 Shader::Shader():
     m_fragmentSource(""),
     m_vertexSource(""),
@@ -53,20 +60,24 @@ Shader::~Shader() {
 }
 
 void Shader::operator = (const Shader &_parent ) {
-    // Compare sources to avoid unnecessary reload
-    if (m_fragmentSource == _parent.m_fragmentSource && m_vertexSource == _parent.m_vertexSource)
+    // Skip the update only when sources AND defines are both already identical.
+    // Checking them separately (as two early returns) was a bug: if sources differ
+    // but defines happen to match, the second return fired without copying the new
+    // sources, leaving this shader stale indefinitely.
+    if (m_fragmentSource == _parent.m_fragmentSource &&
+        m_vertexSource   == _parent.m_vertexSource   &&
+        m_defines        == _parent.m_defines)
         return;
 
-    // Compare defines to avoid unnecessary reload
-    if (m_defines == _parent.m_defines)
-        return;
-    
     m_fragmentSource = _parent.m_fragmentSource;
-    m_vertexSource = _parent.m_vertexSource;
-    m_defineChange = true;
+    m_vertexSource   = _parent.m_vertexSource;
+    m_defines        = _parent.m_defines;  // copy defines so the define stack stays in sync
+    m_defineChange   = true;
     m_needsReloading = true;
 }
 
+// setSource — store new source strings and flag the program for rebuild.
+// Does not compile immediately; the next use() will trigger reload().
 void Shader::setSource(const std::string& _fragmentSrc, const std::string& _vertexSrc) {
     if (m_fragmentSource == _fragmentSrc && m_vertexSource == _vertexSrc)
         return;
@@ -196,6 +207,9 @@ const GLint Shader::getAttribLocation(const std::string& _attribute) const {
     return glGetAttribLocation(m_program, _attribute.c_str());
 }
 
+// reload — re-compile and re-link from the currently stored source strings.
+// Unbinds the program first when it happens to be the active program, since
+// glUseProgram(0) is required before glDeleteProgram on some drivers.
 bool Shader::reload() {
     if (inUse() && isLoaded()) {
         // std::cout << "Reloading shader program " << getProgram() << std::endl;
@@ -204,6 +218,11 @@ bool Shader::reload() {
     return load(m_fragmentSource, m_vertexSource, m_error_screen, false);
 }
 
+// use — bind the program for rendering.
+// If the program is dirty (source changed, defines changed, or never compiled)
+// it is recompiled/relinked first. After binding, all queued uniforms and
+// textures are re-applied via updateUniforms(). textureIndex is reset to 0
+// so texture slots assigned in the same frame are contiguous.
 void Shader::use() {
     if (isDirty()) {
         // if (m_needsReloading)
@@ -227,6 +246,11 @@ void Shader::use() {
     textureIndex = 0;
 }
 
+// inUse — returns true when this program is the one currently bound on the GPU.
+// Queries GL_CURRENT_PROGRAM via glGetIntegerv, so avoid calling inside tight
+// per-vertex loops. setUniform variants call this once per invocation to decide
+// whether to forward the value to the driver immediately or defer it to the
+// next updateUniforms().
 bool Shader::inUse() const {
     if (getProgram() == 0) 
         return false;
@@ -429,6 +453,12 @@ void Shader::detach(GLenum _type) {
 #endif
 }
 
+// getUniformLocation — thin wrapper around glGetUniformLocation.
+// Returns -1 for uniforms that were optimised away by the driver (dead code).
+// Callers must skip GL upload when loc == -1 (updateUniforms does this).
+// Note: location is resolved live on every call. A future optimisation could
+// cache the location map after linking, but this is sufficient for the current
+// call patterns where uniform sets are infrequent relative to draw calls.
 GLint Shader::getUniformLocation(const std::string& _uniformName) const {
     GLint loc = glGetUniformLocation(m_program, _uniformName.c_str());
     if (loc == -1){
@@ -629,6 +659,10 @@ void Shader::setUniform(const std::string& _name, const glm::mat4& _value, bool 
     }
 }
 
+// updateUniforms — re-apply all cached uniform values and texture bindings
+// to the currently bound program.  Called from use() every frame so that
+// values set before use() (or while a different program was bound) are
+// forwarded to the driver.
 void Shader::updateUniforms() {
     for (UniformDataMap::iterator it = m_uniforms.begin(); it != m_uniforms.end(); ++it) {
         GLint loc = getUniformLocation(it->first);

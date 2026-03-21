@@ -3,6 +3,14 @@
 #include "vera/ops/pixel.h"
 #include "vera/ops/fs.h"
 
+// Pixel I/O — load and save raster images via stb_image / tinyexr.
+// Supported read formats: JPEG, PNG, BMP, GIF, TGA, PSD, HDR, EXR.
+// Supported write formats: PNG, JPEG, BMP, TGA, HDR.
+// 16-bit PNG is preserved when loading (loadPixels16) on non-RPi platforms.
+// EXR is always loaded as 4-channel float; HDR as 3-channel float.
+// flipPixelsVertically helpers handle the GL vs image-file vertical-axis
+// convention mismatch.
+
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 

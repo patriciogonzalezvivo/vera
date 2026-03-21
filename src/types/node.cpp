@@ -4,6 +4,19 @@
 #include "glm/gtx/matrix_decompose.hpp"
 #include "glm/gtc/matrix_access.hpp"
 
+// Node — scene-graph transform node.
+// Stores position, orientation (quaternion) and scale and keeps a 4×4
+// transform matrix (T*R*S) in sync.  The matrix is rebuilt lazily via
+// createMatrix() whenever position, orientation or scale changes.
+//
+// Derived classes (Camera, Light, …) can override onPositionChanged(),
+// onOrientationChanged(), onScaleChanged() to react to transform changes
+// without polling.
+//
+// The bChange flag is set true whenever any component changes and is cleared
+// by the first call to begin() on cameras/lights, allowing callers to skip
+// the view/projection rebuild when nothing moved.
+
 namespace vera {
 
 Node::Node(): 

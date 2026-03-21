@@ -1,6 +1,19 @@
 #include "vera/gl/vbo.h"
 #include <iostream>
 
+// Vbo — Vertex Buffer Object wrapper.
+// Manages a pair of OpenGL buffer objects: one for interleaved vertex data and
+// an optional index buffer.  Geometry is described by a VertexLayout (list of
+// named attribute channels and their GL types), which is used to bind each
+// attribute to the correct attrib location when rendering.
+//
+// Typical lifecycle:
+//   1. Construct with a Mesh or raw vertex array.
+//   2. GPU upload happens lazily the first time render() is called, or
+//      explicitly via upload().
+//   3. render(&shader) binds the program, uploads if needed, then issues the
+//      draw call.
+
 namespace vera {
 
 Vbo::Vbo() : 
@@ -131,35 +144,50 @@ void Vbo::load(const Mesh& _mesh) {
     setVertexLayout( vertexLayout );
     setDrawMode( _mesh.getDrawMode() );
 
+    // Pre-reserve the interleaved data vector to avoid incremental reallocations.
+    // nBits is the total number of float components per vertex (position + optional
+    // color, normals, texcoords, tangents), so the final buffer needs exactly
+    // getVerticesTotal() * nBits floats.
+    const size_t nVerts = _mesh.getVerticesTotal();
     std::vector<GLfloat> data;
-    for (size_t i = 0; i < _mesh.getVerticesTotal(); i++) {
-        data.push_back(_mesh.getVertex(i).x);
-        data.push_back(_mesh.getVertex(i).y);
-        data.push_back(_mesh.getVertex(i).z);
+    data.reserve(nVerts * nBits);
+
+    // Cache per-channel vector references to avoid repeated accessor overhead
+    // inside the hot packing loop.
+    const auto& verts     = _mesh.getVertices();
+    const auto& colors    = _mesh.getColors();
+    const auto& normals   = _mesh.getNormals();
+    const auto& texcoords = _mesh.getTexCoords();
+    const auto& tangents  = _mesh.getTangents();
+
+    for (size_t i = 0; i < nVerts; i++) {
+        data.push_back(verts[i].x);
+        data.push_back(verts[i].y);
+        data.push_back(verts[i].z);
         if (bColor) {
-            data.push_back(_mesh.getColor(i).r);
-            data.push_back(_mesh.getColor(i).g);
-            data.push_back(_mesh.getColor(i).b);
-            data.push_back(_mesh.getColor(i).a);
+            data.push_back(colors[i].r);
+            data.push_back(colors[i].g);
+            data.push_back(colors[i].b);
+            data.push_back(colors[i].a);
         }
         if (bNormals) {
-            data.push_back(_mesh.getNormal(i).x);
-            data.push_back(_mesh.getNormal(i).y);
-            data.push_back(_mesh.getNormal(i).z);
+            data.push_back(normals[i].x);
+            data.push_back(normals[i].y);
+            data.push_back(normals[i].z);
         }
         if (bTexCoords) {
-            data.push_back(_mesh.getTexCoord(i).x);
-            data.push_back(_mesh.getTexCoord(i).y);
+            data.push_back(texcoords[i].x);
+            data.push_back(texcoords[i].y);
         }
         if (bTangents) {
-            data.push_back(_mesh.getTangent(i).x);
-            data.push_back(_mesh.getTangent(i).y);
-            data.push_back(_mesh.getTangent(i).z);
-            data.push_back(_mesh.getTangent(i).w);
+            data.push_back(tangents[i].x);
+            data.push_back(tangents[i].y);
+            data.push_back(tangents[i].z);
+            data.push_back(tangents[i].w);
         }
     }
 
-    addVertices((GLbyte*)data.data(), _mesh.getVerticesTotal());
+    addVertices((GLbyte*)data.data(), nVerts);
     
     if (!_mesh.haveIndices()) {
         if ( _mesh.getDrawMode() == LINES ) {

@@ -5,6 +5,18 @@
 #include "vera/ops/string.h"
 #include "vera/window.h"
 
+// Fbo — Framebuffer Object wrapper.
+// Supports several attachment configurations (see FboType):
+//   COLOR_TEXTURE              – RGBA colour attachment only
+//   COLOR_TEXTURE_DEPTH_BUFFER – colour + depth renderbuffer (most common)
+//   COLOR_FLOAT_TEXTURE        – HDR floating-point colour
+//   COLOR_DEPTH_TEXTURES       – colour + depth both as samplable textures
+//   GBUFFER_TEXTURE            – floating-point colour + depth (for G-buffers)
+//   DEPTH_TEXTURE              – depth-only (shadow maps)
+//
+// Bind/unbind saves and restores the previous viewport so nested FBOs work
+// correctly. WebGL1 dimensions are rounded up to the next power of two.
+
 namespace vera {
 
 Fbo::Fbo():

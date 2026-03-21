@@ -4,6 +4,17 @@
 #include <iterator>
 #include <regex>
 
+// String utility functions — case conversion, type testing, parsing and
+// serialisation helpers used throughout the library.
+//
+// Conversions (toInt, toFloat, …) use std::istringstream so they handle
+// leading whitespace and return the zero-value of the target type on parse
+// failure rather than throwing.
+//
+// split() accepts an optional _tolerate_empty flag: when true, adjacent
+// delimiters produce empty-string tokens; when false (default) they are
+// collapsed, matching std::string behaviour.
+
 namespace vera {
 
 std::string toLower(const std::string& _string) {
