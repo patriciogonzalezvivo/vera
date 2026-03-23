@@ -66,6 +66,7 @@ set(VERA_SOURCES
     ${SOURCE_FOLDER}/ops/geom.cpp
     ${SOURCE_FOLDER}/ops/image.cpp
     ${SOURCE_FOLDER}/ops/intersection.cpp
+    ${SOURCE_FOLDER}/ops/math.cpp
     ${SOURCE_FOLDER}/ops/meshes.cpp
     ${SOURCE_FOLDER}/ops/pixel.cpp 
     ${SOURCE_FOLDER}/ops/string.cpp
