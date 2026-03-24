@@ -120,6 +120,14 @@ if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm32" OR
         target_include_directories(vera PUBLIC   ${BROADCOM_INCLUDE_DIRS})
         target_link_libraries(vera PUBLIC        ${BROADCOM_LIBRARIES})
         target_compile_definitions(vera PUBLIC   ${BROADCOM_DEFINITIONS})
+        
+        # Map standard OpenGL functions to OES extensions for OpenGL ES 2.0
+        target_compile_definitions(vera PUBLIC
+            glGenVertexArrays=glGenVertexArraysOES
+            glBindVertexArray=glBindVertexArrayOES
+            glDeleteVertexArrays=glDeleteVertexArraysOES
+            GL_VERTEX_ARRAY_BINDING=GL_VERTEX_ARRAY_BINDING_OES
+        )
     endif()
 
     if (BROADCOM_INCLUDE_DIR)
