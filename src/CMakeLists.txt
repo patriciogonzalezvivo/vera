@@ -1,3 +1,6 @@
+# CMake Options
+option(ENABLE_LIBAV "Enable LIBAV/FFmpeg support for audio/video streaming" ON)
+
 # Main folders
 set(SOURCE_FOLDER "${PROJECT_SOURCE_DIR}/src")
 set(DEPS_FOLDER "${PROJECT_SOURCE_DIR}/deps")
@@ -170,32 +173,37 @@ if (EMSCRIPTEN)
 else()
     find_package(FFMPEG)
 endif()
-if (FFMPEG_FOUND)
-    message(STATUS "LIBAV Supported")
-    target_include_directories(vera PUBLIC ${FFMPEG_INCLUDE_DIRS})
-    target_link_libraries(vera PUBLIC ${FFMPEG_LIBRARIES})
-    target_compile_definitions(vera PUBLIC SUPPORT_LIBAV )
-else()
-    # We could not find it ourself, so let's resort to pkg_config that is better when is present
-    # but may be not available in some cases (I'm looking at you windows)
-    find_package(PkgConfig)
-    if (PkgConfig_FOUND)
-        pkg_check_modules(FFPMEG
-            IMPORTED_TARGET GLOBAL
-            libavdevice
-            libavfilter
-            libavformat
-            libavcodec
-            libswresample
-            libswscale
-            libavutil
-        )
-        if (FFPMEG_FOUND)
-            message(STATUS "LIBAV Supported")
-            target_link_libraries(vera PUBLIC PkgConfig::FFPMEG)
-            target_compile_definitions(vera PUBLIC SUPPORT_LIBAV)
+
+if (ENABLE_LIBAV)
+    if (FFMPEG_FOUND)
+        message(STATUS "LIBAV Supported")
+        target_include_directories(vera PUBLIC ${FFMPEG_INCLUDE_DIRS})
+        target_link_libraries(vera PUBLIC ${FFMPEG_LIBRARIES})
+        target_compile_definitions(vera PUBLIC SUPPORT_LIBAV )
+    else()
+        # We could not find it ourself, so let's resort to pkg_config that is better when is present
+        # but may be not available in some cases (I'm looking at you windows)
+        find_package(PkgConfig)
+        if (PkgConfig_FOUND)
+            pkg_check_modules(FFPMEG
+                IMPORTED_TARGET GLOBAL
+                libavdevice
+                libavfilter
+                libavformat
+                libavcodec
+                libswresample
+                libswscale
+                libavutil
+            )
+            if (FFPMEG_FOUND)
+                message(STATUS "LIBAV Supported")
+                target_link_libraries(vera PUBLIC PkgConfig::FFPMEG)
+                target_compile_definitions(vera PUBLIC SUPPORT_LIBAV)
+            endif()
         endif()
     endif()
+else()
+    message(STATUS "LIBAV Support disabled via ENABLE_LIBAV option")
 endif()
 
 # find_package(exiv2lib CONFIG NAMES exiv2)
