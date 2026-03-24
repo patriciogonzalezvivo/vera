@@ -446,6 +446,11 @@ void line(const BoundingBox& _bbox, Shader* _program = nullptr);
 /// @param _program Optional custom shader (null = use default)
 void lineBoundingBox(const glm::vec4& _bbox, Shader* _program = nullptr);
 
+/// Draw multiple 2D line segments as one batch (every consecutive pair of vertices = one independent segment)
+/// @param _positions Array of vertex positions (must be even count; [0,1] = seg 0, [2,3] = seg 1, …)
+/// @param _program Optional custom shader (null = use default)
+void lines(const std::vector<glm::vec2>& _positions, Shader* _program = nullptr);
+
 /// Draw an arc (portion of an ellipse)
 /// @param _x Center X coordinate
 /// @param _y Center Y coordinate

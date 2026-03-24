@@ -569,6 +569,62 @@ void line(const Triangle& _triangle, Shader* _program) {
     line(positions, _program);
 }
 
+// BATCH LINES (disconnected segments — GL_LINES topology)
+//
+void lines(const std::vector<glm::vec2>& _positions, Shader* _program) {
+    if (!stroke_enabled || _positions.size() < 2)
+        return;
+    const size_t count = (_positions.size() / 2) * 2;
+
+    if (stroke_weight > 0.0f && stroke_weight <= 1.0f) {
+        if (_program == nullptr)
+            _program = strokeShader();
+        shader(_program);
+        _program->setUniform("u_color", stroke_color);
+        _program->setUniform("u_strokeWeight", stroke_weight);
+    #if defined(__EMSCRIPTEN__)
+        Vbo vbo = _positions;
+        vbo.setDrawMode(LINES);
+        vbo.render(_program);
+    #else
+        glLineWidth(stroke_weight);
+        const GLint location = _program->getAttribLocation("a_position");
+        if (location != -1) {
+            glEnableVertexAttribArray(location);
+            glVertexAttribPointer(location, 2, GL_FLOAT, false, 0, _positions.data());
+            glDrawArrays(GL_LINES, 0, count);
+            glDisableVertexAttribArray(location);
+        }
+    #endif
+    } else {
+        // Thick path: build one TRIANGLES mesh from all segments
+        Mesh combined;
+        combined.setDrawMode(TRIANGLES);
+        const float hw = stroke_weight * 0.5f;
+        for (size_t i = 0; i + 1 < count; i += 2) {
+            const glm::vec2& a = _positions[i];
+            const glm::vec2& b = _positions[i + 1];
+            glm::vec2 d = b - a;
+            float len = glm::length(d);
+            if (len < 0.0001f) continue;
+            glm::vec2 n = glm::vec2(-d.y, d.x) * (hw / len);
+            combined.addVertex(glm::vec3(a + n, 0.f));
+            combined.addVertex(glm::vec3(a - n, 0.f));
+            combined.addVertex(glm::vec3(b + n, 0.f));
+            combined.addVertex(glm::vec3(a - n, 0.f));
+            combined.addVertex(glm::vec3(b - n, 0.f));
+            combined.addVertex(glm::vec3(b + n, 0.f));
+        }
+        if (combined.getVerticesTotal() > 0) {
+            Vbo vbo(combined);
+            if (_program == nullptr)
+                _program = spline2DShader();
+            _program->setUniform("u_color", stroke_color);
+            model(vbo, _program);
+        }
+    }
+}
+
 void line(const BoundingBox& _bbox, Shader* _program) {
     std::vector<glm::vec3> p;
     p.reserve(17); 
