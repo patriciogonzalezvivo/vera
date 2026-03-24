@@ -615,8 +615,7 @@ TextureStreamMMAL::TextureStreamMMAL() :
     camera_component(NULL),
     m_fbo_id(0), m_old_fbo_id(0),
     m_egl_img(0),
-    m_vbo(nullptr),
-    camera_component(NULL) {
+    m_vbo(nullptr) {
     #ifndef DRIVER_BROADCOM
     // bcm_host is initialated on the creation of the window in LEGACY
     bcm_host_init();
