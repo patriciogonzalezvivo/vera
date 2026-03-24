@@ -106,7 +106,11 @@ void Model::setName(const std::string& _str) {
 bool Model::setGeom(const Mesh& _mesh) {
     mesh = _mesh;
 
-    // Load Geometry VBO
+    // Load Geometry VBO (free previous if re-setting)
+    if (m_model_vbo) {
+        delete m_model_vbo;
+        m_model_vbo = nullptr;
+    }
     m_model_vbo = new Vbo(_mesh);
 
     m_bbox.clean();
@@ -114,6 +118,10 @@ bool Model::setGeom(const Mesh& _mesh) {
         m_bbox.expand( _mesh.getVertex(i) );
 
     m_area = glm::min(glm::length(m_bbox.min), glm::length(m_bbox.max));
+    if (m_bbox_vbo) {
+        delete m_bbox_vbo;
+        m_bbox_vbo = nullptr;
+    }
     m_bbox_vbo = new Vbo( cubeCornersMesh( m_bbox, 0.25 ) );
 
     // Setup Shader and GEOMETRY DEFINE FLAGS

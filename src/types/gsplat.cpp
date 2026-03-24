@@ -113,19 +113,19 @@ void Gsplat::clear() {
     }
 
     // Clear GPU buffers
-    if (m_vao != -1) {
+    if (m_vao != 0) {
         glDeleteVertexArrays(1, &m_vao);
-        m_vao = -1;
+        m_vao = 0;
     }
 
-    if (m_positionVBO != -1) {
+    if (m_positionVBO != 0) {
         glDeleteBuffers(1, &m_positionVBO);
-        m_positionVBO = -1;
+        m_positionVBO = 0;
     }
 
-    if (m_indexVBO != -1) {
+    if (m_indexVBO != 0) {
         glDeleteBuffers(1, &m_indexVBO);
-        m_indexVBO = -1;
+        m_indexVBO = 0;
     }
 
     if (m_position != -1) {

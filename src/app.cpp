@@ -308,6 +308,7 @@ void App::onSave() {
         float* pixels = new float[vera::getWindowWidth() * vera::getWindowHeight()*4];
         glReadPixels(0, 0, vera::getWindowWidth(), vera::getWindowHeight(), GL_RGBA, GL_FLOAT, pixels);
         vera::savePixelsFloat(m_saveToPath, pixels, vera::getWindowWidth(), vera::getWindowHeight());
+        delete[] pixels;
     }
     else {
         int width = vera::getWindowWidth();

@@ -94,9 +94,9 @@ private:
     Shader*                 m_shader = nullptr;
 
     // Buffers
-    GLuint                  m_vao = -1;
-    GLuint                  m_positionVBO = -1;
-    GLuint                  m_indexVBO = -1;
+    GLuint                  m_vao = 0;
+    GLuint                  m_positionVBO = 0;
+    GLuint                  m_indexVBO = 0;
 
     // Cached attribute locations
     GLint                   m_position = -1;
