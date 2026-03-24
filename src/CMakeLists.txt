@@ -29,6 +29,16 @@ file(GLOB SHADERS_HEADER "${INCLUDE_FOLDER}/vera/shaders/*.h")
 file(GLOB TYPES_HEADER "${INCLUDE_FOLDER}/vera/types/*.h")
 file(GLOB XR_HEADER "${INCLUDE_FOLDER}/vera/xr/*.h")
 
+# Detect BROADCOM early to conditionally exclude incompatible sources
+set(IS_BROADCOM_GLES2 FALSE)
+if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm32" OR 
+    ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "armv7l" )
+    find_package(BROADCOM)
+    if (BROADCOM_FOUND)
+        set(IS_BROADCOM_GLES2 TRUE)
+    endif()
+endif()
+
 # SOURCE files
 set(VERA_SOURCES
     ${DEPS_FOLDER}/miniz/miniz.cpp
@@ -77,7 +87,6 @@ set(VERA_SOURCES
     ${SOURCE_FOLDER}/types/bvh.cpp
     ${SOURCE_FOLDER}/types/camera.cpp
     ${SOURCE_FOLDER}/types/font.cpp
-    ${SOURCE_FOLDER}/types/gsplat.cpp
     ${SOURCE_FOLDER}/types/image.cpp
     ${SOURCE_FOLDER}/types/line.cpp
     ${SOURCE_FOLDER}/types/light.cpp
@@ -94,6 +103,14 @@ set(VERA_SOURCES
     ${SOURCE_FOLDER}/xr/holoPlay.cpp 
     ${SOURCE_FOLDER}/xr/xr.cpp 
 )
+
+# Conditionally add gsplat.cpp - requires OpenGL ES 3.0+ features
+# Exclude for old Raspberry Pi with BROADCOM/OpenGL ES 2.0
+if (NOT IS_BROADCOM_GLES2)
+    list(APPEND VERA_SOURCES ${SOURCE_FOLDER}/types/gsplat.cpp)
+else()
+    message(STATUS "Excluding gsplat.cpp - requires OpenGL ES 3.0+ (BROADCOM uses ES 2.0)")
+endif()
 
 # C++ LIBRAY
 #
@@ -112,7 +129,7 @@ message(STATUS "SYSTEM ${CMAKE_SYSTEM_PROCESSOR}")
 # if it's arm32 or armv7l 
 if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm32" OR 
     ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "armv7l" )
-    find_package(BROADCOM)
+    # BROADCOM was already detected earlier for source file exclusion
     if (BROADCOM_FOUND)
         message(STATUS "BROADCOM_DEFINITIONS:   ${BROADCOM_DEFINITIONS}")
         message(STATUS "BROADCOM_INCLUDE_DIRS:  ${BROADCOM_INCLUDE_DIRS}")
