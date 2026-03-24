@@ -6,6 +6,10 @@
 #elif defined(__EMSCRIPTEN__)
 #define DEFAULT_GLSL_VERSION_NUMBER 100
 
+#elif defined(DRIVER_BROADCOM)
+// Old Raspberry Pi with Broadcom drivers uses OpenGL ES 2.0 (GLSL 100)
+#define DEFAULT_GLSL_VERSION_NUMBER 100
+
 #else
 #define DEFAULT_GLSL_VERSION_NUMBER 110
 #endif
