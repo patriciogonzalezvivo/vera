@@ -73,6 +73,7 @@ void Scene::load(const std::string& _filename, bool _verbose) {
     else if ( ext == "stl" || ext == "STL" )
         loadSTL( _filename, this, _verbose);
 
+#ifdef SUPPORT_GSPLAT
     else if ( ext == "splat" || ext == "SPLAT" ) {
         // load SPLAT as a Gsplat model
         Gsplat* gsplat = new Gsplat();
@@ -87,6 +88,7 @@ void Scene::load(const std::string& _filename, bool _verbose) {
             delete gsplat;
         }
     }
+#endif
 
     m_changed = true;
 }

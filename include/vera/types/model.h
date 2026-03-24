@@ -7,7 +7,9 @@
 #include "material.h"
 
 #include "mesh.h"
+#ifdef SUPPORT_GSPLAT
 #include "gsplat.h"
+#endif
 
 #include "../gl/vbo.h"
 #include "../gl/shader.h"
@@ -17,7 +19,9 @@ namespace vera {
 class Model : public Node {
 public:
     Model();
+#ifdef SUPPORT_GSPLAT
     Model(const std::string& _name, Gsplat* _gsplat);
+#endif
     Model(const std::string& _name, const Mesh& _mesh);
     Model(const std::string& _name, const Mesh& _mesh, Material* _mat);
     virtual ~Model();
@@ -28,7 +32,9 @@ public:
     void            clear();
 
     bool            setGeom(const Mesh& _mesh);
+#ifdef SUPPORT_GSPLAT
     bool            setGeom(Gsplat* _gsplat);
+#endif
 
     void            setName(const std::string& _str);
     bool            setMaterial(Material* _material);
@@ -36,7 +42,9 @@ public:
     void            setBufferShader(const std::string _bufferName, const std::string& _fragStr, const std::string& _vertStr);
 
     const std::string&  getName() const { return m_name; }
+#ifdef SUPPORT_GSPLAT
     Gsplat*             getGsplat() { return m_model_gsplat; }
+#endif
     Vbo*                getVbo() { return m_model_vbo; }
     Vbo*                getVboBbox() { return m_bbox_vbo; }
     float               getArea() const { return m_area; }
@@ -63,7 +71,9 @@ protected:
 
     // Model geometry
     Vbo*            m_model_vbo;
+#ifdef SUPPORT_GSPLAT
     Gsplat*         m_model_gsplat;
+#endif
 
     std::string     m_name;
     float           m_area;

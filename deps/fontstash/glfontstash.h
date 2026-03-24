@@ -151,7 +151,9 @@ struct GLFONScontext {
     bool resolutionDirty;
     void* userPtr;
     std::unordered_map<fsuint, GLFONSbuffer*> buffers;
+#ifndef FONS_NO_VAO
     GLuint vao;
+#endif
 };
 
 static int glfons__renderCreate(void* userPtr, int width, int height) {
@@ -296,7 +298,9 @@ void glfons__initShaders(GLFONScontext* gl) {
 
     gl->program = program;
 
+#ifndef FONS_NO_VAO
     glGenVertexArrays(1, &gl->vao);
+#endif
 
     GLuint boundProgram;
     glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*) &boundProgram);
@@ -639,7 +643,9 @@ void glfonsDraw(FONScontext* ctx) {
     GLuint textureUnit0 = 0;
     GLuint boundProgram = 0;
     GLuint boundBuffer = 0;
+#ifndef FONS_NO_VAO
     GLint boundVertexArray = 0;
+#endif
     GLint boundTextureUnit = 0;
     GLint blendSrcRGB, blendDstRGB, blendSrcAlpha, blendDstAlpha;
 
@@ -649,11 +655,13 @@ void glfonsDraw(FONScontext* ctx) {
     glGetIntegerv(GL_ACTIVE_TEXTURE, &boundTextureUnit);
     glActiveTexture(GL_TEXTURE0 + ATLAS_TEXTURE_SLOT);
     glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint*) &textureUnit0);
+#ifndef FONS_NO_VAO
     #ifdef __APPLE__
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING_APPLE, &boundVertexArray);
     #else
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &boundVertexArray);
     #endif
+#endif
     glGetIntegerv(GL_BLEND_SRC_RGB, &blendSrcRGB);
     glGetIntegerv(GL_BLEND_DST_RGB, &blendDstRGB);
     glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrcAlpha);
@@ -667,9 +675,14 @@ void glfonsDraw(FONScontext* ctx) {
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+#ifndef FONS_NO_VAO
     glBindVertexArray(gl->vao);
     glfons__draw(gl, gl->atlas != textureUnit0);
     glBindVertexArray(boundVertexArray);
+#else
+    // When VAO is not available, manually bind attributes for each buffer
+    glfons__draw(gl, gl->atlas != textureUnit0);
+#endif
 
     glBindBuffer(GL_ARRAY_BUFFER, boundBuffer);
 
@@ -700,9 +713,11 @@ static void glfons__renderDelete(void* userPtr) {
         if (gl->program) {
             glDeleteProgram(gl->program);
         }
+#ifndef FONS_NO_VAO
         if (gl->vao != 0) {
             glDeleteVertexArrays(1, &gl->vao);
         }
+#endif
     }
     delete gl;
 }
@@ -728,7 +743,9 @@ void glfons__createAtlas(void* usrPtr, unsigned int width, unsigned int height) 
 FONScontext* glfonsCreate(int width, int height, int flags, GLFONSparams glParams, void* userPtr) {
     FONSparams params;
     GLFONScontext* gl = new GLFONScontext;
+#ifndef FONS_NO_VAO
     gl->vao = 0;
+#endif
 
     if(glParams.useGLBackend) {
         glParams.updateAtlas = glfons__udpateAtas;

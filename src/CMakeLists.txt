@@ -124,6 +124,11 @@ set_target_properties(vera PROPERTIES
 
 target_compile_definitions(vera PRIVATE _LARGEFILE64_SOURCE=1)
 
+# Define SUPPORT_GSPLAT when gsplat is included
+if (NOT IS_BROADCOM_GLES2)
+    target_compile_definitions(vera PUBLIC SUPPORT_GSPLAT)
+endif()
+
 message(STATUS "SYSTEM ${CMAKE_SYSTEM_PROCESSOR}")
 
 # if it's arm32 or armv7l 
@@ -138,13 +143,8 @@ if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm32" OR
         target_link_libraries(vera PUBLIC        ${BROADCOM_LIBRARIES})
         target_compile_definitions(vera PUBLIC   ${BROADCOM_DEFINITIONS})
         
-        # Map standard OpenGL functions to OES extensions for OpenGL ES 2.0
-        target_compile_definitions(vera PUBLIC
-            glGenVertexArrays=glGenVertexArraysOES
-            glBindVertexArray=glBindVertexArrayOES
-            glDeleteVertexArrays=glDeleteVertexArraysOES
-            GL_VERTEX_ARRAY_BINDING=GL_VERTEX_ARRAY_BINDING_OES
-        )
+        # Disable VAO usage for old Raspberry Pi - OES_vertex_array_object may not be available
+        target_compile_definitions(vera PUBLIC FONS_NO_VAO)
     endif()
 
     if (BROADCOM_INCLUDE_DIR)

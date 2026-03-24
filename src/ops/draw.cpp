@@ -1597,6 +1597,7 @@ void model(const Mesh& _mesh, Shader* _program) {
     delete vbo;
 }
 
+#ifdef SUPPORT_GSPLAT
 void model(Gsplat& _gsplat, Shader* _program) {
 
     if (fill_enabled) {
@@ -1610,6 +1611,7 @@ void model(Gsplat& _gsplat, Shader* _program) {
         _gsplat.renderBlocks(camera(), worldMatrix());
     }
 }
+#endif
 
 void model(Vbo& _vbo, Shader* _program) { model(&_vbo, _program); }
 void model(Vbo* _vbo, Shader* _program) {

@@ -11,7 +11,9 @@
 #include "vera/types/font.h"
 #include "vera/types/line.h"
 #include "vera/types/mesh.h"
+#ifdef SUPPORT_GSPLAT
 #include "vera/types/gsplat.h"
+#endif
 #include "vera/types/scene.h"
 #include "vera/types/polyline.h"
 #include "vera/types/triangle.h"
@@ -1345,10 +1347,12 @@ void model(Vbo* _vbo, Shader* _program = nullptr);
 /// @param _program Optional custom shader (null = use default)
 void model(const Mesh& _mesh, Shader* _program = nullptr);
 
+#ifdef SUPPORT_GSPLAT
 /// Render Gaussian splat object
 /// @param _gsplat Gaussian splat object to render
 /// @param _program Optional custom shader (null = use default)
 void model(Gsplat& _gsplat, Shader* _program = nullptr);
+#endif
 
 // =============================================================================
 // LABEL RENDERING (3D text annotations that face camera)

@@ -12,11 +12,14 @@ namespace vera {
 
 Model::Model():
     m_bbox_vbo(nullptr),
-    m_model_vbo(nullptr), 
+    m_model_vbo(nullptr),
+#ifdef SUPPORT_GSPLAT
     m_model_gsplat(nullptr),
+#endif
     m_name(""), m_area(0.0f) {
 }
 
+#ifdef SUPPORT_GSPLAT
 Model::Model(const std::string& _name, Gsplat* _gsplat):
     m_bbox_vbo(nullptr), 
     m_model_vbo(nullptr),
@@ -25,11 +28,14 @@ Model::Model(const std::string& _name, Gsplat* _gsplat):
     setName(_name);
     setGeom(_gsplat);
 }
+#endif
 
 Model::Model(const std::string& _name, const Mesh &_mesh):
     m_bbox_vbo(nullptr), 
     m_model_vbo(nullptr),
-    m_model_gsplat(nullptr), 
+#ifdef SUPPORT_GSPLAT
+    m_model_gsplat(nullptr),
+#endif 
     m_area(0.0f) {
     setName(_name);
     setGeom(_mesh);
@@ -38,7 +44,9 @@ Model::Model(const std::string& _name, const Mesh &_mesh):
 Model::Model(const std::string& _name, const Mesh &_mesh, Material* _mat):
     m_bbox_vbo(nullptr), 
     m_model_vbo(nullptr),
-    m_model_gsplat(nullptr), 
+#ifdef SUPPORT_GSPLAT
+    m_model_gsplat(nullptr),
+#endif 
     m_area(0.0f) {
     setName(_name);
     setGeom(_mesh);
@@ -60,10 +68,12 @@ void Model::clear() {
         m_model_vbo = nullptr;
     }
 
+#ifdef SUPPORT_GSPLAT
     if (m_model_gsplat) {
         delete m_model_gsplat;
         m_model_gsplat = nullptr;
     }
+#endif
 }
 
 void Model::addDefine(const std::string& _define, const std::string& _value) { 
@@ -156,6 +166,7 @@ bool Model::setGeom(const Mesh& _mesh) {
     return true;
 }
 
+#ifdef SUPPORT_GSPLAT
 bool Model::setGeom(Gsplat* _gsplat) {
     if (!_gsplat)
         return false;
@@ -181,6 +192,7 @@ bool Model::setGeom(Gsplat* _gsplat) {
 
     return true;
 }
+#endif
 
 void Model::setShader(const std::string& _fragStr, const std::string& _vertStr) {
     mainShader.setSource(_fragStr, _vertStr);
@@ -219,6 +231,7 @@ void Model::render(){
     if (m_model_vbo && mainShader.isLoaded())
         m_model_vbo->render(&mainShader);
 
+#ifdef SUPPORT_GSPLAT
     if (m_model_gsplat) {
         if (mainShader.isDirty()) {
             mainShader.reload();
@@ -226,6 +239,7 @@ void Model::render(){
         m_model_gsplat->use(&mainShader);
         m_model_gsplat->render(vera::camera(), getTransformMatrix(), bChange);
     }
+#endif
     
     bChange = false;
 }
@@ -234,20 +248,24 @@ void Model::render(Shader* _shader) {
     if (m_model_vbo)
         m_model_vbo->render(_shader);
 
+#ifdef SUPPORT_GSPLAT
     if (m_model_gsplat) {
         // m_model_gsplat->use(_shader);
         m_model_gsplat->render(vera::camera(), getTransformMatrix());
     }
+#endif
 }
 
 void Model::renderBbox(Shader* _shader) {
     if (m_bbox_vbo)
         m_bbox_vbo->render(_shader);
 
+#ifdef SUPPORT_GSPLAT
     if (m_model_gsplat) {
         // m_model_gsplat->use(_shader);
         m_model_gsplat->renderBlocks(vera::camera(), getTransformMatrix());
     }
+#endif
 }
 
 }
