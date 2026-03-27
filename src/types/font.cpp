@@ -222,5 +222,217 @@ void Font::render(const std::string &_text, float _x, float _y) {
     glfonsBufferDelete(fs, buffer);
 }
 
+// ---------------------------------------------------------------------------
+// Font::getShapes
+// ---------------------------------------------------------------------------
+//
+// We extract the raw TTF outline for each codepoint using stb_truetype's
+// stbtt_GetCodepointShape().  The fontstash scratch allocator is reset after
+// each glyph so the 160 KB scratch buffer never overflows on long strings.
+//
+// Coordinate system notes
+//   stb_truetype returns Y-up font units.  We flip Y (vy = -v.y * scale) so
+//   the output is in screen Y-down coordinates.  After the flip:
+//     • Outer contours have signed area < 0  (were CCW in Y-up)
+//     • Hole contours  have signed area > 0  (were CW  in Y-up)
+//   Shape groups outer + holes accordingly.
+
+namespace {
+
+// Quadratic Bézier flattening — subdivides into `segs` line segments.
+static void flattenQuad(vera::Polyline& poly,
+                        float x0, float y0,   // start
+                        float cx, float cy,   // control
+                        float x1, float y1,   // end
+                        int segs = 8) {
+    for (int s = 1; s <= segs; s++) {
+        float t  = (float)s / (float)segs;
+        float mt = 1.0f - t;
+        float qx = mt * mt * x0 + 2.0f * mt * t * cx + t * t * x1;
+        float qy = mt * mt * y0 + 2.0f * mt * t * cy + t * t * y1;
+        poly.add(glm::vec2(qx, qy));
+    }
+}
+
+// Cubic Bézier flattening.
+static void flattenCubic(vera::Polyline& poly,
+                         float x0, float y0,
+                         float cx0, float cy0,
+                         float cx1, float cy1,
+                         float x1, float y1,
+                         int segs = 12) {
+    for (int s = 1; s <= segs; s++) {
+        float t  = (float)s / (float)segs;
+        float mt = 1.0f - t;
+        float qx = mt*mt*mt*x0 + 3.0f*mt*mt*t*cx0 + 3.0f*mt*t*t*cx1 + t*t*t*x1;
+        float qy = mt*mt*mt*y0 + 3.0f*mt*mt*t*cy0 + 3.0f*mt*t*t*cy1 + t*t*t*y1;
+        poly.add(glm::vec2(qx, qy));
+    }
+}
+
+// Signed area of a 2-D polygon (shoelace).  Positive = CCW in standard Y-up.
+static float signedArea2D(const std::vector<glm::vec2>& pts) {
+    float area = 0.0f;
+    int n = (int)pts.size();
+    for (int i = 0, j = n - 1; i < n; j = i++) {
+        area += (pts[j].x + pts[i].x) * (pts[j].y - pts[i].y);
+    }
+    return area * 0.5f;
+}
+
+// Point-in-polygon (ray casting).
+static bool pip(const std::vector<glm::vec2>& poly, float px, float py) {
+    int n = (int)poly.size();
+    bool inside = false;
+    for (int i = 0, j = n - 1; i < n; j = i++) {
+        float xi = poly[i].x, yi = poly[i].y;
+        float xj = poly[j].x, yj = poly[j].y;
+        if (((yi > py) != (yj > py)) &&
+            (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) {
+            inside = !inside;
+        }
+    }
+    return inside;
+}
+
+} // anonymous namespace
+
+std::vector<vera::Shape> Font::getShapes(const std::string& _text,
+                                          float _x, float _y, float _scale) {
+    if (m_id < 0) loadDefault();
+
+    // Gain access to the stbtt_fontinfo stored inside the fontstash context.
+    // fs->fonts[m_id]->font.font  is the stbtt_fontinfo struct.
+    stbtt_fontinfo* fontInfo = &fs->fonts[m_id]->font.font;
+
+    float pixelSize = (_scale > 0.0f) ? _scale : m_size;
+    float scale     = stbtt_ScaleForMappingEmToPixels(fontInfo, pixelSize);
+
+    int ascent, descent, lineGap;
+    stbtt_GetFontVMetrics(fontInfo, &ascent, &descent, &lineGap);
+
+    std::vector<vera::Shape> shapes;
+    float cx = _x; // pen X position
+
+    for (unsigned char ch : _text) {
+        if (ch == ' ' || ch == '\t') {
+            int advance, lsb;
+            int glyph = stbtt_FindGlyphIndex(fontInfo, ch);
+            stbtt_GetGlyphHMetrics(fontInfo, glyph, &advance, &lsb);
+            cx += advance * scale;
+            continue;
+        }
+        if (ch == '\n') {
+            cx = _x;
+            _y += (ascent - descent + lineGap) * scale;
+            continue;
+        }
+
+        // --- Extract raw glyph outline -----------------------------------
+        stbtt_vertex* verts = nullptr;
+        // Reset scratch before each glyph so the 160 KB buffer never overflows.
+        fs->nscratch = 0;
+        int numVerts = stbtt_GetCodepointShape(fontInfo, ch, &verts);
+
+        if (numVerts == 0 || verts == nullptr) {
+            int advance, lsb;
+            int glyph = stbtt_FindGlyphIndex(fontInfo, ch);
+            stbtt_GetGlyphHMetrics(fontInfo, glyph, &advance, &lsb);
+            cx += advance * scale;
+            continue;
+        }
+
+        // --- Parse vertices into contours --------------------------------
+        std::vector<vera::Polyline> contours;
+        vera::Polyline current;
+
+        float px = 0.0f, py = 0.0f; // current position (screen coords)
+
+        for (int i = 0; i < numVerts; i++) {
+            const stbtt_vertex& v = verts[i];
+            float vx =  v.x * scale + cx;
+            float vy = -v.y * scale + _y;  // flip Y for screen coords
+
+            switch (v.type) {
+            case STBTT_vmove:
+                if (current.size() > 0) contours.push_back(current);
+                current.clear();
+                current.add(glm::vec2(vx, vy));
+                px = vx; py = vy;
+                break;
+
+            case STBTT_vline:
+                current.add(glm::vec2(vx, vy));
+                px = vx; py = vy;
+                break;
+
+            case STBTT_vcurve: {
+                float cpx =  v.cx  * scale + cx;
+                float cpy = -v.cy  * scale + _y;
+                flattenQuad(current, px, py, cpx, cpy, vx, vy);
+                px = vx; py = vy;
+                break;
+            }
+
+            case STBTT_vcubic: {
+                float cp0x =  v.cx  * scale + cx;
+                float cp0y = -v.cy  * scale + _y;
+                float cp1x =  v.cx1 * scale + cx;
+                float cp1y = -v.cy1 * scale + _y;
+                flattenCubic(current, px, py, cp0x, cp0y, cp1x, cp1y, vx, vy);
+                px = vx; py = vy;
+                break;
+            }
+
+            default: break;
+            }
+        }
+        if (current.size() > 0) contours.push_back(current);
+
+        // stbtt scratch memory is owned by the scratch buffer; we don't free it
+        // (fons__tmpfree is a no-op), but we already reset nscratch above.
+
+        // --- Classify contours (outer vs hole) ---------------------------
+        // After Y-flip into screen Y-down:
+        //   outer contours → signed area < 0  (were CCW in Y-up)
+        //   hole  contours → signed area > 0  (were CW  in Y-up)
+
+        std::vector<int> outerIdx, holeIdx;
+        for (int i = 0; i < (int)contours.size(); i++) {
+            auto pts2d = contours[i].get2DPoints();
+            if ((int)pts2d.size() < 3) continue;
+            float area = signedArea2D(pts2d);
+            if (area <= 0.0f) outerIdx.push_back(i);
+            else              holeIdx.push_back(i);
+        }
+
+        // --- Group each outer with its holes and emit Shapes -------------
+        for (int oi : outerIdx) {
+            vera::Shape shape(contours[oi]);
+
+            auto outerPts = contours[oi].get2DPoints();
+
+            for (int hi : holeIdx) {
+                auto holePts = contours[hi].get2DPoints();
+                if (holePts.empty()) continue;
+                // Use the first hole vertex for the containment test
+                if (pip(outerPts, holePts[0].x, holePts[0].y)) {
+                    shape.holes.push_back(contours[hi]);
+                }
+            }
+
+            shapes.push_back(std::move(shape));
+        }
+
+        // Advance pen
+        int advance, lsb;
+        int glyph = stbtt_FindGlyphIndex(fontInfo, ch);
+        stbtt_GetGlyphHMetrics(fontInfo, glyph, &advance, &lsb);
+        cx += advance * scale;
+    }
+
+    return shapes;
+}
+
 }
 

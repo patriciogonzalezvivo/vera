@@ -6,6 +6,7 @@
 #include <map>
 #include "glm/glm.hpp"
 #include "vera/types/props.h"
+#include "vera/types/shape.h"
 
 namespace vera {
 
@@ -52,6 +53,21 @@ public:
 
     virtual void render(const std::string &_text, float _x, float _y);
     virtual void render(const std::string &_text, const glm::vec2 &_pos) { render(_text, _pos.x, _pos.y); }
+
+    /// Convert each character of _text into a list of Shapes (contour + holes).
+    ///
+    /// Each glyph may produce one or more Shapes (e.g. 'i' → stem shape + dot shape).
+    /// The shapes for all characters are appended sequentially into the returned list.
+    ///
+    /// @param _text   UTF-8 / ASCII string to convert.
+    /// @param _x      Baseline X starting position (pixels).
+    /// @param _y      Baseline Y position (pixels, Y-down screen coordinates).
+    /// @param _scale  Override the pixel size used for scaling (0 = use current font size).
+    /// @return        List of Shape objects, one per glyph contour group.
+    virtual std::vector<Shape> getShapes(const std::string& _text,
+                                          float _x = 0.0f,
+                                          float _y = 0.0f,
+                                          float _scale = 0.0f);
 
 private:
 

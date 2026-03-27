@@ -18,6 +18,7 @@ set(INCLUDE_DEPS_FOLDERS
     "${PROJECT_SOURCE_DIR}/deps/tinyply"
     "${PROJECT_SOURCE_DIR}/deps/miniz"
     "${PROJECT_SOURCE_DIR}/deps/tinyexr"
+    "${PROJECT_SOURCE_DIR}/deps/earcut"
 )
 
 # HEADERS files
@@ -97,6 +98,7 @@ set(VERA_SOURCES
     ${SOURCE_FOLDER}/types/node.cpp
     ${SOURCE_FOLDER}/types/polarPoint.cpp
     ${SOURCE_FOLDER}/types/polyline.cpp
+    ${SOURCE_FOLDER}/types/shape.cpp
     ${SOURCE_FOLDER}/types/scene.cpp
     ${SOURCE_FOLDER}/types/triangle.cpp
     ${SOURCE_FOLDER}/shaders/defaultShaders.cpp
