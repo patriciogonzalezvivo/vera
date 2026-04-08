@@ -614,6 +614,14 @@ void lines(const std::vector<glm::vec2>& _positions, Shader* _program) {
             combined.addVertex(glm::vec3(a - n, 0.f));
             combined.addVertex(glm::vec3(b - n, 0.f));
             combined.addVertex(glm::vec3(b + n, 0.f));
+
+            // UVs 
+            combined.addTexCoord(glm::vec2(0.f, 0.f));
+            combined.addTexCoord(glm::vec2(0.f, 1.f));
+            combined.addTexCoord(glm::vec2(len, 0.f));
+            combined.addTexCoord(glm::vec2(0.f, 1.f));
+            combined.addTexCoord(glm::vec2(len, 1.f));
+            combined.addTexCoord(glm::vec2(len, 0.f));
         }
         if (combined.getVerticesTotal() > 0) {
             Vbo vbo(combined);
@@ -1342,6 +1350,9 @@ void text(const std::string& _text, float _x, float _y, Font* _font) {
     pos.y = (1.0f-pos.y) * 0.5f * viewport[3];
 
     _font->render(_text, pos.x, pos.y);
+    // float worldAngle = atan2f(matrix_world[0][1], matrix_world[0][0]);
+    // _font->render(_text, pos.x, pos.y, worldAngle);
+
 }
 
 void text(const std::string& _text, const glm::vec3& _pos, Font* _font) { 

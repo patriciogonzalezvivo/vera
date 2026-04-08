@@ -186,7 +186,7 @@ glm::vec4 Font::getBoundingBox(const std::string &_text, float _x, float _y) {
     return bbox;
 }
 
-void Font::render(const std::string &_text, float _x, float _y) {
+void Font::render(const std::string &_text, float _x, float _y, float _worldAngle) {
     if (m_id < 0)
         loadDefault();
 
@@ -212,10 +212,9 @@ void Font::render(const std::string &_text, float _x, float _y) {
     glfonsGenText(fs, 1, &textID);
     glfonsSetColor(fs, m_color);
 
+    float totalAngle = m_angle + _worldAngle;
     glfonsRasterize(fs, textID, _text.c_str());
-    glfonsTransform(fs, textID, _x, _y, 0.0, 1.0);
-    if (m_angle != 0.0)
-        glfonsRotate(fs, textID, m_angle);
+    glfonsTransform(fs, textID, _x, _y, totalAngle, 1.0);
 
     glfonsUpdateBuffer(fs);
     glfonsDraw(fs);

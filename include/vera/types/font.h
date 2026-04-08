@@ -51,8 +51,8 @@ public:
     virtual glm::vec4   getBoundingBox(const std::string &_text, float _x = 0, float _y = 0);
     virtual glm::vec4   getBoundingBox(const std::string &_text, const glm::vec2 &_pos) { return getBoundingBox(_text, _pos.x, _pos.y); }
 
-    virtual void render(const std::string &_text, float _x, float _y);
-    virtual void render(const std::string &_text, const glm::vec2 &_pos) { render(_text, _pos.x, _pos.y); }
+    virtual void render(const std::string &_text, float _x, float _y, float _worldAngle = 0.0f);
+    virtual void render(const std::string &_text, const glm::vec2 &_pos, float _worldAngle = 0.0f) { render(_text, _pos.x, _pos.y, _worldAngle); }
 
     /// Convert each character of _text into a list of Shapes (contour + holes).
     ///
