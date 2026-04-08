@@ -1258,6 +1258,20 @@ Font* font(const std::string& _name) {
 
 //  FONT
 //
+void textShader(Shader* _shader) {
+    if (_shader == nullptr) return;
+    _shader->use();
+    Font::setExternalShader(_shader->getProgram());
+}
+
+void textShaderClear() {
+    Font::clearExternalShader();
+}
+
+unsigned int textAtlasId() {
+    return Font::getAtlasTexture();
+}
+
 Font* textFont(const std::string& _name) { 
     if (_name == "default")
         main_scene->getDefaultFont();

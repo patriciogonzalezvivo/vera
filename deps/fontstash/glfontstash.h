@@ -78,6 +78,9 @@ void glfonsUpdateBuffer(FONScontext* ctx, void* owner = nullptr);
 void glfonsDraw(FONScontext* ctx);
 void glfonsSetColor(FONScontext* ctx, unsigned int color);
 unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
+void glfonsSetExternalProgram(FONScontext* ctx, GLuint program);
+void glfonsClearExternalProgram(FONScontext* ctx);
+GLuint glfonsGetAtlas(FONScontext* ctx);
 
 #endif
 
@@ -144,6 +147,9 @@ struct GLFONScontext {
     int atlasRes[2];
     GLuint atlas;
     GLuint program;
+    GLuint externalProgram;
+    GLFONSVertexLayout externalLayout;
+    bool hasExternalProgram;
     fsuint bufferCount;
     fsuint boundBuffer;
     float screenSize[2];
@@ -355,25 +361,53 @@ void glfons__draw(GLFONScontext* gl, bool bindAtlas) {
     GLint boundProgram;
     glGetIntegerv(GL_CURRENT_PROGRAM, &boundProgram);
 
-    GLFONS_GL_CHECK(glUseProgram(gl->program));
+    GLuint activeProgram;
+    GLFONSVertexLayout* activeLayout;
+    if (gl->hasExternalProgram) {
+        activeProgram = gl->externalProgram;
+        activeLayout = &gl->externalLayout;
+    } else {
+        activeProgram = gl->program;
+        activeLayout = &gl->layout;
+    }
+
+    GLFONS_GL_CHECK(glUseProgram(activeProgram));
 
     if(gl->resolutionDirty) {
         glfons__updateProjection(gl);
-        GLFONS_GL_CHECK(glUniformMatrix4fv(glGetUniformLocation(gl->program, "u_proj"), 1, GL_FALSE, gl->projectionMatrix));
     }
+    GLFONS_GL_CHECK(glUniformMatrix4fv(glGetUniformLocation(activeProgram, "u_proj"), 1, GL_FALSE, gl->projectionMatrix));
 
     if(bindAtlas) {
         glActiveTexture(GL_TEXTURE0 + ATLAS_TEXTURE_SLOT);
         GLFONS_GL_CHECK(glBindTexture(GL_TEXTURE_2D, gl->atlas));
     }
+    GLFONS_GL_CHECK(glUniform1i(glGetUniformLocation(activeProgram, "u_tex"), ATLAS_TEXTURE_SLOT));
 
     for(auto& pair : gl->buffers) {
         GLFONSbuffer* buffer = pair.second;
         GLFONS_GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, buffer->vbo));
-        glfons__enableVertexLayout(gl);
-        glfons__bindUniforms(gl, buffer);
+
+        // Enable vertex layout for the active program
+        for(auto& attribute : activeLayout->attributes) {
+            if (attribute.location >= 0) {
+                GLFONS_GL_CHECK(glVertexAttribPointer(attribute.location, attribute.size, GL_FLOAT, attribute.normalized, activeLayout->stride, (const GLvoid *) attribute.offset));
+                GLFONS_GL_CHECK(glEnableVertexAttribArray(attribute.location));
+            }
+        }
+
+        // Bind uniforms
+        float r = (buffer->color & 0xff) / 255.0;
+        float g = (buffer->color >> 8 & 0xff) / 255.0;
+        float b = (buffer->color >> 16 & 0xff) / 255.0;
+        GLFONS_GL_CHECK(glUniform3f(glGetUniformLocation(activeProgram, "u_color"), r, g, b));
+
         GLFONS_GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, buffer->nVerts));
-        glfons__disableVertexLayout(gl);
+
+        for(auto& attribute : activeLayout->attributes) {
+            if (attribute.location >= 0)
+                glDisableVertexAttribArray(attribute.location);
+        }
     }
 
     // restore previously bound program
@@ -743,6 +777,8 @@ void glfons__createAtlas(void* usrPtr, unsigned int width, unsigned int height) 
 FONScontext* glfonsCreate(int width, int height, int flags, GLFONSparams glParams, void* userPtr) {
     FONSparams params;
     GLFONScontext* gl = new GLFONScontext;
+    gl->externalProgram = 0;
+    gl->hasExternalProgram = false;
 #ifndef FONS_NO_VAO
     gl->vao = 0;
 #endif
@@ -887,6 +923,43 @@ void glfonsGetBBox(FONScontext* ctx, fsuint id, float* x0, float* y0, float* x1,
 float glfonsGetLength(FONScontext* ctx, fsuint id) {
     GLFONS_LOAD_STASH
     return stash->length;
+}
+
+void glfonsSetExternalProgram(FONScontext* ctx, GLuint program) {
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    gl->externalProgram = program;
+    gl->hasExternalProgram = true;
+
+    // Build vertex layout for the external program using the same attribute names
+    // Note: create a fresh layout without overwriting gl->layout (the internal one)
+    GLFONSVertexLayout layout;
+    layout.attributes.push_back({"a_position", 2, false, 0, -1});
+    layout.attributes.push_back({"a_uvs", 2, false, 0, -1});
+    layout.attributes.push_back({"a_screenPosition", 2, false, 0, -1});
+    layout.attributes.push_back({"a_alpha", 1, false, 0, -1});
+    layout.attributes.push_back({"a_rotation", 1, false, 0, -1});
+    layout.nbComponents = 0;
+    layout.stride = 0;
+    for(auto& attribute : layout.attributes) {
+        attribute.offset = (GLvoid *) (layout.nbComponents * sizeof(float));
+        layout.nbComponents += attribute.size;
+        layout.stride += attribute.size * sizeof(float);
+    }
+    gl->externalLayout = layout;
+    for(auto& attribute : gl->externalLayout.attributes) {
+        attribute.location = glGetAttribLocation(program, attribute.name.c_str());
+    }
+}
+
+void glfonsClearExternalProgram(FONScontext* ctx) {
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    gl->hasExternalProgram = false;
+    gl->externalProgram = 0;
+}
+
+GLuint glfonsGetAtlas(FONScontext* ctx) {
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    return gl->atlas;
 }
 
 #endif

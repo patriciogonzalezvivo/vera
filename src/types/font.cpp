@@ -221,6 +221,24 @@ void Font::render(const std::string &_text, float _x, float _y, float _worldAngl
     glfonsBufferDelete(fs, buffer);
 }
 
+void Font::setExternalShader(unsigned int _program) {
+    if (fs == nullptr)
+        return;
+    glfonsSetExternalProgram(fs, (GLuint)_program);
+}
+
+void Font::clearExternalShader() {
+    if (fs == nullptr)
+        return;
+    glfonsClearExternalProgram(fs);
+}
+
+unsigned int Font::getAtlasTexture() {
+    if (fs == nullptr)
+        return 0;
+    return (unsigned int)glfonsGetAtlas(fs);
+}
+
 // ---------------------------------------------------------------------------
 // Font::getShapes
 // ---------------------------------------------------------------------------

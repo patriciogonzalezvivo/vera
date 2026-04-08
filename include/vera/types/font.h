@@ -69,6 +69,10 @@ public:
                                           float _y = 0.0f,
                                           float _scale = 0.0f);
 
+    static void     setExternalShader(unsigned int _program);
+    static void     clearExternalShader();
+    static unsigned int getAtlasTexture();
+
 private:
 
     HorizontalAlign     m_hAlign;

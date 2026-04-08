@@ -960,6 +960,17 @@ Font* font(const std::string& _name);
 // textDescent()
 // textWrap()
 
+/// Set an external shader for text rendering
+/// @param _shader Shader to use for text (must have fontstash-compatible attributes)
+void  textShader(Shader* _shader);
+
+/// Clear the external text shader (revert to default SDF shader)
+void  textShaderClear();
+
+/// Get the fontstash atlas texture ID
+/// @return GL texture ID of the font atlas
+unsigned int textAtlasId();
+
 /// Set text font by name from registry
 /// @param _name Font identifier name
 /// @return Pointer to Font object
