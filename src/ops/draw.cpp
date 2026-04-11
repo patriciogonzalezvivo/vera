@@ -321,7 +321,7 @@ void background( Shader* _shader ) {
     _shader->use();
     _shader->setUniform("u_resolution", (float)getWindowWidth(), (float)getWindowHeight());
     _shader->setUniform("u_time", (float)getTimeSec());
-    _shader->setUniform("u_modelViewProjectionMatrix", glm::mat4(1.0));
+    _shader->setUniform("u_modelViewProjectionMatrix", glm::mat4(1.0f));
     billboard_vbo->render(_shader);
 }
 
