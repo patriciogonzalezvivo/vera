@@ -36,7 +36,8 @@ enum DefaultShaders {
     FRAG_POISSONFILL, 
     FRAG_JUMPFLOOD_ENCODE, FRAG_JUMPFLOOD,
     VERT_DEVLOOK_BILLBOARD, VERT_DEVLOOK_SPHERE,
-    VERT_SPLAT, FRAG_SPLAT
+    VERT_SPLAT, FRAG_SPLAT,
+    VERT_FONT, FRAG_FONT
 };
 
 bool        haveVersion(const std::string& _src);

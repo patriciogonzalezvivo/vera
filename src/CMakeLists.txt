@@ -375,7 +375,7 @@ else()
 endif()
 
 # We need this directory, and users of our library will need it too
-target_include_directories(vera PUBLIC ${INCLUDE_DEPS_FOLDERS} ${INCLUDE_FOLDER} )
+target_include_directories(vera PUBLIC ${INCLUDE_DEPS_FOLDERS} ${INCLUDE_FOLDER} ${PROJECT_SOURCE_DIR}/.. )
 
 # target_compile_definitions(vera PRIVATE DEBUG)
 target_compile_definitions(vera PRIVATE VERA_VERSION_MAJOR=${VERSION_MAJOR})

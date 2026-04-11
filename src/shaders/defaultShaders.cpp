@@ -23,6 +23,8 @@
 #include "vera/ops/fs.h"
 #include "vera/ops/string.h"
 
+#include "vera/deps/fontstash/shaders.h"
+
 namespace vera {
 
 static size_t versionNumber = DEFAULT_GLSL_VERSION_NUMBER;
@@ -310,6 +312,18 @@ std::string getDefaultSrc( DefaultShaders _type ) {
             rta += splat_frag;
         else if (versionNumber >= 130) 
             rta += splat_frag_300;
+    }
+    else if (_type == VERT_FONT) {
+        if (versionNumber < 130)
+            rta += glfs::vertexShaderSrc;
+        else if (versionNumber >= 130) 
+            rta += glfs::vertexShaderSrc_300;
+    }
+    else if (_type == FRAG_FONT) {
+        if (versionNumber < 130)
+            rta += glfs::sdfFragShaderSrc;
+        else if (versionNumber >= 130) 
+            rta += glfs::sdfFragShaderSrc_300;
     }
 
     return rta;

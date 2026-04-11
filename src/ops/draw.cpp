@@ -313,6 +313,18 @@ void background( const glm::vec4& _color ) {
     clear(_color);
 }
 
+void background( Shader* _shader ) {
+    if (_shader == nullptr)
+        return;
+    background_enabled = true;
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    _shader->use();
+    _shader->setUniform("u_resolution", (float)getWindowWidth(), (float)getWindowHeight());
+    _shader->setUniform("u_time", (float)getTimeSec());
+    _shader->setUniform("u_modelViewProjectionMatrix", glm::mat4(1.0));
+    billboard_vbo->render(_shader);
+}
+
 bool getBackgroundEnabled() { return background_enabled; }
 glm::vec4 getBackground() { return background_color; }
 

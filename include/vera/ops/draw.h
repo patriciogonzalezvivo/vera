@@ -154,6 +154,10 @@ void background( const glm::vec3& _color );
 /// @param _color RGBA color vector
 void background( const glm::vec4& _color );
 
+/// Draw a fullscreen shader as background
+/// @param _shader Shader to render as background (receives u_time, u_resolution)
+void background( Shader* _shader );
+
 /// Check if automatic background clearing is enabled
 /// @return True if background is enabled
 bool getBackgroundEnabled();
