@@ -26,9 +26,12 @@ void App::loop(double _time, App* _app) {
 #endif
     
     _app->time = _time;
-    _app->width = getWindowWidth();
-    _app->height = getWindowHeight();
-    _app->focused = getMouseEntered();
+    // During a multi-frame export keep the virtual size at export dimensions.
+    if (!_app->m_exportJob.active) {
+        _app->width  = getWindowWidth();
+        _app->height = getWindowHeight();
+    }
+    _app->focused   = getMouseEntered();
     _app->deltaTime = getDelta();
     _app->frameCount++;
 
@@ -36,17 +39,25 @@ void App::loop(double _time, App* _app) {
     _app->update();
     updateGL();
 
-    if (_app->bShouldResize) {
+    // Suppress window-resize handling while exporting (avoids FBO size conflicts).
+    if (_app->bShouldResize && !_app->m_exportJob.active) {
         _app->onWindowResize( getWindowWidth(), getWindowHeight() );
         _app->windowResized();
         _app->bShouldResize = false;
     }
 
-    if (_app->m_saveToPath.length() > 0) {
-        if (!_app->m_framebuffer.isAllocated())
-            _app->m_framebuffer.allocate(_app->width, _app->height, vera::COLOR_TEXTURE_DEPTH_BUFFER);
+    // Capture to offscreen FBO when saving to file OR when running a multi-frame export.
+    const bool captureFrame = (_app->m_saveToPath.length() > 0) || _app->m_exportJob.active;
 
-        if (vera::haveExt(_app->m_saveToPath, "png")) {
+    if (captureFrame) {
+        // Re-allocate if dimensions changed (e.g., first export frame).
+        if (!_app->m_framebuffer.isAllocated() ||
+            _app->m_framebuffer.getWidth()  != (int)_app->width ||
+            _app->m_framebuffer.getHeight() != (int)_app->height) {
+            _app->m_framebuffer.allocate(_app->width, _app->height, vera::COLOR_TEXTURE_DEPTH_BUFFER);
+        }
+
+        if (_app->m_saveToPath.length() > 0 && vera::haveExt(_app->m_saveToPath, "png")) {
             glEnable(GL_BLEND);
             glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
         }
@@ -67,15 +78,60 @@ void App::loop(double _time, App* _app) {
         
     renderGL();
 
-    if (_app->m_saveToPath.length() > 0) {
+    if (captureFrame) {
         _app->m_framebuffer.unbind();
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA);
 
-        vera::image(_app->m_framebuffer);
+        // For single-frame file save, blit to screen and write immediately.
+        if (_app->m_saveToPath.length() > 0) {
+            vera::image(_app->m_framebuffer);
+            _app->onSave();
+        }
 
-        _app->onSave();
+        // Multi-frame export: accumulate frames, report progress, flush pixels on done.
+        if (_app->m_exportJob.active) {
+            _app->m_exportJob.currentFrame++;
+            float progress = (float)_app->m_exportJob.currentFrame /
+                             (float)_app->m_exportJob.totalFrames;
+
+#if defined(__EMSCRIPTEN__)
+            EM_ASM({
+                if (typeof Module['onExportProgress'] === 'function')
+                    Module['onExportProgress']($0);
+            }, progress);
+#endif
+
+            if (_app->m_exportJob.currentFrame >= _app->m_exportJob.totalFrames) {
+                // Read accumulated pixels from the offscreen FBO.
+                int ew = _app->m_exportJob.exportWidth;
+                int eh = _app->m_exportJob.exportHeight;
+                uint8_t* pixels = (uint8_t*)malloc((size_t)ew * eh * 4);
+                if (pixels) {
+                    glBindFramebuffer(GL_FRAMEBUFFER, _app->m_framebuffer.getId());
+                    glReadPixels(0, 0, ew, eh, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+                    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                }
+
+                // Restore original display dimensions.
+                int ow = _app->m_exportJob.origWidth;
+                int oh = _app->m_exportJob.origHeight;
+                _app->m_exportJob.active = false;   // clear first to unblock guard
+                _app->onWindowResize(ow, oh);
+                _app->windowResized();
+
+#if defined(__EMSCRIPTEN__)
+                EM_ASM({
+                    if (typeof Module['onExportComplete'] === 'function')
+                        Module['onExportComplete']($0, $1, $2);
+                }, (int)(intptr_t)pixels, ew, eh);
+                // JS owns the buffer; it calls freePixels() after copying.
+#else
+                free(pixels);
+#endif
+            }
+        }
     }
 
     #if defined(__EMSCRIPTEN__)
@@ -298,6 +354,20 @@ void App::save(const std::string& _path, bool _exitAfterSave) {
         m_saveToPath = "screenshot_" + vera::getDateTimeString() + ".png";
     }
     m_exitAfterSave = _exitAfterSave;
+}
+
+void App::beginExport(int _width, int _height, int _frames) {
+    m_exportJob.origWidth    = (int)width;
+    m_exportJob.origHeight   = (int)height;
+    m_exportJob.exportWidth  = _width;
+    m_exportJob.exportHeight = _height;
+    m_exportJob.totalFrames  = _frames;
+    m_exportJob.currentFrame = 0;
+    m_exportJob.active       = true;
+
+    // Resize all internal FBOs to export dimensions and reset accumulation.
+    onWindowResize(_width, _height);
+    windowResized();
 }
 
 void App::onSave() {

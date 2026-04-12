@@ -53,6 +53,7 @@ public:
     virtual void onDrop(int _count, const char** _paths) {};
 
     virtual void save(const std::string& _path = "", bool _exitOnDone = false);
+    virtual void beginExport(int _width, int _height, int _frames);
 
     virtual void orbitControl();
 
@@ -88,6 +89,18 @@ protected:
     Fbo         m_framebuffer;
     std::string m_saveToPath = "";
     bool        m_exitAfterSave = false;
+
+    // Multi-frame accumulation export (async, WASM-safe)
+    struct ExportJob {
+        int  exportWidth  = 0;
+        int  exportHeight = 0;
+        int  totalFrames  = 0;
+        int  currentFrame = 0;
+        bool active       = false;
+        int  origWidth    = 0;
+        int  origHeight   = 0;
+    };
+    ExportJob   m_exportJob;
 
     bool        bPostSetup = false;
     bool        bShouldExit = false;
