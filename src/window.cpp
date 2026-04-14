@@ -1960,7 +1960,7 @@ void setFullscreen(bool _fullscreen) {
 const float getDisplayPixelRatio(bool _compute) {
     if (_compute && properties.style != EMBEDDED) {
 #if defined(__EMSCRIPTEN__)
-        return std::max(1.0f, float(emscripten_get_device_pixel_ratio()) * 0.65f);
+        return std::min(2.0f, std::max(1.0f, float(emscripten_get_device_pixel_ratio())));
 #elif defined(DRIVER_GLFW)
         int window_width, window_height, framebuffer_width, framebuffer_height;
         glfwGetWindowSize(window, &window_width, &window_height);
