@@ -173,9 +173,23 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
 }
 
 static int glfons__renderResize(void* userPtr, int width, int height) {
-    (void) height;
-    (void) width;
-    (void) userPtr;
+    GLFONScontext* gl = (GLFONScontext*)userPtr;
+
+    if (gl->atlas) {
+        glDeleteTextures(1, &gl->atlas);
+        gl->atlas = 0;
+    }
+
+    glActiveTexture(GL_TEXTURE0 + ATLAS_TEXTURE_SLOT);
+    glGenTextures(1, &gl->atlas);
+    GLFONS_GL_CHECK(glBindTexture(GL_TEXTURE_2D, gl->atlas));
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, width, height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    gl->atlasRes[0] = width;
+    gl->atlasRes[1] = height;
+
     return 1;
 }
 

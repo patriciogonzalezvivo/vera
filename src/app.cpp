@@ -62,6 +62,13 @@ void App::loop(double _time, App* _app) {
             glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
         }
         _app->m_framebuffer.bind();
+        // Update vera's viewport state to match the capture FBO dimensions so
+        // that getWindowWidth/Height(), the ortho matrix, and u_resolution
+        // all reflect the actual render target during export.
+        float dpr = vera::getDisplayPixelRatio();
+        vera::setViewport(0, 0, (int)(_app->width / dpr), (int)(_app->height / dpr));
+        // setViewport calls glViewport with dpr scaling; ensure exact FBO match.
+        glViewport(0, 0, (int)_app->width, (int)_app->height);
     }
 
     if (vera::getBackgroundEnabled())
@@ -120,6 +127,12 @@ void App::loop(double _time, App* _app) {
                 _app->m_exportJob.active = false;   // clear first to unblock guard
                 _app->onWindowResize(ow, oh);
                 _app->windowResized();
+
+                // Restore vera's viewport to the original canvas dimensions so that
+                // getWindowWidth/Height() and u_resolution are correct after export.
+                float dpr = vera::getDisplayPixelRatio();
+                vera::setViewport(0, 0, (int)(ow / dpr), (int)(oh / dpr));
+                glViewport(0, 0, ow, oh);
 
 #if defined(__EMSCRIPTEN__)
                 EM_ASM({

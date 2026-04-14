@@ -8,12 +8,29 @@
 #include "vera/ops/fs.h"
 #include "vera/ops/string.h"
 
+#include "vera/gl/gl.h"
+
 #include "glm/gtc/type_ptr.hpp"
 
 namespace vera { 
 
 #define FONS_ATLAS_SIZE 512
 static FONScontext* fs = nullptr;
+
+static void fons__atlasFullHandler(void* /*uptr*/, int error, int /*val*/) {
+    if (error == FONS_ATLAS_FULL && fs != nullptr) {
+        int w, h;
+        fonsGetAtlasSize(fs, &w, &h);
+
+        GLint maxSize = 4096;
+        glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
+
+        int newW = std::min(w * 2, (int)maxSize);
+        int newH = std::min(h * 2, (int)maxSize);
+        if (newW > w || newH > h)
+            fonsExpandAtlas(fs, newW, newH, 0);
+    }
+}
 
 // Monserrat by Julieta Ulanovsky
 // published under SIL Open Font Licecemse, 1.1 (https://www.fontmirror.com/montserrat)
@@ -128,6 +145,7 @@ bool Font::load(const std::string &_filepath, std::string _name) {
             atlasSize *= 4;
         }
         fs = glfonsCreate(atlasSize, atlasSize, FONS_ZERO_TOPLEFT | FONS_NORMALIZE_TEX_COORDS, params, nullptr);
+        fonsSetErrorCallback(fs, fons__atlasFullHandler, nullptr);
     }
 
     m_id = fonsAddFont(fs, _name.c_str(), _filepath.c_str());
@@ -145,6 +163,7 @@ bool Font::load(unsigned char* _data, size_t _size, std::string _name) {
         if (vera::getDisplayPixelRatio() > 1.0)
             atlasSize *= 2;
         fs = glfonsCreate(atlasSize, atlasSize, FONS_ZERO_TOPLEFT | FONS_NORMALIZE_TEX_COORDS, params, nullptr);
+        fonsSetErrorCallback(fs, fons__atlasFullHandler, nullptr);
     }
 
     m_id = fonsAddFontMem(fs, _name.c_str(), _data, _size, 1);

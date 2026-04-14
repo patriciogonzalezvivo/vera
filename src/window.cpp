@@ -963,9 +963,13 @@ static bool                     bControl        = false;
     static void update_canvas_size() {
         double width, height;
         emscripten_get_element_css_size("#canvas", &width, &height);
-        width *= emscripten_get_device_pixel_ratio();
-        height *= emscripten_get_device_pixel_ratio();
-        setWindowSize(width, height);
+        // Pass CSS (logical) dimensions; vera's own DPR (getDisplayPixelRatio)
+        // handles the physical-pixel scaling via getWindowWidth/Height() and
+        // updateViewport().  Previously this multiplied by native DPR, causing
+        // the canvas buffer to be native_DPR × vera_DPR = much larger than
+        // intended and introducing lossy float→int round-trips that made the
+        // viewport shrink frame-over-frame on fractional-DPR devices.
+        setWindowSize((int)width, (int)height);
         createMSAAFramebuffer(getWindowWidth(), getWindowHeight());
     } 
 
@@ -1956,7 +1960,7 @@ void setFullscreen(bool _fullscreen) {
 const float getDisplayPixelRatio(bool _compute) {
     if (_compute && properties.style != EMBEDDED) {
 #if defined(__EMSCRIPTEN__)
-        return std::max(1.0f, float(emscripten_get_device_pixel_ratio()) * 0.65f);
+        return std::min(2.0f, std::max(1.0f, float(emscripten_get_device_pixel_ratio())));
 #elif defined(DRIVER_GLFW)
         int window_width, window_height, framebuffer_width, framebuffer_height;
         glfwGetWindowSize(window, &window_width, &window_height);

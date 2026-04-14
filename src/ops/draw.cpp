@@ -1333,19 +1333,22 @@ void textSize(float _size, Font* _font) {
 float textWidth(const std::string& _text, Font* _font) {
     if (_font == nullptr)
         _font = font();
-    return _font->getBoundingBox(_text).z;
+    glm::vec4 bbox = _font->getBoundingBox(_text);
+    return bbox.z;
 }
 
 float textHeight(Font* _font) {
     if (_font == nullptr)
         _font = font();
-    return _font->getHeight() * getDisplayPixelRatio();
+    glm::vec4 bbox = _font->getBoundingBox("A");
+    return bbox.w;
 }
 
 float textHeight(const std::string& _text, Font* _font) {
     if (_font == nullptr)
         _font = font();
-    return _font->getBoundingBox(_text).w * getDisplayPixelRatio();
+    glm::vec4 bbox = _font->getBoundingBox(_text);
+    return bbox.w;
 }
 
 BoundingBox textBoundingBox(const std::string& _text, float _x, float _y, Font* _font) { 
@@ -1356,7 +1359,9 @@ BoundingBox textBoundingBox(const std::string& _text, const glm::vec2& _pos, Fon
     if (_font == nullptr)
         _font = font();
     glm::vec4 bbox = _font->getBoundingBox(_text);
-    return BoundingBox(_pos.x + bbox.x, _pos.y + bbox.y, bbox.z * getDisplayPixelRatio(), bbox.w * getDisplayPixelRatio());
+    // bbox = (minx, miny, width, height) from fontstash — .z and .w are
+    // already width/height (maxx-minx, maxy-miny), not maxx/maxy.
+    return BoundingBox(_pos.x + bbox.x, _pos.y + bbox.y, bbox.z, bbox.w);
 }
 
 void text(const std::string& _text, const glm::vec2& _pos, Font* _font) { text(_text, _pos.x, _pos.y, _font); }
@@ -1419,7 +1424,7 @@ void textHighlight(const std::string& _text, float _x , float _y, const glm::vec
     VerticalAlign   style_rect_valign = shapeVAlign;
 
     BoundingBox bbox = textBoundingBox(_text, _x, _y, _font);
-    bbox.expand(4.0f);
+    bbox.expand(4.0f * pd);
 
     fill(_bg);
     noStroke();
