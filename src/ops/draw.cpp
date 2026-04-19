@@ -1472,6 +1472,128 @@ void textHighlight(const std::string& _text, float _x , float _y, const glm::vec
     text(_text, _x, _y, _font);
 }
 
+void textHighlight(const std::string& _text, const Polyline& _path, float _offset, const glm::vec4& _bg, Font* _font) {
+    if (_font == nullptr)
+        _font = font();
+
+    // Half-height of the background band = text cap-height + padding on each side
+    float halfH  = _font->getHeight() * 0.5f + 4.0f * pd;
+    float textW  = textBoundingBox(_text, 0.0f, 0.0f, _font).getWidth();
+    float bandStart = _offset;
+    float bandEnd   = _offset + textW;
+
+    // Transform path from world space to screen pixels (same as text(path))
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    glm::mat4 proj = glm::ortho(0.0f, (float)viewport[2], (float)viewport[3], 0.0f);
+
+    const auto& wpts = _path.get3DPoints();
+    int n = (int)wpts.size();
+    if (n < 2) return;
+
+    std::vector<glm::vec2> spts(n);
+    for (int i = 0; i < n; i++) {
+        glm::vec4 p = proj * matrix_world * glm::vec4(wpts[i].x, wpts[i].y, 0.0f, 1.0f);
+        p.x /= p.w; p.y /= p.w;
+        spts[i] = glm::vec2(
+            (p.x + 1.0f) * 0.5f * viewport[2],
+            (1.0f - p.y) * 0.5f * viewport[3]
+        );
+    }
+
+    // Accumulate arc-length per vertex so we can clip to [bandStart, bandEnd]
+    std::vector<float> arcLen(n, 0.0f);
+    for (int i = 1; i < n; i++)
+        arcLen[i] = arcLen[i - 1] + glm::distance(spts[i], spts[i - 1]);
+
+    // Interpolate a screen-space point and normal at a given arc distance
+    auto sampleAt = [&](float dist, glm::vec2& outPt, glm::vec2& outNorm) {
+        for (int i = 0; i < n - 1; i++) {
+            if (arcLen[i + 1] >= dist) {
+                float segLen = arcLen[i + 1] - arcLen[i];
+                float t = (segLen > 0.0f) ? (dist - arcLen[i]) / segLen : 0.0f;
+                outPt = glm::mix(spts[i], spts[i + 1], t);
+                glm::vec2 seg = spts[i + 1] - spts[i];
+                float sl = glm::length(seg);
+                outNorm = (sl > 0.0f) ? glm::vec2(-seg.y, seg.x) / sl : glm::vec2(0.0f, 1.0f);
+                return;
+            }
+        }
+        outPt   = spts[n - 1];
+        glm::vec2 seg = spts[n - 1] - spts[n - 2];
+        float sl = glm::length(seg);
+        outNorm = (sl > 0.0f) ? glm::vec2(-seg.y, seg.x) / sl : glm::vec2(0.0f, 1.0f);
+    };
+
+    // Collect band vertices: only segments that overlap [bandStart, bandEnd]
+    // Each column = one quad edge; we emit quads left→right along the text extent.
+    struct BandVert { glm::vec2 pt; glm::vec2 norm; };
+    std::vector<BandVert> band;
+
+    // Start cap
+    {
+        glm::vec2 pt, nm;
+        sampleAt(bandStart, pt, nm);
+        band.push_back({pt, nm});
+    }
+
+    // Interior path vertices that fall inside the range
+    for (int i = 0; i < n; i++) {
+        if (arcLen[i] > bandStart && arcLen[i] < bandEnd) {
+            // Smooth normal at this vertex
+            glm::vec2 norm(0.0f);
+            if (i > 0) {
+                glm::vec2 seg = spts[i] - spts[i - 1];
+                float sl = glm::length(seg);
+                if (sl > 0.0f) norm += glm::vec2(-seg.y, seg.x) / sl;
+            }
+            if (i < n - 1) {
+                glm::vec2 seg = spts[i + 1] - spts[i];
+                float sl = glm::length(seg);
+                if (sl > 0.0f) norm += glm::vec2(-seg.y, seg.x) / sl;
+            }
+            float nl = glm::length(norm);
+            norm = (nl > 0.0f) ? norm / nl : glm::vec2(0.0f, 1.0f);
+            band.push_back({spts[i], norm});
+        }
+    }
+
+    // End cap
+    {
+        glm::vec2 pt, nm;
+        sampleAt(bandEnd, pt, nm);
+        band.push_back({pt, nm});
+    }
+
+    // Build triangle list from the band columns
+    std::vector<glm::vec2> tris;
+    tris.reserve((band.size() - 1) * 6);
+    for (int i = 0; i < (int)band.size() - 1; i++) {
+        glm::vec2 a0 = band[i].pt     - band[i].norm     * halfH;
+        glm::vec2 a1 = band[i].pt     + band[i].norm     * halfH;
+        glm::vec2 b0 = band[i+1].pt   - band[i+1].norm   * halfH;
+        glm::vec2 b1 = band[i+1].pt   + band[i+1].norm   * halfH;
+        tris.push_back(a0); tris.push_back(a1); tris.push_back(b0);
+        tris.push_back(a1); tris.push_back(b1); tris.push_back(b0);
+    }
+
+    // Save draw state
+    glm::vec4 prev_fg     = fill_color;
+    bool      prev_stroke = stroke_enabled;
+    bool      prev_fill   = fill_enabled;
+
+    // Draw background band
+    fill(_bg);
+    noStroke();
+    triangles(tris);
+
+    // Restore and draw text on top
+    fill_enabled   = prev_fill;
+    stroke_enabled = prev_stroke;
+    fill(prev_fg);
+    text(_text, _path, _offset, _font);
+}
+
 // SHADER
 //
 Shader* loadShader(const std::string& _fragFile, const std::string& _vertFile) {

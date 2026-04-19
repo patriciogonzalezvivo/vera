@@ -1086,6 +1086,14 @@ void textHighlight(const std::string& _text, const glm::vec2& _pos, const glm::v
 /// @param _font Font to use (null = current font)
 void textHighlight(const std::string& _text, float _x, float _y, const glm::vec4& _bg = glm::vec4(0.0, 0.0, 0.0, 1.0), Font* _font = nullptr);
 
+/// Draw text with a curved band background along a polyline path
+/// @param _text Text to draw
+/// @param _path Polyline path to follow (world space)
+/// @param _offset Starting distance along the path (default 0)
+/// @param _bg Background band color (default black)
+/// @param _font Font to use (null = current font)
+void textHighlight(const std::string& _text, const Polyline& _path, float _offset = 0.0f, const glm::vec4& _bg = glm::vec4(0.0, 0.0, 0.0, 1.0), Font* _font = nullptr);
+
 // =============================================================================
 // SHADER MANAGEMENT
 // =============================================================================
