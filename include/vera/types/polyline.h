@@ -28,8 +28,10 @@ public:
     virtual const glm::vec3 & operator [](const int &_index) const;
     
     virtual float               get2DArea();
+    virtual float               getLength() const;
     virtual glm::vec3           getCentroid();
     virtual glm::vec3           getPositionAt(const float &_dist) const;
+    virtual float               getAngleAt(const float &_dist) const;
 
     virtual const std::vector<glm::vec2> get2DPoints() const;
     virtual const std::vector<glm::vec3>& get3DPoints() const;

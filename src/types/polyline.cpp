@@ -181,17 +181,37 @@ const std::vector<glm::vec3>& Polyline::get3DPoints() const {
     return m_points;
 }
 
+float Polyline::getLength() const {
+    float length = 0.0;
+    for (int i = 0; i < (int)m_points.size() - 1; i++) {
+        length += glm::distance(m_points[i], m_points[i + 1]);
+    }
+    return length;
+}
+
 glm::vec3 Polyline::getPositionAt(const float &_dist) const{
     float distance = 0.0;
     for (int i = 0; i < m_points.size()-1; i++){
         PolarPoint polar(m_points[i],m_points[i+1]);
-        if(distance+polar.r <= _dist){
+        if(distance+polar.r >= _dist){
             return  m_points[i] + PolarPoint(polar.a,_dist-distance).getXY();
         }
         distance += polar.r;
 	}
     
     return m_points[m_points.size()-1];
+}
+
+float Polyline::getAngleAt(const float &_dist) const {
+    float distance = 0.0;
+    for (int i = 0; i < (int)m_points.size() - 1; i++) {
+        PolarPoint polar(m_points[i], m_points[i + 1]);
+        if (distance + polar.r > _dist || i == (int)m_points.size() - 2) {
+            return polar.a;
+        }
+        distance += polar.r;
+    }
+    return 0.0f;
 }
 
 BoundingBox Polyline::getBoundingBox() const {

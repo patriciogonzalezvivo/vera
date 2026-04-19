@@ -1064,6 +1064,13 @@ void text(const std::string& _text, const glm::vec3& _pos, Font* _font = nullptr
 /// @param _font Font to use (null = current font)
 void text(const std::string& _text, float _x, float _y, Font* _font = nullptr);
 
+/// Draw text along a 2D polyline path
+/// @param _text Text to draw
+/// @param _path Polyline defining the path in world space
+/// @param _offset Starting distance along the path (default 0)
+/// @param _font Font to use (null = current font)
+void text(const std::string& _text, const Polyline& _path, float _offset = 0.0f, Font* _font = nullptr);
+
 /// Draw text with background highlight at 2D position
 /// @param _text Text to draw
 /// @param _pos Position

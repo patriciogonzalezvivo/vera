@@ -12,6 +12,8 @@
 
 #include "glm/gtc/type_ptr.hpp"
 
+#include "vera/types/polarPoint.h"
+
 namespace vera { 
 
 #define FONS_ATLAS_SIZE 512
@@ -468,6 +470,142 @@ std::vector<vera::Shape> Font::getShapes(const std::string& _text,
     }
 
     return shapes;
+}
+
+std::vector<vera::Shape> Font::getShapesAlongPath(const std::string& _text,
+                                                    const Polyline& _path,
+                                                    float _offset,
+                                                    float _scale) {
+    if (m_id < 0) loadDefault();
+
+    stbtt_fontinfo* fontInfo = &fs->fonts[m_id]->font.font;
+
+    float pixelSize = (_scale > 0.0f) ? _scale : m_size;
+    float scale     = stbtt_ScaleForMappingEmToPixels(fontInfo, pixelSize);
+
+    int ascent, descent, lineGap;
+    stbtt_GetFontVMetrics(fontInfo, &ascent, &descent, &lineGap);
+    float baseline = ascent * scale;
+
+    std::vector<vera::Shape> shapes;
+    float dist = _offset;
+
+    for (unsigned char ch : _text) {
+        if (ch == ' ' || ch == '\t') {
+            int advance, lsb;
+            int gi = stbtt_FindGlyphIndex(fontInfo, ch);
+            stbtt_GetGlyphHMetrics(fontInfo, gi, &advance, &lsb);
+            dist += advance * scale;
+            continue;
+        }
+        if (ch == '\n') continue;
+
+        // Measure glyph advance first
+        int advance, lsb;
+        int gi = stbtt_FindGlyphIndex(fontInfo, ch);
+        stbtt_GetGlyphHMetrics(fontInfo, gi, &advance, &lsb);
+        float advPx = advance * scale;
+
+        // Position at the center of the glyph along the path
+        float glyphCenter = dist + advPx * 0.5f;
+        glm::vec3 pos   = _path.getPositionAt(glyphCenter);
+        float     angle  = _path.getAngleAt(glyphCenter);
+
+        // Extract glyph shapes at the origin
+        std::vector<vera::Shape> glyphShapes = getShapes(std::string(1, (char)ch),
+                                                          0.0f, baseline, _scale);
+
+        // Rotate and translate each shape to follow the path
+        float cosA = std::cos(angle);
+        float sinA = std::sin(angle);
+
+        for (auto& shape : glyphShapes) {
+            // Transform contour
+            for (int j = 0; j < shape.contour.size(); j++) {
+                glm::vec3& pt = shape.contour[j];
+                float rx = pt.x * cosA - pt.y * sinA;
+                float ry = pt.x * sinA + pt.y * cosA;
+                pt = glm::vec3(rx + pos.x, ry + pos.y, pt.z);
+            }
+            // Transform holes
+            for (auto& hole : shape.holes) {
+                for (int j = 0; j < hole.size(); j++) {
+                    glm::vec3& pt = hole[j];
+                    float rx = pt.x * cosA - pt.y * sinA;
+                    float ry = pt.x * sinA + pt.y * cosA;
+                    pt = glm::vec3(rx + pos.x, ry + pos.y, pt.z);
+                }
+            }
+            shape.markDirty();
+            shapes.push_back(std::move(shape));
+        }
+
+        dist += advPx;
+    }
+
+    return shapes;
+}
+
+void Font::render(const std::string &_text, const Polyline &_path, float _offset) {
+    if (m_id < 0)
+        loadDefault();
+
+    stbtt_fontinfo* fontInfo = &fs->fonts[m_id]->font.font;
+    float scale = stbtt_ScaleForMappingEmToPixels(fontInfo, m_size);
+
+    fonsSetFont(fs, m_id);
+    fonsSetSize(fs, m_size);
+    fonsSetColor(fs, m_color);
+    fonsSetAlign(fs, FONS_ALIGN_CENTER | m_vAlign);
+
+    if (m_effect != EFFECT_NONE) {
+        fonsSetBlurType(fs, m_effect);
+        fonsSetBlur(fs, m_blur);
+    }
+
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    glfonsScreenSize(fs, viewport[2], viewport[3]);
+
+    fsuint buffer;
+    glfonsBufferCreate(fs, &buffer);
+    glfonsBindBuffer(fs, buffer);
+
+    float dist = _offset;
+    std::vector<fsuint> textIDs;
+
+    for (unsigned char ch : _text) {
+        if (ch == '\n') continue;
+
+        int advance, lsb;
+        int gi = stbtt_FindGlyphIndex(fontInfo, ch);
+        stbtt_GetGlyphHMetrics(fontInfo, gi, &advance, &lsb);
+        float advPx = advance * scale;
+
+        if (ch == ' ' || ch == '\t') {
+            dist += advPx;
+            continue;
+        }
+
+        float glyphCenter = dist + advPx * 0.5f;
+        glm::vec3 pos   = _path.getPositionAt(glyphCenter);
+        float     angle  = _path.getAngleAt(glyphCenter);
+
+        fsuint textID = 0;
+        glfonsGenText(fs, 1, &textID);
+        glfonsSetColor(fs, m_color);
+
+        char s[2] = { (char)ch, '\0' };
+        glfonsRasterize(fs, textID, s);
+        glfonsTransform(fs, textID, pos.x, pos.y, angle + m_angle, 1.0f);
+
+        textIDs.push_back(textID);
+        dist += advPx;
+    }
+
+    glfonsUpdateBuffer(fs);
+    glfonsDraw(fs);
+    glfonsBufferDelete(fs, buffer);
 }
 
 }

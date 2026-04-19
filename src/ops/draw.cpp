@@ -1408,6 +1408,30 @@ void text(const std::string& _text, const glm::vec3& _pos, Font* _font) {
     _font->render(_text, screenPos.x, screenPos.y);
 }
 
+void text(const std::string& _text, const Polyline& _path, float _offset, Font* _font) {
+    if (_font == nullptr)
+        _font = font();
+
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
+    // Transform each path point from world space to screen pixels,
+    // matching the same projection used by text(string, x, y).
+    glm::mat4 proj = glm::ortho(0.0f, (float)viewport[2], (float)viewport[3], 0.0f);
+    Polyline screenPath;
+    for (const auto& wp : _path.get3DPoints()) {
+        glm::vec4 p = proj * matrix_world * glm::vec4(wp.x, wp.y, 0.0f, 1.0f);
+        p.x /= p.w;
+        p.y /= p.w;
+        float sx = (p.x + 1.0f) * 0.5f * viewport[2];
+        float sy = (1.0f - p.y) * 0.5f * viewport[3];
+        screenPath.add(glm::vec2(sx, sy));
+    }
+
+    _font->setColor(fill_color);
+    _font->render(_text, screenPath, _offset);
+}
+
 void textHighlight(const std::string& _text, const glm::vec2& _pos, const glm::vec4& _bg, Font* _font) { textHighlight(_text, _pos.x, _pos.y, _bg, _font); }
 void textHighlight(const std::string& _text, float _x , float _y, const glm::vec4& _bg, Font* _font) {
     if (_font == nullptr)

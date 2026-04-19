@@ -7,6 +7,7 @@
 #include "glm/glm.hpp"
 #include "vera/types/props.h"
 #include "vera/types/shape.h"
+#include "vera/types/polyline.h"
 
 namespace vera {
 
@@ -53,6 +54,7 @@ public:
 
     virtual void render(const std::string &_text, float _x, float _y, float _worldAngle = 0.0f);
     virtual void render(const std::string &_text, const glm::vec2 &_pos, float _worldAngle = 0.0f) { render(_text, _pos.x, _pos.y, _worldAngle); }
+    virtual void render(const std::string &_text, const Polyline &_path, float _offset = 0.0f);
 
     /// Convert each character of _text into a list of Shapes (contour + holes).
     ///
@@ -68,6 +70,11 @@ public:
                                           float _x = 0.0f,
                                           float _y = 0.0f,
                                           float _scale = 0.0f);
+
+    virtual std::vector<Shape> getShapesAlongPath(const std::string& _text,
+                                                   const Polyline& _path,
+                                                   float _offset = 0.0f,
+                                                   float _scale = 0.0f);
 
     static void     setExternalShader(unsigned int _program);
     static void     clearExternalShader();
