@@ -87,6 +87,12 @@ private:
     std::vector<float>      m_depthFloatIndex;
     std::vector<uint32_t>   m_depthUintIndex;
 
+    // Tracks the viewProj matrix used for the last sort, so we can detect
+    // camera/model changes ourselves instead of depending on Camera::bChange,
+    // which may already have been consumed elsewhere earlier in the frame.
+    glm::mat4               m_lastSortViewProj = glm::mat4(0.0f);
+    bool                    m_hasSorted = false;
+
 
     std::vector<float>      m_worldPositions;   // Only needed for sorting
 

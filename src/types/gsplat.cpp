@@ -100,6 +100,7 @@ void Gsplat::clear() {
     m_sorter.clear();
     m_depthFloatIndex.clear();
     m_depthUintIndex.clear();
+    m_hasSorted = false;
 
     if (m_texture) {
         m_texture->clear();
@@ -1222,15 +1223,19 @@ void Gsplat::render(Camera* _camera, glm::mat4 _model, bool _sort) {
 
     // Sort splats by depth
     glm::mat4 viewProj = _camera->getProjectionMatrix() * _camera->getViewMatrix() * _model;
-    
-    bool needsSort = _camera->bChange || _sort;
-    // Also check if valid indices exist (first frame)
-    if (m_depthUintIndex.empty() && m_depthFloatIndex.empty()) {
-        needsSort = true;
-    }
-    
+
+    // Note: we deliberately do NOT rely on _camera->bChange here. By the time
+    // this runs, something earlier in the frame (e.g. SceneRender calling
+    // vera::setCamera()) may have already called Camera::begin() and cleared
+    // bChange, so camera movement would otherwise never trigger a re-sort.
+    // Comparing against the viewProj we last sorted with also naturally
+    // covers model-matrix changes, so it subsumes the `_sort` flag too.
+    bool needsSort = _sort || !m_hasSorted || viewProj != m_lastSortViewProj;
+
     if (needsSort) {
         sort(viewProj);
+        m_lastSortViewProj = viewProj;
+        m_hasSorted = true;
     }
 
     // Update index buffer
