@@ -1388,11 +1388,21 @@ void Gsplat::render(Camera* _camera, glm::mat4 _model, bool _sort) {
     m_shader->setUniform("u_projectionMatrix", _camera->getProjectionMatrix());
     m_shader->setUniform("u_resolution", glm::vec2(_camera->getViewport().z, _camera->getViewport().w));
     
-    // Compute focal lengths from FOV
-    float fovRad = glm::radians(_camera->getFOV());
-    float fy = _camera->getViewport().w / (2.0f * std::tan(fovRad / 2.0f));
-    m_shader->setUniform("u_focal", glm::vec2(fy, fy));
-    
+    // Compute focal lengths (in pixels) directly from the projection matrix
+    // rather than getFOV()/getAspect() -- those are never populated for a
+    // CUSTOM projection (e.g. a camera loaded from a COLMAP camera.csv via
+    // setProjection(mat4)), silently falling back to the Camera default
+    // (45 degrees). That made splats render at the wrong scale under any
+    // such camera unless its real FOV also happened to be ~45 degrees. Proj
+    // [0][0]/[1][1] are 1/tan(halfFov) for a symmetric perspective frustum,
+    // valid for both standard and custom projections (same technique used
+    // for the camera gizmo's frustum size in vera::drawCamera()).
+    const glm::mat4& proj = _camera->getProjectionMatrix();
+    glm::vec4 viewport = _camera->getViewport();
+    float fx = viewport.z * 0.5f * std::abs(proj[0][0]);
+    float fy = viewport.w * 0.5f * std::abs(proj[1][1]);
+    m_shader->setUniform("u_focal", glm::vec2(fx, fy));
+
     if (m_shader->getVersion() >= 300) {
         // Setup vertex attributes
         glBindBuffer(GL_ARRAY_BUFFER, m_positionVBO);
@@ -1465,9 +1475,15 @@ void Gsplat::renderNormal(Camera* _camera, glm::mat4 _model, bool _sort) {
     m_normalShader->setUniform("u_projectionMatrix", _camera->getProjectionMatrix());
     m_normalShader->setUniform("u_resolution", glm::vec2(_camera->getViewport().z, _camera->getViewport().w));
 
-    float fovRad = glm::radians(_camera->getFOV());
-    float fy = _camera->getViewport().w / (2.0f * std::tan(fovRad / 2.0f));
-    m_normalShader->setUniform("u_focal", glm::vec2(fy, fy));
+    // See the matching comment in render() -- computed from the projection
+    // matrix so this is correct for CUSTOM (e.g. COLMAP) projections too.
+    {
+        const glm::mat4& proj = _camera->getProjectionMatrix();
+        glm::vec4 viewport = _camera->getViewport();
+        float fx = viewport.z * 0.5f * std::abs(proj[0][0]);
+        float fy = viewport.w * 0.5f * std::abs(proj[1][1]);
+        m_normalShader->setUniform("u_focal", glm::vec2(fx, fy));
+    }
 
     if (m_normalShader->getVersion() >= 300) {
         glBindBuffer(GL_ARRAY_BUFFER, m_positionVBO);
