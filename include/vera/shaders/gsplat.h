@@ -24,6 +24,8 @@ attribute float     a_index;
 varying vec4        v_position;
 varying vec4        v_color;
 varying vec2        v_texcoord;
+varying vec3        v_normal;
+varying float       v_normalConfidence;
 
 mat3 transpose(in mat3 m) {
     return mat3(    m[0][0], m[1][0], m[2][0],
@@ -33,6 +35,15 @@ mat3 transpose(in mat3 m) {
 
 mat3 toMat3(mat4 m) {
     return mat3(m[0].xyz, m[1].xyz, m[2].xyz);
+}
+
+// Decodes a unit vector packed into 2 floats (signed octahedral encoding)
+vec3 octDecode(vec2 f) {
+    vec3 n = vec3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
+    float t = max(-n.z, 0.0);
+    n.x += n.x >= 0.0 ? -t : t;
+    n.y += n.y >= 0.0 ? -t : t;
+    return normalize(n);
 }
 
 void main() {
@@ -52,10 +63,12 @@ void main() {
     // Fetch 4 pixels
     vec4 p1 = texture2D(u_GsplatData, vec2((colStart + 0.5) / width, v));
 
-    // p1: pos.xyz, valid
+    // p1: pos.xyz, normalConfidence
     // p2: cov.xx, cov.xy, cov.xz, cov.yy
-    // p3: cov.yz, cov.zz, 0, 0
+    // p3: cov.yz, cov.zz, localNormal.oct(x,y)
     // p4: color.rgba
+
+    v_normalConfidence = p1.w;
 
     // Transform position to camera space
     v_position = vec4(p1.xyz, 1.0);
@@ -74,6 +87,13 @@ void main() {
     vec4 p2 = texture2D(u_GsplatData, vec2((colStart + 1.5) / width, v));
     vec4 p3 = texture2D(u_GsplatData, vec2((colStart + 2.5) / width, v));
     vec4 p4 = texture2D(u_GsplatData, vec2((colStart + 3.5) / width, v));
+
+    // p3.zw carries the splat's local-space "normal" (thinnest ellipsoid axis),
+    // packed with signed octahedral encoding. Rotate it into view space and
+    // flip it to face the camera (the sign of the thin axis is arbitrary).
+    vec3 localNormal = octDecode(p3.zw);
+    v_normal = normalize(toMat3(u_viewMatrix * u_modelMatrix) * localNormal);
+    if (dot(v_normal, cam.xyz) > 0.0) v_normal = -v_normal;
 
     // Construct covariance matrix
     mat3 Vrk = mat3(
@@ -177,6 +197,30 @@ void main() {
     gl_FragColor = vec4(color, B);
 })";
 
+const std::string splat_frag_normal = R"(
+#ifdef GL_ES
+precision highp float;
+#endif
+
+varying vec4 v_color;
+varying vec2 v_texcoord;
+varying vec3 v_normal;
+varying float v_normalConfidence;
+
+void main() {
+    float A = -dot(v_texcoord, v_texcoord);
+    if (A < -4.0) discard;
+
+    float gaussian = exp(A);
+    float edgeSmoothness = smoothstep(-4.0, -3.5, A);
+    // Alpha-weighted like the color pass, and further down-weighted by how
+    // much the thin-axis normal can be trusted (near-spherical or "stick"
+    // shaped splats have no well-defined normal -- see splatNormalConfidence()).
+    float B = gaussian * v_color.a * edgeSmoothness * v_normalConfidence;
+
+    gl_FragColor = vec4(v_normal, B);
+})";
+
 // GLSL ES 3.0 versions
 
 static const std::string splat_vert_300 = R"(#version 300 es
@@ -198,19 +242,41 @@ in uint             a_index;
 out vec4            v_position;
 out vec4            v_color;
 out vec2            v_texcoord;
+out vec3            v_normal;
+out float           v_normalConfidence;
+
+// Decodes a unit vector packed into 2 floats (signed octahedral encoding)
+vec3 octDecode(vec2 f) {
+    vec3 n = vec3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
+    float t = max(-n.z, 0.0);
+    n.x += n.x >= 0.0 ? -t : t;
+    n.y += n.y >= 0.0 ? -t : t;
+    return normalize(n);
+}
 
 void main() {
     // Pixel size
     vec2 pixel = 1.0 / u_resolution;
 
+    // Each splat occupies 3 columns (of the 4 reserved -- see createTextureUint())
+    uint splatCol = (uint(a_index) & 0x3ffu) * 3u;
+    uint splatRow = uint(a_index) >> 10;
+
     // Fetch gaussian data from texture
-    uvec4 cen = texelFetch(u_GsplatData, ivec2((uint(a_index) & 0x3ffu) << 1, uint(a_index) >> 10), 0);
-    
+    uvec4 cen = texelFetch(u_GsplatData, ivec2(splatCol, splatRow), 0);
+
     // Transform position to camera space
     v_position = vec4(uintBitsToFloat(cen.xyz), 1.0);
     vec4 cam = u_viewMatrix * u_modelMatrix * v_position;
     vec4 pos2d = u_projectionMatrix * cam;
-    
+
+    // cen.w carries the splat's local-space "normal" (thinnest ellipsoid axis),
+    // packed with signed octahedral encoding via packHalf2x16. Rotate it into
+    // view space and flip it to face the camera (the axis sign is arbitrary).
+    vec3 localNormal = octDecode(unpackHalf2x16(cen.w));
+    v_normal = normalize(mat3(u_viewMatrix * u_modelMatrix) * localNormal);
+    if (dot(v_normal, cam.xyz) > 0.0) v_normal = -v_normal;
+
     // Frustum culling
     float clip = 1.2 * pos2d.w;
     if (pos2d.z < -pos2d.w || pos2d.z > pos2d.w || 
@@ -220,9 +286,11 @@ void main() {
         return;
     }
     
-    // Fetch covariance data
-    uvec4 cov = texelFetch(u_GsplatData, ivec2(((uint(a_index) & 0x3ffu) << 1) | 1u, uint(a_index) >> 10), 0);
-    
+    // Fetch covariance data and normal-confidence
+    uvec4 cov = texelFetch(u_GsplatData, ivec2(splatCol + 1u, splatRow), 0);
+    uvec4 conf = texelFetch(u_GsplatData, ivec2(splatCol + 2u, splatRow), 0);
+    v_normalConfidence = uintBitsToFloat(conf.x);
+
     // Unpack half-precision covariance
     vec2 u1 = unpackHalf2x16(cov.x);
     vec2 u2 = unpackHalf2x16(cov.y);
@@ -337,5 +405,31 @@ void main() {
     color = pow(color, vec3(1.0 / sharpness));
     
     fragColor = vec4(color, B);
+}
+)";
+
+const std::string splat_frag_normal_300 = R"(#version 300 es
+precision highp float;
+precision highp int;
+
+in vec4 v_color;
+in vec2 v_texcoord;
+in vec3 v_normal;
+in float v_normalConfidence;
+
+out vec4 fragColor;
+
+void main() {
+    float A = -dot(v_texcoord, v_texcoord);
+    if (A < -4.0) discard;
+
+    float gaussian = exp(A);
+    float edgeSmoothness = smoothstep(-4.0, -3.5, A);
+    // Alpha-weighted like the color pass, and further down-weighted by how
+    // much the thin-axis normal can be trusted (near-spherical or "stick"
+    // shaped splats have no well-defined normal -- see splatNormalConfidence()).
+    float B = gaussian * v_color.a * edgeSmoothness * v_normalConfidence;
+
+    fragColor = vec4(v_normal, B);
 }
 )";

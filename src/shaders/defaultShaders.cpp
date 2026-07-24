@@ -310,8 +310,14 @@ std::string getDefaultSrc( DefaultShaders _type ) {
     else if (_type == FRAG_SPLAT) {
         if (versionNumber < 130)
             rta += splat_frag;
-        else if (versionNumber >= 130) 
+        else if (versionNumber >= 130)
             rta += splat_frag_300;
+    }
+    else if (_type == FRAG_SPLAT_NORMAL) {
+        if (versionNumber < 130)
+            rta += splat_frag_normal;
+        else if (versionNumber >= 130)
+            rta += splat_frag_normal_300;
     }
     else if (_type == VERT_FONT) {
         if (versionNumber < 130)

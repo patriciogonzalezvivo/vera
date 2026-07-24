@@ -33,10 +33,22 @@ public:
     bool    load(const std::string& _filepath);
     void    use(Shader* _shader);
 
+    // By default, loadPLY()/loadSPLAT() rotate every splat 180 degrees
+    // around X to turn COLMAP's (Y down, Z forward) convention into
+    // OpenGL's (Y up, Z back) one -- the right thing for a splat viewed on
+    // its own. But when COLMAP camera poses are also loaded (addCameras()),
+    // those are placed in the raw, unflipped COLMAP frame (matching a plain
+    // sparse-cloud .ply, which never gets this flip either), so flipping the
+    // splat on top would rotate it 180 degrees away from its own cameras.
+    // Set this before loading a splat to keep it in that same raw frame.
+    static void setUseColmapFrame(bool _use) { s_useColmapFrame = _use; }
+    static bool getUseColmapFrame() { return s_useColmapFrame; }
+
     void    clear();
     size_t  count() const { return m_positions.size(); }
     
     void    render(Camera* _camera, glm::mat4 _model = glm::mat4(1.0f), bool _sort = false);
+    void    renderNormal(Camera* _camera, glm::mat4 _model = glm::mat4(1.0f), bool _sort = false);
     void    renderBlocks(Camera* _camera, glm::mat4 _model = glm::mat4(1.0f));
 
     void    setGridDim(int _dim);
@@ -52,6 +64,8 @@ public:
     void    optimizeDataLayout();
 
 private:
+    static bool s_useColmapFrame;
+
     // Radix sort helper
     void    radixSort(std::vector<std::pair<float, uint32_t>>& arr);
 
@@ -64,7 +78,15 @@ private:
     void    buildSpatialIndex();
     void    performOcclusionQuery(const glm::mat4& _viewProj);
     void    sort(const glm::mat4& _viewProj);
-    
+
+    // Lazy-init / shared-state helpers used by both render() and renderNormal()
+    void    ensureColorShader();
+    void    ensureNormalShader();
+    void    ensureSharedBuffers();
+    void    ensureTexture(int _shaderVersion);
+    void    ensureSorted(const glm::mat4& _viewProj, bool _sort);
+
+
     // Frustum helpers
     Frustum extractFrustum(const glm::mat4& _viewProj) const;
     bool    isBoxInFrustum(const glm::vec3& min, const glm::vec3& max, const Frustum& _frustum) const;
@@ -99,16 +121,24 @@ private:
     Texture*                m_texture = nullptr;
     Shader*                 m_shader = nullptr;
 
-    // Buffers
+    // Buffers (shared between the color and normal-buffer VAOs)
     GLuint                  m_vao = 0;
     GLuint                  m_positionVBO = 0;
     GLuint                  m_indexVBO = 0;
 
-    // Cached attribute locations
+    // Cached attribute locations (color shader)
     GLint                   m_position = -1;
     GLint                   m_index = -1;
 
     bool                    m_borrowedShader = false;
+
+    // Internal shader/VAO used to render the scene-normal buffer. Always
+    // owned by Gsplat (never borrowed), since it has no scene-graph shader
+    // equivalent to plug in (a splat's fragment layout is fixed).
+    Shader*                 m_normalShader = nullptr;
+    GLuint                  m_normalVao = 0;
+    GLint                   m_normalPosition = -1;
+    GLint                   m_normalIndex = -1;
 };
 
 }

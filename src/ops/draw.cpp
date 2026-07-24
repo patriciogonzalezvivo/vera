@@ -1848,7 +1848,7 @@ void model(Gsplat& _gsplat, Shader* _program) {
         if (_program != nullptr) {
             _gsplat.use(_program);
         }
-    
+
         _gsplat.render( camera(), worldMatrix() );
     }
     else {
@@ -1856,6 +1856,63 @@ void model(Gsplat& _gsplat, Shader* _program) {
     }
 }
 #endif
+
+void drawCamera(Camera& _cam, float _size, Shader* _program) { drawCamera(&_cam, _size, _program); }
+void drawCamera(Camera* _cam, float _size, Shader* _program) {
+    if (!_cam)
+        return;
+
+    // Frame (viewport) rectangle at display-only distance _size (unrelated to
+    // the camera's actual near/far clip, which are usually too small/large to
+    // make a legible gizmo). Derived straight from the projection matrix's
+    // [0][0]/[1][1] terms (1/tan(halfFov) for a symmetric perspective frustum)
+    // rather than getFOV()/getAspect(), since CUSTOM-projection cameras (e.g.
+    // ones loaded from a COLMAP-style camera.csv via setProjection(mat4))
+    // never populate those -- this works for both.
+    const glm::mat4& proj = _cam->getProjectionMatrix();
+    float halfH = std::abs(proj[1][1]) > 1e-8f ? _size / std::abs(proj[1][1]) : _size;
+    float halfW = std::abs(proj[0][0]) > 1e-8f ? _size / std::abs(proj[0][0]) : _size;
+
+    glm::vec3 apex(0.0f);
+    glm::vec3 tl(-halfW,  halfH, -_size);
+    glm::vec3 tr( halfW,  halfH, -_size);
+    glm::vec3 br( halfW, -halfH, -_size);
+    glm::vec3 bl(-halfW, -halfH, -_size);
+
+    // Small arrow above the top edge marking the camera's local up direction
+    float upSize = halfH * 0.35f;
+    glm::vec3 upLeft(-halfW * 0.5f, halfH, -_size);
+    glm::vec3 upRight( halfW * 0.5f, halfH, -_size);
+    glm::vec3 upTip(0.0f, halfH + upSize, -_size);
+
+    // Built as a static LINES mesh (rather than individual line() calls),
+    // matching how axis/grid gizmos are drawn elsewhere in this file.
+    Mesh mesh;
+    mesh.setDrawMode(LINES);
+
+    // Pyramid: camera position to each frame corner
+    mesh.append(lineMesh(apex, tl));
+    mesh.append(lineMesh(apex, tr));
+    mesh.append(lineMesh(apex, br));
+    mesh.append(lineMesh(apex, bl));
+
+    // Frame rectangle (the "viewport")
+    mesh.append(lineMesh(tl, tr));
+    mesh.append(lineMesh(tr, br));
+    mesh.append(lineMesh(br, bl));
+    mesh.append(lineMesh(bl, tl));
+
+    // Up arrow
+    mesh.append(lineMesh(upLeft, upTip));
+    mesh.append(lineMesh(upTip, upRight));
+
+    Vbo vbo(mesh);
+
+    push();
+    applyMatrix(_cam->getTransformMatrix());
+    model(vbo, _program);
+    pop();
+}
 
 void model(Vbo& _vbo, Shader* _program) { model(&_vbo, _program); }
 void model(Vbo* _vbo, Shader* _program) {

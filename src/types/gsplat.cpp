@@ -1,6 +1,7 @@
 #include "vera/types/gsplat.h"
 #include "vera/ops/fs.h"
 #include "vera/ops/draw.h"
+#include "vera/gl/gl.h"
 #include "vera/shaders/gsplat.h"
 #include "vera/shaders/defaultShaders.h"
 
@@ -79,10 +80,51 @@ uint32_t packHalf2x16(float x, float y) {
     return (uint32_t)hx | ((uint32_t)hy << 16);
 }
 
+// Signed octahedral encoding: packs a unit vector into 2 floats (mirrors
+// octDecode() in the splat vertex shaders).
+glm::vec2 octEncode(glm::vec3 n) {
+    float sum = std::abs(n.x) + std::abs(n.y) + std::abs(n.z);
+    n /= (sum > 0.0f ? sum : 1.0f);
+    glm::vec2 enc(n.x, n.y);
+    if (n.z < 0.0f) {
+        glm::vec2 absYX(std::abs(enc.y), std::abs(enc.x));
+        enc = (glm::vec2(1.0f) - absYX) * glm::vec2(enc.x >= 0.0f ? 1.0f : -1.0f, enc.y >= 0.0f ? 1.0f : -1.0f);
+    }
+    return enc;
+}
+
+// Approximates a splat's surface normal as the thinnest axis of its ellipsoid
+// (the same heuristic used by 3DGS surface-reconstruction methods: a flattened
+// splat's short axis points roughly along the true surface normal). Returned
+// in the splat's local/object space, before the model matrix is applied.
+glm::vec3 splatLocalNormal(const glm::mat3& _rotMat, const glm::vec3& _scale) {
+    int thinAxis = 0;
+    if (_scale.y < _scale[thinAxis]) thinAxis = 1;
+    if (_scale.z < _scale[thinAxis]) thinAxis = 2;
+    return glm::normalize(_rotMat[thinAxis]);
+}
+
+// How much to trust the thin-axis normal above: it's only a well-defined
+// surface normal for disk/oblate-shaped splats, where the two larger axes
+// are comparable and much bigger than the thinnest one. It's meaningless
+// for spheres (all axes similar) and "stick"/prolate splats -- e.g. thin
+// stems or blades of grass -- where the two smallest axes are similar and
+// which one is picked as "thinnest" is essentially noise. This is the
+// standard "planarity" shape descriptor (s1-s0)/s2 over sorted axis lengths.
+float splatNormalConfidence(glm::vec3 _scale) {
+    if (_scale.x > _scale.y) std::swap(_scale.x, _scale.y);
+    if (_scale.y > _scale.z) std::swap(_scale.y, _scale.z);
+    if (_scale.x > _scale.y) std::swap(_scale.x, _scale.y);
+    // _scale is now sorted ascending: x <= y <= z
+    return glm::clamp((_scale.y - _scale.x) / std::max(_scale.z, 1e-6f), 0.0f, 1.0f);
+}
+
 
 namespace vera {
 
-Gsplat::Gsplat() { 
+bool Gsplat::s_useColmapFrame = false;
+
+Gsplat::Gsplat() {
 }
 
 Gsplat::~Gsplat() {
@@ -113,10 +155,20 @@ void Gsplat::clear() {
         m_shader = nullptr;
     }
 
+    if (m_normalShader) {
+        delete m_normalShader;
+        m_normalShader = nullptr;
+    }
+
     // Clear GPU buffers
     if (m_vao != 0) {
         glDeleteVertexArrays(1, &m_vao);
         m_vao = 0;
+    }
+
+    if (m_normalVao != 0) {
+        glDeleteVertexArrays(1, &m_normalVao);
+        m_normalVao = 0;
     }
 
     if (m_positionVBO != 0) {
@@ -129,13 +181,10 @@ void Gsplat::clear() {
         m_indexVBO = 0;
     }
 
-    if (m_position != -1) {
-        m_position = -1;
-    }
-
-    if (m_index != -1) {
-        m_index = -1;
-    }
+    m_position = -1;
+    m_index = -1;
+    m_normalPosition = -1;
+    m_normalIndex = -1;
 }
 
 void Gsplat::setGridDim(int _dim) {
@@ -211,25 +260,29 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
         r = s.r; g = s.g; b = s.b; a = s.a;
         rot_0 = s.rot_0; rot_1 = s.rot_1; rot_2 = s.rot_2; rot_3 = s.rot_3;
         
-        m_positions[i] = glm::vec3(x, -y, -z);
+        m_positions[i] = s_useColmapFrame ? glm::vec3(x, y, z) : glm::vec3(x, -y, -z);
         m_scales[i] = glm::vec3(sx, sy, sz);
-        
+
         // Color
         m_colors[i] = glm::u8vec4(r, g, b, a);
-        
+
         // Rotation (mapping uint8 0..255 to -1.0..1.0)
         // (val - 128) / 128.0
         float r0 = (rot_0 - 128) / 128.0f;
         float r1 = (rot_1 - 128) / 128.0f;
         float r2 = (rot_2 - 128) / 128.0f;
         float r3 = (rot_3 - 128) / 128.0f;
-        
-        // Common packing: rot_0, rot_1, rot_2, rot_3 -> x, y, z, w ? 
+
+        // Common packing: rot_0, rot_1, rot_2, rot_3 -> x, y, z, w ?
         glm::quat q(r0, r1, r2, r3); // x, y, z, w
-        
-        // Rotate 180 degrees around X axis to match OpenGL coordinates
-        static const glm::quat flipval(0.0f, 1.0f, 0.0f, 0.0f); 
-        m_rotations[i] = glm::normalize(flipval * q);
+
+        if (s_useColmapFrame) {
+            m_rotations[i] = glm::normalize(q);
+        } else {
+            // Rotate 180 degrees around X axis to match OpenGL coordinates
+            static const glm::quat flipval(0.0f, 1.0f, 0.0f, 0.0f);
+            m_rotations[i] = glm::normalize(flipval * q);
+        }
     }
 
     optimizeDataLayout();
@@ -366,21 +419,27 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
     
     for (size_t i = 0; i < vertexCount; i++) {
         // Position
-        m_positions[i] = glm::vec3(x_data[i], -y_data[i], -z_data[i]);
-        
+        m_positions[i] = s_useColmapFrame ?
+            glm::vec3(x_data[i], y_data[i], z_data[i]) :
+            glm::vec3(x_data[i], -y_data[i], -z_data[i]);
+
         // Scale (exponential)
         m_scales[i] = glm::vec3(
             std::exp(scale_0_data[i]),
             std::exp(scale_1_data[i]),
             std::exp(scale_2_data[i])
         );
-        
+
         // Rotation (quaternion - note: different convention)
         glm::quat q(rot_0_data[i], rot_1_data[i], rot_2_data[i], rot_3_data[i]);
 
-        // Rotate 180 degrees around X axis to match OpenGL coordinates
-        static const glm::quat flipval(0.0f, 1.0f, 0.0f, 0.0f); 
-        m_rotations[i] = glm::normalize(flipval * q);
+        if (s_useColmapFrame) {
+            m_rotations[i] = glm::normalize(q);
+        } else {
+            // Rotate 180 degrees around X axis to match OpenGL coordinates
+            static const glm::quat flipval(0.0f, 1.0f, 0.0f, 0.0f);
+            m_rotations[i] = glm::normalize(flipval * q);
+        }
         
         // Color
         uint8_t r, g, b, a;
@@ -425,6 +484,98 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
     return true;
 }
 
+void Gsplat::ensureSharedBuffers() {
+    // Quad corners (point-sprite geometry) and the depth-sorted instance
+    // index buffer are shader-agnostic and shared between the color VAO
+    // (m_vao) and the normal-buffer VAO (m_normalVao).
+    if (m_positionVBO == 0) {
+        float quadVertices[] = {
+            -2.0f, -2.0f,
+             2.0f, -2.0f,
+             2.0f,  2.0f,
+            -2.0f,  2.0f
+        };
+
+        glGenBuffers(1, &m_positionVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, m_positionVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+    }
+
+    if (m_indexVBO == 0) {
+        glGenBuffers(1, &m_indexVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, m_indexVBO);
+        glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
+    }
+}
+
+void Gsplat::ensureColorShader() {
+    if (m_shader == nullptr) {
+        Shader* default_shader = new Shader();
+        default_shader->load(getDefaultSrc(FRAG_SPLAT), getDefaultSrc(VERT_SPLAT));
+        use(default_shader);
+        m_borrowedShader = false;
+    }
+}
+
+void Gsplat::ensureNormalShader() {
+    if (m_normalShader == nullptr) {
+        m_normalShader = new Shader();
+        m_normalShader->load(getDefaultSrc(FRAG_SPLAT_NORMAL), getDefaultSrc(VERT_SPLAT));
+    }
+
+    ensureSharedBuffers();
+
+    if (m_normalVao == 0) {
+        glGenVertexArrays(1, &m_normalVao);
+        glBindVertexArray(m_normalVao);
+
+        glBindBuffer(GL_ARRAY_BUFFER, m_positionVBO);
+        m_normalPosition = m_normalShader->getAttribLocation("a_position");
+        if (m_normalPosition != -1) {
+            glEnableVertexAttribArray(m_normalPosition);
+            glVertexAttribPointer(m_normalPosition, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, m_indexVBO);
+        m_normalIndex = m_normalShader->getAttribLocation("a_index");
+        if (m_normalIndex != -1) {
+            glEnableVertexAttribArray(m_normalIndex);
+
+            if (m_normalShader->getVersion() >= 300)
+                glVertexAttribIPointer(m_normalIndex, 1, GL_UNSIGNED_INT, 0, 0);
+            else
+                glVertexAttribPointer(m_normalIndex, 1, GL_FLOAT, GL_FALSE, 0, 0);
+
+            glVertexAttribDivisor(m_normalIndex, 1);
+        }
+
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+}
+
+void Gsplat::ensureTexture(int _shaderVersion) {
+    if (!m_texture) {
+        if (_shaderVersion >= 300)
+            m_texture = createTextureUint();
+        else
+            m_texture = createTextureFloat();
+    }
+}
+
+void Gsplat::ensureSorted(const glm::mat4& _viewProj, bool _sort) {
+    // Re-sort whenever the viewProj we'd sort with differs from the one we
+    // last sorted with (this already folds in both camera and model-matrix
+    // changes), rather than relying on Camera::bChange, which may have
+    // already been consumed elsewhere earlier in the frame.
+    bool needsSort = _sort || !m_hasSorted || _viewProj != m_lastSortViewProj;
+    if (needsSort) {
+        sort(_viewProj);
+        m_lastSortViewProj = _viewProj;
+        m_hasSorted = true;
+    }
+}
+
 void Gsplat::use(Shader* _shader) {
 
     if (_shader) {
@@ -453,45 +604,27 @@ void Gsplat::use(Shader* _shader) {
             m_borrowedShader = true;
             m_shader = _shader;
 
-            // std::cout << "Gsplat shader changed, rebuilding buffers." << std::endl;
-
-            // Invalidate VAO and VBOs
-            if (m_vao != -1) {
+            // Invalidate the VAO (its attribute bindings are specific to the
+            // previous shader's program). The underlying quad/index VBOs are
+            // shader-agnostic and shared with the normal-buffer VAO, so they
+            // are left untouched here (see ensureSharedBuffers()).
+            if (m_vao != 0) {
                 glDeleteVertexArrays(1, &m_vao);
-                m_vao = -1;
-            }
-
-            if (m_positionVBO != -1) {
-                glDeleteBuffers(1, &m_positionVBO);
-                m_positionVBO = -1;
-            }
-
-            if (m_indexVBO != -1) {
-                glDeleteBuffers(1, &m_indexVBO);
-                m_indexVBO = -1;
+                m_vao = 0;
             }
             m_position = -1;
             m_index = -1;
         }
     }
 
-    if (m_vao == -1) {
-        // Create VAO and VBOs
+    ensureSharedBuffers();
+
+    if (m_vao == 0) {
+        // Create VAO
         glGenVertexArrays(1, &m_vao);
         glBindVertexArray(m_vao);
-        
-        // Quad positions for point sprite
-        float quadVertices[] = {
-            -2.0f, -2.0f,
-             2.0f, -2.0f,
-             2.0f,  2.0f,
-            -2.0f,  2.0f
-        };
-        
-        glGenBuffers(1, &m_positionVBO);
+
         glBindBuffer(GL_ARRAY_BUFFER, m_positionVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
-        
         m_position = m_shader->getAttribLocation("a_position");
         if (m_position != -1) {
             glEnableVertexAttribArray(m_position);
@@ -499,9 +632,7 @@ void Gsplat::use(Shader* _shader) {
         }
 
         // Index buffer (per-instance)
-        glGenBuffers(1, &m_indexVBO);
         glBindBuffer(GL_ARRAY_BUFFER, m_indexVBO);
-        glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
 
         m_index = m_shader->getAttribLocation("a_index");
         if (m_index != -1) {
@@ -539,12 +670,13 @@ Texture *Gsplat::createTextureFloat() {
         const glm::quat& rot = m_rotations[i];
         const glm::u8vec4& color = m_colors[i];
         
-        // Pixel 1: Position + selection
+        // Pixel 1: Position + normal-confidence (how much to trust the
+        // thin-axis normal below; see splatNormalConfidence())
         packedData[i * 16 + 0] = pos.x;
         packedData[i * 16 + 1] = pos.y;
         packedData[i * 16 + 2] = pos.z;
-        packedData[i * 16 + 3] = 1.0f; // selection flag (1.0 = valid)
-        
+        packedData[i * 16 + 3] = splatNormalConfidence(scale);
+
         // Convert quaternion to matrix for covariance
         glm::mat3 rotMat = glm::mat3_cast(rot);
         glm::mat3 scaleMat(0.0f);
@@ -569,11 +701,12 @@ Texture *Gsplat::createTextureFloat() {
         packedData[i * 16 + 6] = sigma[2]; // xz
         packedData[i * 16 + 7] = sigma[3]; // yy
 
-        // Pixel 3: Covariance part 2
+        // Pixel 3: Covariance part 2 + local-space normal (octahedral-encoded)
+        glm::vec2 octNormal = octEncode(splatLocalNormal(rotMat, scale));
         packedData[i * 16 + 8] = sigma[4]; // yz
         packedData[i * 16 + 9] = sigma[5]; // zz
-        packedData[i * 16 + 10] = 0.0f;
-        packedData[i * 16 + 11] = 0.0f;
+        packedData[i * 16 + 10] = octNormal.x;
+        packedData[i * 16 + 11] = octNormal.y;
 
         // Pixel 4: Color (normalized)
         packedData[i * 16 + 12] = color.r / 255.0f;
@@ -631,34 +764,40 @@ Texture* Gsplat::createTextureUint() {
     size_t texWidth = splatsPerRow * 4;  // 4 texels per splat
     size_t texHeight = std::max(1, (int)std::ceil(splatCount / (float)splatsPerRow));
 
+    // 3 uvec4 texels per splat (of the 4 reserved columns -- 1 spare for
+    // future growth): position+normal, covariance+color, normal-confidence
     std::vector<uint32_t>  packedData;
-    packedData.resize(splatCount * 8);
+    packedData.resize(splatCount * 12);
     for (size_t i = 0; i < splatCount; i++) {
         const glm::vec3& pos = m_positions[i];
         const glm::vec3& scale = m_scales[i];
         const glm::quat& rot = m_rotations[i];
         const glm::u8vec4& color = m_colors[i];
-        
-        // First uvec4: position (xyz as floats reinterpreted as uint) + selection flag (w)
+
+        // First uvec4: position (xyz as floats reinterpreted as uint) + local-space
+        // normal (w, octahedral-encoded, half2x16-packed)
         // Safe bit copy without violating strict aliasing
         uint32_t ux, uy, uz;
         std::memcpy(&ux, &pos.x, sizeof(uint32_t));
         std::memcpy(&uy, &pos.y, sizeof(uint32_t));
         std::memcpy(&uz, &pos.z, sizeof(uint32_t));
-        packedData[i * 8 + 0] = ux;
-        packedData[i * 8 + 1] = uy;
-        packedData[i * 8 + 2] = uz;
-        packedData[i * 8 + 3] = 0; // selection flag (0 = not selected)
-        
+        packedData[i * 12 + 0] = ux;
+        packedData[i * 12 + 1] = uy;
+        packedData[i * 12 + 2] = uz;
+
         // Convert quaternion to matrix for covariance
         glm::mat3 rotMat = glm::mat3_cast(rot);
+
+        glm::vec2 octNormal = octEncode(splatLocalNormal(rotMat, scale));
+        packedData[i * 12 + 3] = packHalf2x16(octNormal.x, octNormal.y);
+
         glm::mat3 scaleMat(0.0f);
         scaleMat[0][0] = scale.x;
         scaleMat[1][1] = scale.y;
         scaleMat[2][2] = scale.z;
-        
+
         glm::mat3 M = rotMat * scaleMat;
-        
+
         // Compute 3D covariance (symmetric)
         float sigma[6];
         sigma[0] = M[0][0] * M[0][0] + M[1][0] * M[1][0] + M[2][0] * M[2][0]; // xx
@@ -667,38 +806,54 @@ Texture* Gsplat::createTextureUint() {
         sigma[3] = M[0][1] * M[0][1] + M[1][1] * M[1][1] + M[2][1] * M[2][1]; // yy
         sigma[4] = M[0][1] * M[0][2] + M[1][1] * M[1][2] + M[2][1] * M[2][2]; // yz
         sigma[5] = M[0][2] * M[0][2] + M[1][2] * M[1][2] + M[2][2] * M[2][2]; // zz
-        
+
         // Second uvec4: covariance (xyz as half2) + color (w as packed RGBA)
         // Pack covariance as half-precision floats: xy, xz|yy, yz|zz
-        packedData[i * 8 + 4] = packHalf2x16(sigma[0], sigma[1]); // xx, xy
-        packedData[i * 8 + 5] = packHalf2x16(sigma[2], sigma[3]); // xz, yy
-        packedData[i * 8 + 6] = packHalf2x16(sigma[4], sigma[5]); // yz, zz
-        
+        packedData[i * 12 + 4] = packHalf2x16(sigma[0], sigma[1]); // xx, xy
+        packedData[i * 12 + 5] = packHalf2x16(sigma[2], sigma[3]); // xz, yy
+        packedData[i * 12 + 6] = packHalf2x16(sigma[4], sigma[5]); // yz, zz
+
         // Pack color as RGBA in a single uint32
         uint32_t packedColor = (uint32_t)color.r | ((uint32_t)color.g << 8) | ((uint32_t)color.b << 16) | ((uint32_t)color.a << 24);
-        packedData[i * 8 + 7] = packedColor;
+        packedData[i * 12 + 7] = packedColor;
+
+        // Third uvec4: normal-confidence (x, plain float bits), rest spare
+        float normalConfidence = splatNormalConfidence(scale);
+        uint32_t confBits;
+        std::memcpy(&confBits, &normalConfidence, sizeof(uint32_t));
+        packedData[i * 12 + 8]  = confBits;
+        packedData[i * 12 + 9]  = 0;
+        packedData[i * 12 + 10] = 0;
+        packedData[i * 12 + 11] = 0;
     }
 
     // Reorganize packed data into 2D texture layout
-    // Each gaussian occupies 2 horizontal pixels (columns)
+    // Each gaussian occupies 3 horizontal pixels (columns)
     std::vector<uint32_t> textureData(texWidth * texHeight * 4);
     for (size_t i = 0; i < splatCount; i++) {
         int row = i / 1024;
-        int col = (i % 1024) * 2;  // Each gaussian takes 2 columns
-        
-        // First uvec4 (position + selection)
+        int col = (i % 1024) * 3;  // Each gaussian takes 3 columns
+
+        // First uvec4 (position + normal)
         int idx1 = (row * texWidth + col) * 4;
-        textureData[idx1 + 0] = packedData[i * 8 + 0];
-        textureData[idx1 + 1] = packedData[i * 8 + 1];
-        textureData[idx1 + 2] = packedData[i * 8 + 2];
-        textureData[idx1 + 3] = packedData[i * 8 + 3];
-        
+        textureData[idx1 + 0] = packedData[i * 12 + 0];
+        textureData[idx1 + 1] = packedData[i * 12 + 1];
+        textureData[idx1 + 2] = packedData[i * 12 + 2];
+        textureData[idx1 + 3] = packedData[i * 12 + 3];
+
         // Second uvec4 (covariance + color)
         int idx2 = (row * texWidth + col + 1) * 4;
-        textureData[idx2 + 0] = packedData[i * 8 + 4];
-        textureData[idx2 + 1] = packedData[i * 8 + 5];
-        textureData[idx2 + 2] = packedData[i * 8 + 6];
-        textureData[idx2 + 3] = packedData[i * 8 + 7];
+        textureData[idx2 + 0] = packedData[i * 12 + 4];
+        textureData[idx2 + 1] = packedData[i * 12 + 5];
+        textureData[idx2 + 2] = packedData[i * 12 + 6];
+        textureData[idx2 + 3] = packedData[i * 12 + 7];
+
+        // Third uvec4 (normal-confidence)
+        int idx3 = (row * texWidth + col + 2) * 4;
+        textureData[idx3 + 0] = packedData[i * 12 + 8];
+        textureData[idx3 + 1] = packedData[i * 12 + 9];
+        textureData[idx3 + 2] = packedData[i * 12 + 10];
+        textureData[idx3 + 3] = packedData[i * 12 + 11];
     }
 
     GLuint splatTexture;
@@ -1202,41 +1357,13 @@ void Gsplat::render(Camera* _camera, glm::mat4 _model, bool _sort) {
     if (!_camera)
         return;
 
-    if (m_shader == nullptr) {        
-        Shader* default_shader = new Shader();
-        default_shader->load(getDefaultSrc(FRAG_SPLAT), getDefaultSrc(VERT_SPLAT));
-        // default_shader->load(splat_frag, splat_vert);
-        // default_shader->load(splat_frag_300, splat_vert_300);
-        use(default_shader);
-        m_borrowedShader = false;
-    }
+    ensureColorShader();
+    ensureTexture(m_shader->getVersion());
 
-    if (!m_texture) {
-        if (m_shader->getVersion() >= 300) {
-            m_texture = createTextureUint();
-        }
-        else {
-            m_texture = createTextureFloat();
-        }
-        // std::cout << "Created Gsplat Texture: " << m_texture->getWidth() << " x " << m_texture->getHeight() << std::endl;
-    }
-
-    // Sort splats by depth
+    // Sort splats by depth. Note: we deliberately don't rely on
+    // _camera->bChange here (see ensureSorted()).
     glm::mat4 viewProj = _camera->getProjectionMatrix() * _camera->getViewMatrix() * _model;
-
-    // Note: we deliberately do NOT rely on _camera->bChange here. By the time
-    // this runs, something earlier in the frame (e.g. SceneRender calling
-    // vera::setCamera()) may have already called Camera::begin() and cleared
-    // bChange, so camera movement would otherwise never trigger a re-sort.
-    // Comparing against the viewProj we last sorted with also naturally
-    // covers model-matrix changes, so it subsumes the `_sort` flag too.
-    bool needsSort = _sort || !m_hasSorted || viewProj != m_lastSortViewProj;
-
-    if (needsSort) {
-        sort(viewProj);
-        m_lastSortViewProj = viewProj;
-        m_hasSorted = true;
-    }
+    ensureSorted(viewProj, _sort);
 
     // Update index buffer
     glBindBuffer(GL_ARRAY_BUFFER, m_indexVBO);
@@ -1299,6 +1426,80 @@ void Gsplat::render(Camera* _camera, glm::mat4 _model, bool _sort) {
 
     // After render, we issue occlusion queries for next frame
     performOcclusionQuery(viewProj);
+}
+
+// Renders splats into a view-space "scene normal" G-buffer, using each
+// splat's thinnest ellipsoid axis as an approximate surface normal (see
+// splatLocalNormal()). Uses its own internally-owned shader/VAO (a splat's
+// fragment layout has no scene-graph shader equivalent to plug in), but
+// shares the quad/index VBOs and the depth sort with render() -- whichever
+// of the two runs first in a frame does the sort, the other reuses it.
+void Gsplat::renderNormal(Camera* _camera, glm::mat4 _model, bool _sort) {
+    if (!_camera)
+        return;
+
+    ensureNormalShader();
+    ensureTexture(m_normalShader->getVersion());
+
+    glm::mat4 viewProj = _camera->getProjectionMatrix() * _camera->getViewMatrix() * _model;
+    ensureSorted(viewProj, _sort);
+
+    // Update index buffer
+    glBindBuffer(GL_ARRAY_BUFFER, m_indexVBO);
+    if (m_normalShader->getVersion() >= 300) {
+        glBufferData(GL_ARRAY_BUFFER, m_depthUintIndex.size() * sizeof(uint32_t), m_depthUintIndex.data(), GL_STREAM_DRAW);
+    }
+    else {
+        glBufferData(GL_ARRAY_BUFFER, m_depthFloatIndex.size() * sizeof(float), m_depthFloatIndex.data(), GL_DYNAMIC_DRAW);
+    }
+
+    m_normalShader->use();
+
+    glBindVertexArray(m_normalVao);
+
+    m_normalShader->setUniformTexture("u_GsplatData", m_texture, 0);
+    m_normalShader->setUniform("u_GsplatDataResolution", glm::vec2(m_texture->getWidth(), m_texture->getHeight()));
+
+    m_normalShader->setUniform("u_modelMatrix", _model);
+    m_normalShader->setUniform("u_viewMatrix", _camera->getViewMatrix());
+    m_normalShader->setUniform("u_projectionMatrix", _camera->getProjectionMatrix());
+    m_normalShader->setUniform("u_resolution", glm::vec2(_camera->getViewport().z, _camera->getViewport().w));
+
+    float fovRad = glm::radians(_camera->getFOV());
+    float fy = _camera->getViewport().w / (2.0f * std::tan(fovRad / 2.0f));
+    m_normalShader->setUniform("u_focal", glm::vec2(fy, fy));
+
+    if (m_normalShader->getVersion() >= 300) {
+        glBindBuffer(GL_ARRAY_BUFFER, m_positionVBO);
+        glEnableVertexAttribArray(m_normalPosition);
+        glVertexAttribPointer(m_normalPosition, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, m_indexVBO);
+        glEnableVertexAttribArray(m_normalIndex);
+        glVertexAttribIPointer(m_normalIndex, 1, GL_UNSIGNED_INT, 0, 0);
+        glVertexAttribDivisor(m_normalIndex, 1);
+    }
+
+    // Splats are translucent: normals must be alpha-blended and accumulated
+    // like color, not depth-tested opaque overwrite like solid geometry.
+    BlendMode prevBlend = blendMode();
+    blendMode(BLEND_ALPHA);
+
+    GLboolean depthMask;
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMask);
+    glDepthMask(GL_FALSE);
+
+    size_t drawCount = (m_normalShader->getVersion() >= 300) ? m_depthUintIndex.size() : m_depthFloatIndex.size();
+    glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, drawCount);
+
+    glDepthMask(depthMask);
+    blendMode(prevBlend);
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void Gsplat::renderBlocks(Camera* _camera, glm::mat4 _model) {

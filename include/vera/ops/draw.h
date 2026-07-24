@@ -1390,6 +1390,22 @@ void model(Gsplat& _gsplat, Shader* _program = nullptr);
 #endif
 
 // =============================================================================
+// CAMERA GIZMO (debug wireframe: frustum pyramid + viewport rectangle + up-arrow)
+// =============================================================================
+
+/// Draw a debug gizmo for a camera: a wireframe pyramid from the camera's
+/// position to a rectangle representing its viewport (sized from its
+/// projection matrix at distance _size, Blender-camera-gizmo style), plus a
+/// small arrow on top of the rectangle pointing along the camera's local up
+/// direction. Works for both standard (FOV/aspect) and CUSTOM-projection
+/// cameras (e.g. ones loaded via setProjection(mat4)).
+/// @param _cam Camera to visualize
+/// @param _size Distance from the camera to the viewport rectangle (display-only, unrelated to near/far clip)
+/// @param _program Optional custom shader (null = use default line shader)
+void drawCamera(Camera& _cam, float _size = 0.3f, Shader* _program = nullptr);
+void drawCamera(Camera* _cam, float _size = 0.3f, Shader* _program = nullptr);
+
+// =============================================================================
 // LABEL RENDERING (3D text annotations that face camera)
 // =============================================================================
 
