@@ -83,6 +83,18 @@ public:
     // Camera Controls
     virtual void                setTarget(glm::vec3 _target);
     virtual const glm::vec3&    getTarget() const { return m_target; }
+
+    // Sets the orbit pivot without reorienting the camera (setTarget() calls
+    // lookAt(), which rebuilds orientation from (target, worldUp) -- fine
+    // when worldUp matches this exact camera's own roll, but a single
+    // worldUp is at best an average across a set of loaded cameras, so this
+    // would quietly re-roll any camera whose real roll differs from that
+    // average. Use this to set up an orbit pivot while preserving the
+    // camera's true, as-loaded orientation until it actually orbits (which
+    // inherently can't preserve arbitrary roll -- orbit()/lookAt() reconstruct
+    // orientation from (target, distance, azimuth, elevation, worldUp), a
+    // 5-DOF parameterization of a 6-DOF pose).
+    virtual void                setOrbitTarget(const glm::vec3& _target) { m_target = _target; bChange = true; }
     virtual float               getDistance() const { return glm::length(m_position + m_target); }
 
     virtual void                move(float right, float up, float forward); // move both camera and target in camera's local space
