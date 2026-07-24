@@ -4,6 +4,7 @@
 #include "vera/ops/math.h"
 
 #include <iostream>
+#include <cmath>
 
 #include "glm/gtc/matrix_inverse.hpp"
 
@@ -70,7 +71,7 @@ void Camera::setClipping(double _near_clip_distance, double _far_clip_distance) 
 
 void Camera::setTarget(glm::vec3 _target) {
     m_target = _target;
-    lookAt(m_target);
+    lookAt(m_target, m_worldUp);
     bChange = true;
 }
 
@@ -157,17 +158,53 @@ void Camera::move(float right, float up, float forward) {
     m_target += offset;      // Move Target to keep relative focus consistent
 }
 
+void Camera::getOrbitBasis(glm::vec3& _right, glm::vec3& _up, glm::vec3& _forward) const {
+    _up = m_worldUp;
+    // Avoid a degenerate cross product when m_worldUp is near world +Z/-Z
+    glm::vec3 refDir = (std::abs(_up.z) > 0.99f) ? glm::vec3(1.0f, 0.0f, 0.0f) : glm::vec3(0.0f, 0.0f, 1.0f);
+    _right = glm::normalize(glm::cross(_up, refDir));
+    _forward = glm::normalize(glm::cross(_right, _up));
+}
+
 void Camera::orbit(float _azimuth, float _elevation, float _distance) {
+    glm::vec3 right, up, forward;
+    getOrbitBasis(right, up, forward);
+
     glm::vec3 p = glm::vec3(0.0, 0.0, _distance);
     _elevation = glm::clamp(_elevation, -89.0f, 89.0f);
 
+    // Same rotation as before, just expressed in the (right, up, forward)
+    // orbit frame instead of hardcoded world axes -- identical result when
+    // m_worldUp is the default (0,1,0).
     p = glm::angleAxis(glm::radians(_elevation), glm::vec3(1.0, 0.0, 0.0)) * p;
     p = glm::angleAxis(glm::radians(_azimuth), glm::vec3(0.0, 1.0, 0.0)) * p;
+    p = p.x * right + p.y * up + p.z * forward;
     p += m_target;
 
     setPosition(p);
-    lookAt(m_target);
+    lookAt(m_target, up);
     bChange = true;
+}
+
+void Camera::getOrbitAngles(float& _azimuth, float& _elevation) const {
+    glm::vec3 right, up, forward;
+    getOrbitBasis(right, up, forward);
+
+    glm::vec3 v = m_position - m_target;
+    float dist = glm::length(v);
+    if (dist < 0.001f) {
+        _azimuth = 0.0f;
+        _elevation = 0.0f;
+        return;
+    }
+    v /= dist;
+
+    float vx = glm::dot(v, right);
+    float vy = glm::dot(v, up);
+    float vz = glm::dot(v, forward);
+
+    _elevation = -glm::degrees(std::asin(glm::clamp(vy, -1.0f, 1.0f)));
+    _azimuth = glm::degrees(std::atan2(vx, vz));
 }
 
 void Camera::begin() {

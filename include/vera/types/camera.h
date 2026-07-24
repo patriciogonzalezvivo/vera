@@ -90,6 +90,21 @@ public:
     virtual void                moveTarget(const glm::vec3& delta) { setTarget(m_target + delta); } // move target in world space
     virtual void                orbit(float _azimuth, float _elevation, float _distance);
 
+    // Reference "up" direction orbit()/lookAt() rotate around. Defaults to
+    // world +Y, correct for ordinary Y-up scenes. A scene loaded from an
+    // arbitrary-gauge COLMAP reconstruction has no guaranteed relationship
+    // between its world axes and "up" -- set this to that scene's actual
+    // up direction (e.g. the average up vector of its loaded cameras) so
+    // mouse-orbit interaction doesn't roll the view as soon as it's touched.
+    virtual void                setWorldUp(const glm::vec3& _up) { m_worldUp = glm::length(_up) > 0.0001f ? glm::normalize(_up) : glm::vec3(0.0f, 1.0f, 0.0f); }
+    virtual const glm::vec3&    getWorldUp() const { return m_worldUp; }
+
+    // Derives azimuth/elevation (matching orbit()'s parameterization and
+    // current getWorldUp()) from this camera's current position/target, so
+    // callers can resume orbiting from wherever the camera currently is
+    // without assuming world +Y is up.
+    virtual void                getOrbitAngles(float& _azimuth, float& _elevation) const;
+
     virtual void                begin();
     virtual void                end();
 
@@ -104,6 +119,12 @@ protected:
     virtual void        updateProjectionViewMatrix();
 
 private:
+    // Orthonormal basis for the azimuth=0/elevation=0 orbit reference frame:
+    // _up is m_worldUp itself; _right/_forward complete a right-handed basis
+    // matching the world-+Y-up case exactly when m_worldUp is (0,1,0).
+    void                getOrbitBasis(glm::vec3& _right, glm::vec3& _up, glm::vec3& _forward) const;
+
+
     glm::mat4   m_viewMatrix;
     glm::mat4   m_inverseViewMatrix;
     
@@ -119,6 +140,7 @@ private:
     glm::vec3   m_position_offset;
 
     glm::vec3   m_target;
+    glm::vec3   m_worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
     float       m_aspect;
     float       m_fov;
