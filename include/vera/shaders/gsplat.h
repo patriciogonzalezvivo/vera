@@ -213,10 +213,15 @@ void main() {
 
     float gaussian = exp(A);
     float edgeSmoothness = smoothstep(-4.0, -3.5, A);
-    // Alpha-weighted like the color pass, and further down-weighted by how
-    // much the thin-axis normal can be trusted (near-spherical or "stick"
-    // shaped splats have no well-defined normal -- see splatNormalConfidence()).
-    float B = gaussian * v_color.a * edgeSmoothness * v_normalConfidence;
+    // Coverage matches the color pass's own weight -- so a region that's
+    // solid in color/depth is also solid here, never a hole. Confidence
+    // (how well-defined the thin-axis normal is -- see splatNormalConfidence())
+    // only weights which direction gets blended in, via a floor rather than
+    // a hard 0..1 multiply: a low-confidence splat still casts a (rougher)
+    // vote instead of being fully excluded from coverage.
+    float coverage = gaussian * v_color.a * edgeSmoothness;
+    float confidence = mix(0.15, 1.0, v_normalConfidence);
+    float B = coverage * confidence;
 
     gl_FragColor = vec4(v_normal, B);
 })";
@@ -457,10 +462,15 @@ void main() {
 
     float gaussian = exp(A);
     float edgeSmoothness = smoothstep(-4.0, -3.5, A);
-    // Alpha-weighted like the color pass, and further down-weighted by how
-    // much the thin-axis normal can be trusted (near-spherical or "stick"
-    // shaped splats have no well-defined normal -- see splatNormalConfidence()).
-    float B = gaussian * v_color.a * edgeSmoothness * v_normalConfidence;
+    // Coverage matches the color pass's own weight -- so a region that's
+    // solid in color/depth is also solid here, never a hole. Confidence
+    // (how well-defined the thin-axis normal is -- see splatNormalConfidence())
+    // only weights which direction gets blended in, via a floor rather than
+    // a hard 0..1 multiply: a low-confidence splat still casts a (rougher)
+    // vote instead of being fully excluded from coverage.
+    float coverage = gaussian * v_color.a * edgeSmoothness;
+    float confidence = mix(0.15, 1.0, v_normalConfidence);
+    float B = coverage * confidence;
 
     fragColor = vec4(v_normal, B);
 }

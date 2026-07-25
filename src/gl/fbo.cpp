@@ -202,6 +202,15 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
     }
     #endif
 
+    // A depth-only FBO (no color attachment) must explicitly disable the
+    // color draw/read buffer, or GL considers it incomplete (looking for the
+    // default GL_COLOR_ATTACHMENT0 that was never attached) -- core-profile
+    // desktop GL enforces this strictly (GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER).
+    if (!color_texture) {
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+    }
+
     // CHECK
     GLenum result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (result == GL_FRAMEBUFFER_COMPLETE) 
