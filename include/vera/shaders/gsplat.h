@@ -221,6 +221,38 @@ void main() {
     gl_FragColor = vec4(v_normal, B);
 })";
 
+const std::string splat_frag_depth = R"(
+#ifdef GL_ES
+precision highp float;
+#endif
+
+varying vec4 v_color;
+varying vec2 v_texcoord;
+
+void main() {
+    float A = -dot(v_texcoord, v_texcoord);
+    if (A < -4.0) discard;
+
+    // Only write depth from the geometric CORE of the gaussian's footprint,
+    // not its soft fuzzy tail -- keeps a clean per-splat surface instead of
+    // spreading depth across the whole (very faint) visible extent. This is
+    // deliberately independent of the splat's own opacity: real splats are
+    // routinely individually semi-transparent and only look solid once many
+    // overlapping ones blend together (same as the color pass), so gating
+    // on opacity*gaussian the way the color pass's blend WEIGHT does would
+    // silently exclude most legitimate splats from depth entirely. The
+    // opacity check here is only a floor to skip genuinely negligible/near-
+    // invisible splats. Real depth test/write is enabled for this pass (see
+    // renderDepth()), so the GPU naturally keeps the nearest solid splat per
+    // pixel; no sorting or blending needed here, unlike the color/normal
+    // passes. gl_Position.z/w (and so the rasterized depth) is already the
+    // exact splat-center depth from the shared vertex shader -- nothing to
+    // compute or override here.
+    if (exp(A) < 0.6 || v_color.a < 0.05) discard;
+
+    gl_FragColor = vec4(0.0); // color unused -- color writes are disabled for this pass
+})";
+
 // GLSL ES 3.0 versions
 
 static const std::string splat_vert_300 = R"(#version 300 es
@@ -431,5 +463,25 @@ void main() {
     float B = gaussian * v_color.a * edgeSmoothness * v_normalConfidence;
 
     fragColor = vec4(v_normal, B);
+}
+)";
+
+const std::string splat_frag_depth_300 = R"(#version 300 es
+precision highp float;
+precision highp int;
+
+in vec4 v_color;
+in vec2 v_texcoord;
+
+out vec4 fragColor;
+
+void main() {
+    float A = -dot(v_texcoord, v_texcoord);
+    if (A < -4.0) discard;
+
+    // See splat_frag_depth (ES2 version) for the reasoning.
+    if (exp(A) < 0.6 || v_color.a < 0.05) discard;
+
+    fragColor = vec4(0.0);
 }
 )";

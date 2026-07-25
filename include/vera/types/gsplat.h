@@ -49,6 +49,15 @@ public:
     
     void    render(Camera* _camera, glm::mat4 _model = glm::mat4(1.0f), bool _sort = false);
     void    renderNormal(Camera* _camera, glm::mat4 _model = glm::mat4(1.0f), bool _sort = false);
+
+    // Writes real per-splat depth (hardware depth test/write, not blended)
+    // into whichever depth buffer is currently bound -- intended to be
+    // called right alongside render() during the main scene pass, so it
+    // contributes to the same depth buffer regular opaque geometry does
+    // (e.g. backing u_sceneDepth). Only sufficiently opaque/solid splats
+    // write depth (see splat_frag_depth); color writes are disabled for
+    // this pass so it can't stomp the already-rendered color buffer.
+    void    renderDepth(Camera* _camera, glm::mat4 _model = glm::mat4(1.0f), bool _sort = false);
     void    renderBlocks(Camera* _camera, glm::mat4 _model = glm::mat4(1.0f));
 
     void    setGridDim(int _dim);
@@ -79,9 +88,16 @@ private:
     void    performOcclusionQuery(const glm::mat4& _viewProj);
     void    sort(const glm::mat4& _viewProj);
 
-    // Lazy-init / shared-state helpers used by both render() and renderNormal()
+    // Lazily creates/resizes the private depth-only FBO performOcclusionQuery()
+    // draws its coarse block-shaped occluder proxies into, so that internal
+    // culling heuristic never pollutes whatever depth buffer is actually
+    // bound during render() (e.g. the main scene's, backing u_sceneDepth).
+    void    ensureOcclusionFbo(int _width, int _height);
+
+    // Lazy-init / shared-state helpers used by render()/renderNormal()/renderDepth()
     void    ensureColorShader();
     void    ensureNormalShader();
+    void    ensureDepthShader();
     void    ensureSharedBuffers();
     void    ensureTexture(int _shaderVersion);
     void    ensureSorted(const glm::mat4& _viewProj, bool _sort);
@@ -139,6 +155,19 @@ private:
     GLuint                  m_normalVao = 0;
     GLint                   m_normalPosition = -1;
     GLint                   m_normalIndex = -1;
+
+    // Same as m_normalShader/m_normalVao, but for renderDepth().
+    Shader*                 m_depthShader = nullptr;
+    GLuint                  m_depthVao = 0;
+    GLint                   m_depthPosition = -1;
+    GLint                   m_depthIndex = -1;
+
+    // Private depth-only FBO used exclusively by performOcclusionQuery() --
+    // see ensureOcclusionFbo().
+    GLuint                  m_occlusionFbo = 0;
+    GLuint                  m_occlusionDepthTex = 0;
+    int                     m_occlusionFboWidth = 0;
+    int                     m_occlusionFboHeight = 0;
 };
 
 }

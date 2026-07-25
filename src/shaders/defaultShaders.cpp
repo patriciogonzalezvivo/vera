@@ -319,6 +319,12 @@ std::string getDefaultSrc( DefaultShaders _type ) {
         else if (versionNumber >= 130)
             rta += splat_frag_normal_300;
     }
+    else if (_type == FRAG_SPLAT_DEPTH) {
+        if (versionNumber < 130)
+            rta += splat_frag_depth;
+        else if (versionNumber >= 130)
+            rta += splat_frag_depth_300;
+    }
     else if (_type == VERT_FONT) {
         if (versionNumber < 130)
             rta += glfs::vertexShaderSrc;

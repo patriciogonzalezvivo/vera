@@ -160,6 +160,11 @@ void Gsplat::clear() {
         m_normalShader = nullptr;
     }
 
+    if (m_depthShader) {
+        delete m_depthShader;
+        m_depthShader = nullptr;
+    }
+
     // Clear GPU buffers
     if (m_vao != 0) {
         glDeleteVertexArrays(1, &m_vao);
@@ -170,6 +175,23 @@ void Gsplat::clear() {
         glDeleteVertexArrays(1, &m_normalVao);
         m_normalVao = 0;
     }
+
+    if (m_depthVao != 0) {
+        glDeleteVertexArrays(1, &m_depthVao);
+        m_depthVao = 0;
+    }
+
+    if (m_occlusionFbo != 0) {
+        glDeleteFramebuffers(1, &m_occlusionFbo);
+        m_occlusionFbo = 0;
+    }
+
+    if (m_occlusionDepthTex != 0) {
+        glDeleteTextures(1, &m_occlusionDepthTex);
+        m_occlusionDepthTex = 0;
+    }
+    m_occlusionFboWidth = 0;
+    m_occlusionFboHeight = 0;
 
     if (m_positionVBO != 0) {
         glDeleteBuffers(1, &m_positionVBO);
@@ -185,6 +207,8 @@ void Gsplat::clear() {
     m_index = -1;
     m_normalPosition = -1;
     m_normalIndex = -1;
+    m_depthPosition = -1;
+    m_depthIndex = -1;
 }
 
 void Gsplat::setGridDim(int _dim) {
@@ -547,6 +571,43 @@ void Gsplat::ensureNormalShader() {
                 glVertexAttribPointer(m_normalIndex, 1, GL_FLOAT, GL_FALSE, 0, 0);
 
             glVertexAttribDivisor(m_normalIndex, 1);
+        }
+
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+}
+
+void Gsplat::ensureDepthShader() {
+    if (m_depthShader == nullptr) {
+        m_depthShader = new Shader();
+        m_depthShader->load(getDefaultSrc(FRAG_SPLAT_DEPTH), getDefaultSrc(VERT_SPLAT));
+    }
+
+    ensureSharedBuffers();
+
+    if (m_depthVao == 0) {
+        glGenVertexArrays(1, &m_depthVao);
+        glBindVertexArray(m_depthVao);
+
+        glBindBuffer(GL_ARRAY_BUFFER, m_positionVBO);
+        m_depthPosition = m_depthShader->getAttribLocation("a_position");
+        if (m_depthPosition != -1) {
+            glEnableVertexAttribArray(m_depthPosition);
+            glVertexAttribPointer(m_depthPosition, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, m_indexVBO);
+        m_depthIndex = m_depthShader->getAttribLocation("a_index");
+        if (m_depthIndex != -1) {
+            glEnableVertexAttribArray(m_depthIndex);
+
+            if (m_depthShader->getVersion() >= 300)
+                glVertexAttribIPointer(m_depthIndex, 1, GL_UNSIGNED_INT, 0, 0);
+            else
+                glVertexAttribPointer(m_depthIndex, 1, GL_FLOAT, GL_FALSE, 0, 0);
+
+            glVertexAttribDivisor(m_depthIndex, 1);
         }
 
         glBindVertexArray(0);
@@ -982,6 +1043,35 @@ BoundingBox Gsplat::getBoundingBox() const {
     return bbox;
 }
 
+void Gsplat::ensureOcclusionFbo(int _width, int _height) {
+    if (m_occlusionFbo != 0 && m_occlusionFboWidth == _width && m_occlusionFboHeight == _height)
+        return;
+
+    if (m_occlusionFbo == 0) {
+        glGenFramebuffers(1, &m_occlusionFbo);
+        glGenTextures(1, &m_occlusionDepthTex);
+    }
+
+    m_occlusionFboWidth = _width;
+    m_occlusionFboHeight = _height;
+
+    glBindTexture(GL_TEXTURE_2D, m_occlusionDepthTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, _width, _height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, m_occlusionFbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_occlusionDepthTex, 0);
+    // Depth-only: no color attachment, so the default draw/read buffer (which
+    // expects COLOR_ATTACHMENT0) must be explicitly turned off for the FBO
+    // to be considered complete.
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
 
 void Gsplat::performOcclusionQuery(const glm::mat4& _viewProj) {
     if (m_blocks.empty()) return;
@@ -1020,6 +1110,22 @@ void Gsplat::performOcclusionQuery(const glm::mat4& _viewProj) {
     glGetBooleanv(GL_DEPTH_TEST, &depthTest);
     GLint depthFunc;
     glGetIntegerv(GL_DEPTH_FUNC, &depthFunc);
+
+    // Redirect to a private depth-only FBO: these are coarse, shrunk
+    // block-shaped occluder proxies, purely a heuristic for next frame's
+    // culling decisions. Writing them into whatever depth buffer is actually
+    // bound (e.g. the main scene's, backing u_sceneDepth) would visibly
+    // show up as blocky artifacts wherever a proxy is nearer than the real,
+    // per-splat depth from renderDepth().
+    GLint prevFbo = 0;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &prevFbo);
+    GLint prevViewport[4];
+    glGetIntegerv(GL_VIEWPORT, prevViewport);
+
+    ensureOcclusionFbo(prevViewport[2], prevViewport[3]);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_occlusionFbo);
+    glViewport(0, 0, prevViewport[2], prevViewport[3]);
+    glClear(GL_DEPTH_BUFFER_BIT);
 
     // Filter visible blocks for depth pre-pass
     std::vector<SplatBlock*> visibleBlocks;
@@ -1072,6 +1178,8 @@ void Gsplat::performOcclusionQuery(const glm::mat4& _viewProj) {
     }
 
     // Restore state
+    glBindFramebuffer(GL_FRAMEBUFFER, prevFbo);
+    glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
     glColorMask(colorMask[0], colorMask[1], colorMask[2], colorMask[3]);
     glDepthMask(depthMask);
     glDepthFunc(depthFunc);
@@ -1508,6 +1616,86 @@ void Gsplat::renderNormal(Camera* _camera, glm::mat4 _model, bool _sort) {
     size_t drawCount = (m_normalShader->getVersion() >= 300) ? m_depthUintIndex.size() : m_depthFloatIndex.size();
     glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, drawCount);
 
+    glDepthMask(depthMask);
+    blendMode(prevBlend);
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void Gsplat::renderDepth(Camera* _camera, glm::mat4 _model, bool _sort) {
+    if (!_camera)
+        return;
+
+    ensureDepthShader();
+    ensureTexture(m_depthShader->getVersion());
+
+    glm::mat4 viewProj = _camera->getProjectionMatrix() * _camera->getViewMatrix() * _model;
+    ensureSorted(viewProj, _sort);
+
+    // Update index buffer. Draw order doesn't affect correctness here (the
+    // hardware depth test resolves overlap regardless of order), reusing it
+    // just avoids a redundant upload/sort path.
+    glBindBuffer(GL_ARRAY_BUFFER, m_indexVBO);
+    if (m_depthShader->getVersion() >= 300) {
+        glBufferData(GL_ARRAY_BUFFER, m_depthUintIndex.size() * sizeof(uint32_t), m_depthUintIndex.data(), GL_STREAM_DRAW);
+    }
+    else {
+        glBufferData(GL_ARRAY_BUFFER, m_depthFloatIndex.size() * sizeof(float), m_depthFloatIndex.data(), GL_DYNAMIC_DRAW);
+    }
+
+    m_depthShader->use();
+
+    glBindVertexArray(m_depthVao);
+
+    m_depthShader->setUniformTexture("u_GsplatData", m_texture, 0);
+    m_depthShader->setUniform("u_GsplatDataResolution", glm::vec2(m_texture->getWidth(), m_texture->getHeight()));
+
+    m_depthShader->setUniform("u_modelMatrix", _model);
+    m_depthShader->setUniform("u_viewMatrix", _camera->getViewMatrix());
+    m_depthShader->setUniform("u_projectionMatrix", _camera->getProjectionMatrix());
+    m_depthShader->setUniform("u_resolution", glm::vec2(_camera->getViewport().z, _camera->getViewport().w));
+
+    {
+        const glm::mat4& proj = _camera->getProjectionMatrix();
+        glm::vec4 viewport = _camera->getViewport();
+        float fx = viewport.z * 0.5f * std::abs(proj[0][0]);
+        float fy = viewport.w * 0.5f * std::abs(proj[1][1]);
+        m_depthShader->setUniform("u_focal", glm::vec2(fx, fy));
+    }
+
+    if (m_depthShader->getVersion() >= 300) {
+        glBindBuffer(GL_ARRAY_BUFFER, m_positionVBO);
+        glEnableVertexAttribArray(m_depthPosition);
+        glVertexAttribPointer(m_depthPosition, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, m_indexVBO);
+        glEnableVertexAttribArray(m_depthIndex);
+        glVertexAttribIPointer(m_depthIndex, 1, GL_UNSIGNED_INT, 0, 0);
+        glVertexAttribDivisor(m_depthIndex, 1);
+    }
+
+    // Real depth test/write, no blending, no color writes: this pass runs
+    // alongside the main (alpha-blended, depth-write-disabled) color draw
+    // and must not disturb it -- only the shared depth buffer should change,
+    // with the hardware depth test picking the nearest solid-enough splat.
+    GLboolean colorMask[4];
+    glGetBooleanv(GL_COLOR_WRITEMASK, colorMask);
+    GLboolean depthMask;
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMask);
+    BlendMode prevBlend = blendMode();
+
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    glDepthMask(GL_TRUE);
+    blendMode(BLEND_NONE);
+
+    size_t drawCount = (m_depthShader->getVersion() >= 300) ? m_depthUintIndex.size() : m_depthFloatIndex.size();
+    glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, drawCount);
+
+    glColorMask(colorMask[0], colorMask[1], colorMask[2], colorMask[3]);
     glDepthMask(depthMask);
     blendMode(prevBlend);
 
