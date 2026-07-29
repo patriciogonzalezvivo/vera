@@ -179,7 +179,12 @@ bool Scene::addTexture(const std::string& _name, const std::string& _path, bool 
                 // the image is loaded finish add the texture to the uniform list
                 textures[_name] = tex;
 
-                if (_verbose && _name[0] != '_') {
+                if (_name[0] == '_') {
+                    m_changed = true;
+                    return true;
+                }
+
+                if (_verbose) {
                     std::cout << "// " << _path << " loaded as: " << std::endl;
                     std::cout << "uniform sampler2D   " << _name  << ";"<< std::endl;
                     std::cout << "uniform vec2        " << _name  << "Resolution;"<< std::endl;
