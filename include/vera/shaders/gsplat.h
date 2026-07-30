@@ -7,8 +7,8 @@ const std::string splat_vert = R"(
 precision highp float;
 #endif
 
-uniform sampler2D   u_GsplatData;
-uniform vec2        u_GsplatDataResolution; // Must be passed: vec2(4096.0, height)
+uniform sampler2D   u_gsplatTex;
+uniform vec2        u_gsplatTexResolution; // Must be passed: vec2(4096.0, height)
 
 uniform mat4        u_projectionMatrix;
 uniform mat4        u_viewMatrix;
@@ -47,8 +47,8 @@ vec3 octDecode(vec2 f) {
 }
 
 void main() {
-    float width = u_GsplatDataResolution.x;
-    float height = u_GsplatDataResolution.y;
+    float width = u_gsplatTexResolution.x;
+    float height = u_gsplatTexResolution.y;
     vec2 pixel = 1.0 / u_resolution;
 
     // Fetch gaussian data from texture
@@ -61,7 +61,7 @@ void main() {
     float v = (row + 0.5) / height;
     
     // Fetch 4 pixels
-    vec4 p1 = texture2D(u_GsplatData, vec2((colStart + 0.5) / width, v));
+    vec4 p1 = texture2D(u_gsplatTex, vec2((colStart + 0.5) / width, v));
 
     // p1: pos.xyz, normalConfidence
     // p2: cov.xx, cov.xy, cov.xz, cov.yy
@@ -84,9 +84,9 @@ void main() {
         return;
     }
     
-    vec4 p2 = texture2D(u_GsplatData, vec2((colStart + 1.5) / width, v));
-    vec4 p3 = texture2D(u_GsplatData, vec2((colStart + 2.5) / width, v));
-    vec4 p4 = texture2D(u_GsplatData, vec2((colStart + 3.5) / width, v));
+    vec4 p2 = texture2D(u_gsplatTex, vec2((colStart + 1.5) / width, v));
+    vec4 p3 = texture2D(u_gsplatTex, vec2((colStart + 2.5) / width, v));
+    vec4 p4 = texture2D(u_gsplatTex, vec2((colStart + 3.5) / width, v));
 
     // p3.zw carries the splat's local-space "normal" (thinnest ellipsoid axis),
     // packed with signed octahedral encoding. Rotate it into view space and
@@ -265,7 +265,7 @@ precision highp float;
 precision highp int;
 precision highp usampler2D;
 
-uniform usampler2D  u_GsplatData;
+uniform usampler2D  u_gsplatTex;
 
 uniform mat4        u_projectionMatrix;
 uniform mat4        u_viewMatrix;
@@ -300,7 +300,7 @@ void main() {
     uint splatRow = uint(a_index) >> 10;
 
     // Fetch gaussian data from texture
-    uvec4 cen = texelFetch(u_GsplatData, ivec2(splatCol, splatRow), 0);
+    uvec4 cen = texelFetch(u_gsplatTex, ivec2(splatCol, splatRow), 0);
 
     // Transform position to camera space
     v_position = vec4(uintBitsToFloat(cen.xyz), 1.0);
@@ -324,8 +324,8 @@ void main() {
     }
     
     // Fetch covariance data and normal-confidence
-    uvec4 cov = texelFetch(u_GsplatData, ivec2(splatCol + 1u, splatRow), 0);
-    uvec4 conf = texelFetch(u_GsplatData, ivec2(splatCol + 2u, splatRow), 0);
+    uvec4 cov = texelFetch(u_gsplatTex, ivec2(splatCol + 1u, splatRow), 0);
+    uvec4 conf = texelFetch(u_gsplatTex, ivec2(splatCol + 2u, splatRow), 0);
     v_normalConfidence = uintBitsToFloat(conf.x);
 
     // Unpack half-precision covariance

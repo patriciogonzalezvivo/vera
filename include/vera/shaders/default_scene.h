@@ -15,8 +15,8 @@ uniform mat3        u_normalMatrix;
 uniform vec2        u_resolution;
 
 #ifdef MODEL_PRIMITIVE_GSPLATS
-uniform sampler2D   u_GsplatData;
-uniform vec2        u_GsplatDataResolution; // Must be passed: vec2(4096.0, height)
+uniform sampler2D   u_gsplatTex;
+uniform vec2        u_gsplatTexResolution; // Must be passed: vec2(4096.0, height)
 
 uniform vec2        u_focal;
 
@@ -64,8 +64,8 @@ void main(void) {
     v_texcoord = a_position;
     v_color = vec4(v_texcoord.x, v_texcoord.y, 0.0, 1.0);
 
-    float width = u_GsplatDataResolution.x;
-    float height = u_GsplatDataResolution.y;
+    float width = u_gsplatTexResolution.x;
+    float height = u_gsplatTexResolution.y;
 
     float fIndex = a_index;
     float row = floor(fIndex / 1024.0);
@@ -74,7 +74,7 @@ void main(void) {
     float v = (row + 0.5) / height;
     
     // p1: pos.xyz (position)
-    vec4 p1 = texture2D(u_GsplatData, vec2((colStart + 0.5) / width, v));
+    vec4 p1 = texture2D(u_gsplatTex, vec2((colStart + 0.5) / width, v));
     v_position = vec4(p1.xyz, 1.0);
     
     // Transform position to camera space
@@ -93,11 +93,11 @@ void main(void) {
     // Covariance
     // p2: cov.xx, cov.xy, cov.xz, cov.yy
     // p3: cov.yz, cov.zz, 0, 0
-    vec4 p2 = texture2D(u_GsplatData, vec2((colStart + 1.5) / width, v));
-    vec4 p3 = texture2D(u_GsplatData, vec2((colStart + 2.5) / width, v));
+    vec4 p2 = texture2D(u_gsplatTex, vec2((colStart + 1.5) / width, v));
+    vec4 p3 = texture2D(u_gsplatTex, vec2((colStart + 2.5) / width, v));
 
     // p4: color.rgba
-    vec4 p4 = texture2D(u_GsplatData, vec2((colStart + 3.5) / width, v));
+    vec4 p4 = texture2D(u_gsplatTex, vec2((colStart + 3.5) / width, v));
     v_color = p4;
     
     // Construct covariance matrix
@@ -196,7 +196,7 @@ uniform mat3        u_normalMatrix;
 uniform vec2        u_resolution;
 
 #ifdef MODEL_PRIMITIVE_GSPLATS
-uniform usampler2D  u_GsplatData;
+uniform usampler2D  u_gsplatTex;
 uniform vec2        u_focal;
 in vec2             a_position;
 in uint             a_index;
@@ -236,7 +236,7 @@ void main(void) {
 
 #ifdef MODEL_PRIMITIVE_GSPLATS
     // Fetch gaussian data from texture
-    uvec4 cen = texelFetch(u_GsplatData, ivec2((uint(a_index) & 0x3ffu) << 1, uint(a_index) >> 10), 0);
+    uvec4 cen = texelFetch(u_gsplatTex, ivec2((uint(a_index) & 0x3ffu) << 1, uint(a_index) >> 10), 0);
     
     // Transform position to camera space
     v_position = vec4(uintBitsToFloat(cen.xyz), 1.0);
@@ -253,7 +253,7 @@ void main(void) {
     }
     
     // Fetch covariance data
-    uvec4 cov = texelFetch(u_GsplatData, ivec2(((uint(a_index) & 0x3ffu) << 1) | 1u, uint(a_index) >> 10), 0);
+    uvec4 cov = texelFetch(u_gsplatTex, ivec2(((uint(a_index) & 0x3ffu) << 1) | 1u, uint(a_index) >> 10), 0);
     
     // Unpack half-precision covariance
     vec2 u1 = unpackHalf2x16(cov.x);

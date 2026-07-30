@@ -1487,8 +1487,8 @@ void Gsplat::render(Camera* _camera, glm::mat4 _model, bool _sort) {
     glBindVertexArray(m_vao);
 
     // Set uniforms
-    m_shader->setUniformTexture("u_GsplatData", m_texture, 0); // Use member variable directly
-    m_shader->setUniform("u_GsplatDataResolution", glm::vec2(m_texture->getWidth(), m_texture->getHeight()));
+    m_shader->setUniformTexture("u_gsplatTex", m_texture, 0); // Use member variable directly
+    m_shader->setUniform("u_gsplatTexResolution", glm::vec2(m_texture->getWidth(), m_texture->getHeight()));
 
     m_shader->setUniform("u_modelMatrix", _model);
     m_shader->setUniform("u_normalMatrix", _camera->getNormalMatrix());
@@ -1575,8 +1575,8 @@ void Gsplat::renderNormal(Camera* _camera, glm::mat4 _model, bool _sort) {
 
     glBindVertexArray(m_normalVao);
 
-    m_normalShader->setUniformTexture("u_GsplatData", m_texture, 0);
-    m_normalShader->setUniform("u_GsplatDataResolution", glm::vec2(m_texture->getWidth(), m_texture->getHeight()));
+    m_normalShader->setUniformTexture("u_gsplatTex", m_texture, 0);
+    m_normalShader->setUniform("u_gsplatTexResolution", glm::vec2(m_texture->getWidth(), m_texture->getHeight()));
 
     m_normalShader->setUniform("u_modelMatrix", _model);
     m_normalShader->setUniform("u_viewMatrix", _camera->getViewMatrix());
@@ -1651,8 +1651,8 @@ void Gsplat::renderDepth(Camera* _camera, glm::mat4 _model, bool _sort) {
 
     glBindVertexArray(m_depthVao);
 
-    m_depthShader->setUniformTexture("u_GsplatData", m_texture, 0);
-    m_depthShader->setUniform("u_GsplatDataResolution", glm::vec2(m_texture->getWidth(), m_texture->getHeight()));
+    m_depthShader->setUniformTexture("u_gsplatTex", m_texture, 0);
+    m_depthShader->setUniform("u_gsplatTexResolution", glm::vec2(m_texture->getWidth(), m_texture->getHeight()));
 
     m_depthShader->setUniform("u_modelMatrix", _model);
     m_depthShader->setUniform("u_viewMatrix", _camera->getViewMatrix());
