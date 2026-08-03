@@ -41,13 +41,51 @@ Camera::~Camera() {
 
 }
 
+void Camera::setLockedAspect(float _aspect) {
+    m_lockedAspect = _aspect;
+    setViewport(vera::getWindowWidth(), vera::getWindowHeight());
+}
+
 void Camera::setViewport(glm::vec4 _viewport) {
+    // Sets an explicit absolute sub-rectangle (e.g. a quilt/multi-view tile)
+    // as-is -- unlike setViewport(w,h) below, this never letterboxes, since
+    // the caller already picked the exact rectangle it wants.
     m_viewport = _viewport;
-    setViewport(_viewport.z, _viewport.w);
+    m_aspect = double(_viewport.z) / double(_viewport.w);
+    updateCameraSettings();
 }
 
 void Camera::setViewport(int _width, int _height){
-    m_aspect = double(_width) / double(_height);
+    if (_width <= 0 || _height <= 0)
+        return;
+
+    if (m_lockedAspect > 0.0f) {
+        // Cover the given window/viewport with the smallest centered
+        // rectangle matching m_lockedAspect that still fills it entirely --
+        // rather than stretching a CUSTOM projection (e.g. one derived from
+        // COLMAP intrinsics, which already bakes in a fixed source-image
+        // aspect) to an arbitrarily shaped viewport, or fitting it inside
+        // and leaving unrendered bars. The rect overflows the viewport in
+        // one axis (negative offset / size beyond _width or _height); GL
+        // clips whatever falls outside the actual framebuffer, so the
+        // overflow is simply cropped rather than shown.
+        int w = _width;
+        int h = static_cast<int>(_width / m_lockedAspect);
+        if (h < _height) {
+            h = _height;
+            w = static_cast<int>(_height * m_lockedAspect);
+        }
+        m_viewport = glm::ivec4((_width - w) / 2, (_height - h) / 2, w, h);
+        m_aspect = m_lockedAspect;
+    }
+    else {
+        // No lock (any more): drop a previously-cropped rectangle so this
+        // camera goes back to filling the whole viewport, instead of
+        // keeping a stale crop from before the lock was cleared.
+        m_aspect = double(_width) / double(_height);
+        m_viewport = glm::ivec4(0);
+    }
+
     updateCameraSettings();
 }
 

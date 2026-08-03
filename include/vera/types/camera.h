@@ -46,6 +46,20 @@ public:
     virtual void        setViewport(glm::vec4 _viewport);
     virtual void        setClipping(double _near_clip_distance, double _far_clip_distance);
 
+    // Locks this camera's displayed aspect ratio (width/height) to a fixed
+    // value -- e.g. a COLMAP-derived CUSTOM projection whose matrix already
+    // bakes in the source image's aspect. Once set, setViewport(w,h) covers
+    // the viewport with a centered rectangle matching this aspect (cropping
+    // whichever axis overflows) instead of stretching the projection to fill
+    // an arbitrarily-shaped viewport. 0 (the default) disables this and uses
+    // the raw viewport aspect as-is. Immediately re-derives the viewport
+    // rectangle for the current window size, since callers that clone one
+    // camera's locked aspect onto another (camera selection, transitions)
+    // otherwise leave that other camera's crop rectangle stale until the
+    // next resize.
+    virtual void        setLockedAspect(float _aspect);
+    virtual float        getLockedAspect() const { return m_lockedAspect; }
+
     virtual void        setVirtualOffset(float _scale, int _currentViewIndex, int _totalViews, float aspect = 1.0f);
 
     virtual void        setExposure(float _aperture, float _shutterSpeed, float _sensitivity);
@@ -155,6 +169,7 @@ private:
     glm::vec3   m_worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
     float       m_aspect;
+    float       m_lockedAspect = 0.0f;
     float       m_fov;
     float       m_nearClip;
     float       m_farClip;
