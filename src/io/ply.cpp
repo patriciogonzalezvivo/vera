@@ -15,13 +15,17 @@ namespace vera {
 #include "tinyply.h"
 
 
-bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose) {
+bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose, const std::string& _prefix) {
     if (_verbose)
         std::cout << "Loading w TinyPly " << _filename << std::endl;
 
+    // When a prefix is provided use it as the model base name so several files
+    // can coexist; otherwise keep the historical filename-derived name.
     std::string name = _filename;
     if (name.size() > 4)
         name = name.substr(0, name.size()-4);
+    if (!_prefix.empty())
+        name = _prefix;
 
     Material default_material;
     std::vector<glm::vec4> mesh_colors;
@@ -459,7 +463,7 @@ bool loadPLY(const std::string& _filename, Mesh& _mesh ) {
 
 #else
 
-bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose) {    
+bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose, const std::string& _prefix) {
     std::fstream is(_filename.c_str(), std::ios::in);
     if (is.is_open()) {
         try {
@@ -716,7 +720,12 @@ bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose) {
 
         _scene->materials[default_material->name] = default_material;
 
-        if (mesh.getDrawMode() == POINTS)
+        // When a prefix is given, namespace this file's single model by it so
+        // multiple PLYs don't collide (their generic "mesh"/"points"/"lines"
+        // names would otherwise overwrite each other in the shared map).
+        if (!_prefix.empty())
+            name = _prefix;
+        else if (mesh.getDrawMode() == POINTS)
             name = "points";
         else if (mesh.getDrawMode() == LINES)
             name = "lines";

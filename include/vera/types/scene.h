@@ -28,8 +28,11 @@ public:
     Scene();
     virtual ~Scene();
 
-    // Load, update & clear scene 
-    virtual void        load(const std::string& _name, bool _verbose = false);
+    // Load, update & clear scene
+    // _prefix (optional) namespaces every model key/name produced by this file
+    // so multiple geometry files can coexist without clobbering each other and
+    // can be hot-reloaded independently (see removeModelsByPrefix).
+    virtual void        load(const std::string& _name, bool _verbose = false, const std::string& _prefix = "");
     virtual void        update();
     virtual void        clear();
 
@@ -102,6 +105,11 @@ public:
     LightsMap           lights;
     virtual void        printLights();
     virtual void        clearLights();
+    // True when the loaded scene defines its own lights (e.g. a glTF with
+    // KHR_lights_punctual). The viewer uses this to avoid overriding them with
+    // its default sun placement.
+    bool                haveLights() const { return m_haveLights; }
+    void                setHaveLights(bool _v) { m_haveLights = _v; }
 
     // Materials
     MaterialsMap        materials;
@@ -112,6 +120,10 @@ public:
     ModelsMap           models;
     virtual void        printModels();
     virtual void        clearModels();
+    // Remove (and delete) every model whose key belongs to a given file prefix,
+    // i.e. key == _prefix or key starts with (_prefix + "_"). Used to hot-reload
+    // a single geometry file without disturbing the others.
+    virtual void        removeModelsByPrefix(const std::string& _prefix);
 
     // Node Tree
     std::vector<Node*>  root;
@@ -147,6 +159,7 @@ protected:
     bool                m_streamsPrevsChange;
 
     bool                m_changed;
+    bool                m_haveLights = false;
 
 };
 

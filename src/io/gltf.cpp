@@ -272,7 +272,7 @@ Material* extractMaterial(const tinygltf::Model& _model, const tinygltf::Materia
     return mat;
 }
 
-void extractMesh(const tinygltf::Model& _model, const tinygltf::Mesh& _mesh, glm::mat4 _matrix, Scene* _scene, bool _verbose) {
+void extractMesh(const tinygltf::Model& _model, const tinygltf::Mesh& _mesh, glm::mat4 _matrix, Scene* _scene, bool _verbose, const std::string& _prefix) {
     if (_verbose)
         std::cout << "  Parsing Mesh " << _mesh.name << std::endl;
 
@@ -374,13 +374,87 @@ void extractMesh(const tinygltf::Model& _model, const tinygltf::Mesh& _mesh, glm
             if ( _verbose )
                 std::cout << "    . Compute tangents" << std::endl;
 
-        Material* mat = extractMaterial( _model, _model.materials[primitive.material], _scene, _verbose );
-        _scene->models[_mesh.name] = new Model(_mesh.name, mesh, mat);
+        // A primitive without an assigned material has material index -1;
+        // indexing _model.materials with it is out of bounds (crash). Fall
+        // back to a shared "default" material in that case.
+        Material* mat = nullptr;
+        if (primitive.material >= 0 && primitive.material < (int)_model.materials.size())
+            mat = extractMaterial( _model, _model.materials[primitive.material], _scene, _verbose );
+        else {
+            if (_scene->materials.find("default") == _scene->materials.end())
+                _scene->materials["default"] = new Material("default");
+            mat = _scene->materials["default"];
+        }
+
+        // Namespace the mesh by the file prefix so several glTFs can coexist.
+        std::string name = _prefix.empty() ? _mesh.name : _prefix + "_" + _mesh.name;
+        _scene->models[name] = new Model(name, mesh, mat);
     }
 };
 
+// Copy a glTF KHR_lights_punctual light's parameters (placed at a node's world
+// transform) into a vera::Light.
+void applyGltfLight(Light* _light, const tinygltf::Light& _l, const glm::mat4& _matrix) {
+    // A glTF light shines down its node's local -Z; its position is the node's
+    // world translation.
+    _light->setPosition( glm::vec3(_matrix[3]) );
+    _light->direction = glm::normalize(glm::mat3(_matrix) * glm::vec3(0.0f, 0.0f, -1.0f));
+
+    if (_l.type == "directional")   _light->setType(LIGHT_DIRECTIONAL);
+    else if (_l.type == "spot")     _light->setType(LIGHT_SPOT);
+    else                            _light->setType(LIGHT_POINT); // "point"
+
+    if (_l.color.size() == 3)
+        _light->color = glm::vec3((float)_l.color[0], (float)_l.color[1], (float)_l.color[2]);
+
+    // NOTE: glTF KHR_lights_punctual intensities are physical units (candela
+    // for point/spot, lux for directional), routinely in the tens to thousands.
+    // glslViewer's default shading treats u_lightIntensity as a ~1.0 multiplier,
+    // so copying the raw value blows the scene out. Keep the viewer's neutral
+    // default intensity instead (position/direction/color/type still come from
+    // the glTF). A physically-based intensity mapping would need a calibrated
+    // exposure pipeline that the default shaders don't have.
+    if (_l.range > 0.0)
+        _light->falloff = (float)_l.range;
+}
+
+// Bring a glTF light into the scene. The FIRST glTF light is transferred INTO
+// the built-in "default" light (reusing that object) rather than replacing it,
+// so all the code that references lights["default"] keeps working and it still
+// maps to u_light. Subsequent lights are added as "light1", "light2", ...
+// (-> u_light1, u_light2 in Uniforms::feedTo). _counter tracks how many glTF
+// lights have been seen so far across the (recursive) node traversal.
+void extractLight(const tinygltf::Light& _l, const glm::mat4& _matrix, Scene* _scene, bool _verbose, int& _counter) {
+    Light* light = nullptr;
+    std::string name;
+
+    if (_counter == 0) {
+        name = "default";
+        LightsMap::iterator it = _scene->lights.find("default");
+        if (it != _scene->lights.end() && it->second != nullptr)
+            light = it->second;                 // reuse the built-in default
+        else {
+            light = new Light();
+            _scene->lights["default"] = light;
+        }
+    }
+    else {
+        name = "light" + toString(_counter);
+        light = new Light();
+        _scene->lights[name] = light;
+    }
+
+    applyGltfLight(light, _l, _matrix);
+    _scene->setHaveLights(true);                // scene provides its own lighting
+    _counter++;
+
+    if (_verbose)
+        std::cout << "// glTF light '" << _l.name << "' (" << _l.type << ") added as u_"
+                  << (name == "default" ? "light" : name) << std::endl;
+}
+
 // bind models
-void extractNodes(const tinygltf::Model& _model, const tinygltf::Node& _node, glm::mat4 _matrix, Scene* _scene, bool _verbose) {
+void extractNodes(const tinygltf::Model& _model, const tinygltf::Node& _node, glm::mat4 _matrix, Scene* _scene, bool _verbose, const std::string& _prefix, int& _lightCounter) {
     if (_verbose)
         std::cout << "Entering node " << _node.name << std::endl;
 
@@ -407,7 +481,18 @@ void extractNodes(const tinygltf::Model& _model, const tinygltf::Node& _node, gl
     _matrix = _matrix * localMatrix;
 
     if (_node.mesh >= 0)
-        extractMesh(_model, _model.meshes[ _node.mesh ], _matrix, _scene, _verbose);
+        extractMesh(_model, _model.meshes[ _node.mesh ], _matrix, _scene, _verbose, _prefix);
+
+    // KHR_lights_punctual: a node points at a light via its extensions map
+    // (tinygltf has no dedicated Node::light field).
+    {
+        tinygltf::ExtensionMap::const_iterator extIt = _node.extensions.find("KHR_lights_punctual");
+        if (extIt != _node.extensions.end() && extIt->second.Has("light")) {
+            int lightIdx = (int)extIt->second.Get("light").GetNumberAsInt();
+            if (lightIdx >= 0 && lightIdx < (int)_model.lights.size())
+                extractLight(_model.lights[lightIdx], _matrix, _scene, _verbose, _lightCounter);
+        }
+    }
 
     if (_node.camera >= 0)
         if (_verbose)
@@ -415,11 +500,11 @@ void extractNodes(const tinygltf::Model& _model, const tinygltf::Node& _node, gl
         // TODO extract camera
     
     for (size_t i = 0; i < _node.children.size(); i++) {
-        extractNodes(_model, _model.nodes[ _node.children[i] ], _matrix, _scene, _verbose);
+        extractNodes(_model, _model.nodes[ _node.children[i] ], _matrix, _scene, _verbose, _prefix, _lightCounter);
     }
 };
 
-bool loadGLTF( const std::string& _filename, Scene* _scene, bool _verbose) {
+bool loadGLTF( const std::string& _filename, Scene* _scene, bool _verbose, const std::string& _prefix) {
     tinygltf::Model model;
 
     if ( !loadModel(_filename, model) ) {
@@ -427,9 +512,13 @@ bool loadGLTF( const std::string& _filename, Scene* _scene, bool _verbose) {
         return false;
     }
 
+    // Shared across the whole (recursive) node traversal so the first glTF light
+    // becomes the "default"/u_light and the rest become u_light1, u_light2, ...
+    int lightCounter = 0;
+
     const tinygltf::Scene &scene = model.scenes[model.defaultScene];
     for (size_t i = 0; i < scene.nodes.size(); ++i)
-        extractNodes(model, model.nodes[scene.nodes[i]], glm::mat4(1.0), _scene, _verbose);
+        extractNodes(model, model.nodes[scene.nodes[i]], glm::mat4(1.0), _scene, _verbose, _prefix, lightCounter);
 
     return true;
 }

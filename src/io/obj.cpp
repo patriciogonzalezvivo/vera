@@ -344,7 +344,7 @@ Material* InitMaterial(const tinyobj::material_t& _material, Scene* _scene, cons
     return mat;
 }
 
-bool loadOBJ(const std::string& _filename, Scene* _scene, bool _verbose) {
+bool loadOBJ(const std::string& _filename, Scene* _scene, bool _verbose, const std::string& _prefix) {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
@@ -393,6 +393,11 @@ bool loadOBJ(const std::string& _filename, Scene* _scene, bool _verbose) {
         std::string name = shapes[s].name;
         if (name.empty())
             name = toString(s);
+
+        // Namespace every shape by the file prefix so multiple OBJs (and their
+        // possibly identical/empty shape names) don't collide in the shared map.
+        if (!_prefix.empty())
+            name = _prefix + "_" + name;
 
         if (_verbose)
             std::cerr << name << std::endl;

@@ -14,8 +14,10 @@
 
 namespace vera {
 
-bool loadSTL(const std::string& _filename, Scene* _scene, bool _verbose) {
-    std::string name = _filename.substr(0, _filename.size()-4);
+bool loadSTL(const std::string& _filename, Scene* _scene, bool _verbose, const std::string& _prefix) {
+    // A single-model file: use the prefix as its name when provided so several
+    // files can be namespaced independently.
+    std::string name = _prefix.empty() ? _filename.substr(0, _filename.size()-4) : _prefix;
 
     if (_scene->materials.find("default") == _scene->materials.end())
         _scene->materials["default"] = new Material("default");

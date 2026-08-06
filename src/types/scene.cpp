@@ -54,24 +54,24 @@ Scene::~Scene() {
     clear();
 }
 
-void Scene::load(const std::string& _filename, bool _verbose) {
+void Scene::load(const std::string& _filename, bool _verbose, const std::string& _prefix) {
     std::string ext = vera::getExt(_filename);
 
     // If the geometry is a PLY it's easy because is only one mesh
     if ( ext == "ply" || ext == "PLY" )
-        loadPLY( _filename, this, _verbose);
+        loadPLY( _filename, this, _verbose, _prefix);
 
     // If it's a OBJ could be more complicated because they can contain several meshes and materials
     else if ( ext == "obj" || ext == "OBJ" )
-        loadOBJ( _filename, this, _verbose);
+        loadOBJ( _filename, this, _verbose, _prefix);
 
     // If it's a GLTF it's not just multiple meshes and materials but also nodes, lights and cameras
     else if ( ext == "glb" || ext == "GLB" || ext == "gltf" || ext == "GLTF" )
-        loadGLTF( _filename, this, _verbose);
+        loadGLTF( _filename, this, _verbose, _prefix);
 
-    // If it's a STL 
+    // If it's a STL
     else if ( ext == "stl" || ext == "STL" )
-        loadSTL( _filename, this, _verbose);
+        loadSTL( _filename, this, _verbose, _prefix);
 
 #ifdef SUPPORT_GSPLAT
     else if ( ext == "splat" || ext == "SPLAT" ) {
@@ -79,8 +79,11 @@ void Scene::load(const std::string& _filename, bool _verbose) {
         Gsplat* gsplat = new Gsplat();
 
         if (gsplat->load(_filename)) {
-            Model* model = new Model( _filename, gsplat );
-            models[ model->getName() ] = model;
+            // A splat is a single model, so the prefix (when provided) is its
+            // whole name; otherwise fall back to the filename as before.
+            std::string name = _prefix.empty() ? _filename : _prefix;
+            Model* model = new Model( name, gsplat );
+            models[ name ] = model;
             if (_verbose) {
                 std::cout << "// " << _filename << " loaded as Gsplat model: " << model->getName() << std::endl;
             }
@@ -124,6 +127,8 @@ void Scene::clear() {
     clearShaders();
     
     clearLabels();
+
+    m_haveLights = false;
 }
 
 
@@ -664,7 +669,11 @@ void Scene::setSunPosition(float _az, float _elev, float _distance) {
     glm::quat lon = glm::angleAxis(m_skybox.azimuth, glm::vec3(0.0, 1.0, 0.0));
     p = lat * p;
     p = lon * p;
-    lights["default"]->setPosition(p);
+    // The scene may have replaced the built-in "default" light with its own
+    // (e.g. a glTF's KHR_lights_punctual lights), so don't assume it exists.
+    LightsMap::iterator it = lights.find("default");
+    if (it != lights.end())
+        it->second->setPosition(p);
 
     m_changed = true;
 }
@@ -673,7 +682,9 @@ void Scene::setSunPosition(const glm::vec3& _v) {
     m_skybox.elevation = atan2(_v.y, sqrt(_v.x * _v.x + _v.z * _v.z) );
     m_skybox.azimuth = atan2(_v.x, _v.z);
     m_skybox.change = true;
-    lights["default"]->setPosition(_v);
+    LightsMap::iterator it = lights.find("default");
+    if (it != lights.end())
+        it->second->setPosition(_v);
     m_changed = true;
 }
 
@@ -779,6 +790,24 @@ void Scene::clearModels() {
     for (ModelsMap::iterator it = models.begin(); it != models.end(); ++it)
         delete (it->second);
     models.clear();
+    m_changed = true;
+}
+
+void Scene::removeModelsByPrefix(const std::string& _prefix) {
+    if (_prefix.empty())
+        return;
+
+    const std::string sub = _prefix + "_";
+    for (ModelsMap::iterator it = models.begin(); it != models.end(); ) {
+        // Match the whole-name case (single-model files: key == prefix) and the
+        // sub-model case (multi-model files: key == prefix + "_" + subname).
+        if (it->first == _prefix || it->first.compare(0, sub.size(), sub) == 0) {
+            delete it->second;
+            it = models.erase(it);
+        }
+        else
+            ++it;
+    }
     m_changed = true;
 }
 

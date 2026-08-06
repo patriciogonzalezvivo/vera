@@ -4,7 +4,7 @@
 
 namespace vera {
 
-bool loadSTL(const std::string& _filename, Scene* _scene, bool _verbose);
+bool loadSTL(const std::string& _filename, Scene* _scene, bool _verbose, const std::string& _prefix = "");
 bool loadSTL( const std::string& _filename, Mesh& _mesh );
 inline Mesh loadSTL( const std::string& _filename) {
     Mesh mesh;

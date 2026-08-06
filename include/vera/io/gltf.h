@@ -4,6 +4,6 @@
 
 namespace vera {
 
-bool loadGLTF( const std::string& _filename, Scene* _scene, bool _verbose);
+bool loadGLTF( const std::string& _filename, Scene* _scene, bool _verbose, const std::string& _prefix = "");
 
 }
