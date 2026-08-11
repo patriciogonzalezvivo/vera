@@ -207,7 +207,12 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
     // default GL_COLOR_ATTACHMENT0 that was never attached) -- core-profile
     // desktop GL enforces this strictly (GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER).
     if (!color_texture) {
-        glDrawBuffer(GL_NONE);
+        // Use glDrawBuffers (array form) instead of glDrawBuffer (singular):
+        // the latter is desktop-GL only and doesn't exist in OpenGL ES /
+        // WebGL2 (Emscripten), causing an "undefined symbol: glDrawBuffer"
+        // link error. glDrawBuffers exists on both desktop GL2+ and ES3.
+        GLenum none = GL_NONE;
+        glDrawBuffers(1, &none);
         glReadBuffer(GL_NONE);
     }
 

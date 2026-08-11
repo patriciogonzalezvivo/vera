@@ -1066,8 +1066,11 @@ void Gsplat::ensureOcclusionFbo(int _width, int _height) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_occlusionDepthTex, 0);
     // Depth-only: no color attachment, so the default draw/read buffer (which
     // expects COLOR_ATTACHMENT0) must be explicitly turned off for the FBO
-    // to be considered complete.
-    glDrawBuffer(GL_NONE);
+    // to be considered complete. Use glDrawBuffers (array form) rather than
+    // glDrawBuffer (singular) -- the singular is desktop-GL only and is
+    // undefined under OpenGL ES / WebGL2 (Emscripten link error).
+    GLenum none = GL_NONE;
+    glDrawBuffers(1, &none);
     glReadBuffer(GL_NONE);
 
     glBindTexture(GL_TEXTURE_2D, 0);
