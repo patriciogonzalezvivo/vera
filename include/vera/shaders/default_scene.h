@@ -20,9 +20,16 @@ uniform vec2        u_gsplatTexResolution; // Must be passed: vec2(4096.0, heigh
 
 uniform vec2        u_focal;
 
+// Higher-order (view-dependent) SH. u_shDegree == 0 disables all SH sampling
+// below (degree-0 splats render exactly as before).
+uniform sampler2D   u_gsplatShTex;
+uniform vec2        u_gsplatShTexResolution;
+uniform int         u_shDegree;
+uniform vec3        u_gsplatCamPos;
+
 attribute vec2      a_position;
 attribute float     a_index;
-#else 
+#else
 
 attribute vec4      a_position;
 #endif
@@ -57,6 +64,65 @@ varying vec4        v_lightCoord;
 
 #include "lygia/math/transpose.glsl"
 #include "lygia/math/toMat3.glsl"
+
+#ifdef MODEL_PRIMITIVE_GSPLATS
+// Standard 3DGS real-SH basis constants (also the KHR_gaussian_splatting basis).
+const float GSPLAT_SH_C1   = 0.4886025119029199;
+const float GSPLAT_SH_C2_0 = 1.0925484305920792;
+const float GSPLAT_SH_C2_1 = -1.0925484305920792;
+const float GSPLAT_SH_C2_2 = 0.31539156525252005;
+const float GSPLAT_SH_C2_3 = -1.0925484305920792;
+const float GSPLAT_SH_C2_4 = 0.5462742152960396;
+const float GSPLAT_SH_C3_0 = -0.5900435899266435;
+const float GSPLAT_SH_C3_1 = 2.890611442640554;
+const float GSPLAT_SH_C3_2 = -0.4570457994644658;
+const float GSPLAT_SH_C3_3 = 0.3731763325901154;
+const float GSPLAT_SH_C3_4 = -0.4570457994644658;
+const float GSPLAT_SH_C3_5 = 1.445305721320277;
+const float GSPLAT_SH_C3_6 = -0.5900435899266435;
+
+// Fetch SH coefficient c (0-based among the higher-order terms) for this splat
+// from the SH texture (same 1024-per-row tiling, `total` columns per splat).
+vec3 gsplatSHCoeff(float fIndex, int total, int c) {
+    float w = u_gsplatShTexResolution.x;
+    float h = u_gsplatShTexResolution.y;
+    float row = floor(fIndex / 1024.0);
+    float colBase = mod(fIndex, 1024.0) * float(total);
+    float u = (colBase + float(c) + 0.5) / w;
+    float vv = (row + 0.5) / h;
+    return texture2D(u_gsplatShTex, vec2(u, vv)).rgb;
+}
+
+// View-dependent SH contribution (degree 1..u_shDegree) added to the base
+// (degree-0) color. `dir` is the normalized camera->splat direction.
+vec3 gsplatEvalSH(vec3 dir, float fIndex) {
+    int total = u_shDegree * (u_shDegree + 2);
+    float x = dir.x, y = dir.y, z = dir.z;
+    vec3 col = GSPLAT_SH_C1 * (-y * gsplatSHCoeff(fIndex, total, 0)
+                              + z * gsplatSHCoeff(fIndex, total, 1)
+                              - x * gsplatSHCoeff(fIndex, total, 2));
+    if (u_shDegree >= 2) {
+        float xx = x*x, yy = y*y, zz = z*z;
+        float xy = x*y, yz = y*z, xz = x*z;
+        col += GSPLAT_SH_C2_0 * xy * gsplatSHCoeff(fIndex, total, 3)
+             + GSPLAT_SH_C2_1 * yz * gsplatSHCoeff(fIndex, total, 4)
+             + GSPLAT_SH_C2_2 * (2.0*zz - xx - yy) * gsplatSHCoeff(fIndex, total, 5)
+             + GSPLAT_SH_C2_3 * xz * gsplatSHCoeff(fIndex, total, 6)
+             + GSPLAT_SH_C2_4 * (xx - yy) * gsplatSHCoeff(fIndex, total, 7);
+    }
+    if (u_shDegree >= 3) {
+        float xx = x*x, yy = y*y, zz = z*z;
+        col += GSPLAT_SH_C3_0 * y * (3.0*xx - yy)          * gsplatSHCoeff(fIndex, total, 8)
+             + GSPLAT_SH_C3_1 * x*y*z                      * gsplatSHCoeff(fIndex, total, 9)
+             + GSPLAT_SH_C3_2 * y * (4.0*zz - xx - yy)     * gsplatSHCoeff(fIndex, total, 10)
+             + GSPLAT_SH_C3_3 * z * (2.0*zz - 3.0*xx - 3.0*yy) * gsplatSHCoeff(fIndex, total, 11)
+             + GSPLAT_SH_C3_4 * x * (4.0*zz - xx - yy)     * gsplatSHCoeff(fIndex, total, 12)
+             + GSPLAT_SH_C3_5 * z * (xx - yy)              * gsplatSHCoeff(fIndex, total, 13)
+             + GSPLAT_SH_C3_6 * x * (xx - 3.0*yy)          * gsplatSHCoeff(fIndex, total, 14);
+    }
+    return col;
+}
+#endif
 
 void main(void) {
 
@@ -99,7 +165,14 @@ void main(void) {
     // p4: color.rgba
     vec4 p4 = texture2D(u_gsplatTex, vec2((colStart + 3.5) / width, v));
     v_color = p4;
-    
+
+    // Add view-dependent color from higher-order SH (no-op when u_shDegree==0).
+    if (u_shDegree > 0) {
+        vec3 worldPos = (u_modelMatrix * v_position).xyz;
+        vec3 dir = normalize(worldPos - u_gsplatCamPos);
+        v_color.rgb = clamp(v_color.rgb + gsplatEvalSH(dir, fIndex), 0.0, 1.0);
+    }
+
     // Construct covariance matrix
     mat3 Vrk = mat3(
         p2.x, p2.y, p2.z,
@@ -198,6 +271,13 @@ uniform vec2        u_resolution;
 #ifdef MODEL_PRIMITIVE_GSPLATS
 uniform usampler2D  u_gsplatTex;
 uniform vec2        u_focal;
+
+// Higher-order (view-dependent) SH -- see the 100-path notes above.
+uniform sampler2D   u_gsplatShTex;
+uniform vec2        u_gsplatShTexResolution;
+uniform int         u_shDegree;
+uniform vec3        u_gsplatCamPos;
+
 in vec2             a_position;
 in uint             a_index;
 
@@ -230,6 +310,61 @@ out     mat3        v_tangentToWorld;
 #ifdef LIGHT_SHADOWMAP
 uniform mat4        u_lightMatrix;
 out     vec4        v_lightCoord;
+#endif
+
+#ifdef MODEL_PRIMITIVE_GSPLATS
+// Standard 3DGS real-SH basis constants (also the KHR_gaussian_splatting basis).
+const float GSPLAT_SH_C1   = 0.4886025119029199;
+const float GSPLAT_SH_C2_0 = 1.0925484305920792;
+const float GSPLAT_SH_C2_1 = -1.0925484305920792;
+const float GSPLAT_SH_C2_2 = 0.31539156525252005;
+const float GSPLAT_SH_C2_3 = -1.0925484305920792;
+const float GSPLAT_SH_C2_4 = 0.5462742152960396;
+const float GSPLAT_SH_C3_0 = -0.5900435899266435;
+const float GSPLAT_SH_C3_1 = 2.890611442640554;
+const float GSPLAT_SH_C3_2 = -0.4570457994644658;
+const float GSPLAT_SH_C3_3 = 0.3731763325901154;
+const float GSPLAT_SH_C3_4 = -0.4570457994644658;
+const float GSPLAT_SH_C3_5 = 1.445305721320277;
+const float GSPLAT_SH_C3_6 = -0.5900435899266435;
+
+vec3 gsplatSHCoeff(float fIndex, int total, int c) {
+    float w = u_gsplatShTexResolution.x;
+    float h = u_gsplatShTexResolution.y;
+    float row = floor(fIndex / 1024.0);
+    float colBase = mod(fIndex, 1024.0) * float(total);
+    float u = (colBase + float(c) + 0.5) / w;
+    float vv = (row + 0.5) / h;
+    return texture(u_gsplatShTex, vec2(u, vv)).rgb;
+}
+
+vec3 gsplatEvalSH(vec3 dir, float fIndex) {
+    int total = u_shDegree * (u_shDegree + 2);
+    float x = dir.x, y = dir.y, z = dir.z;
+    vec3 col = GSPLAT_SH_C1 * (-y * gsplatSHCoeff(fIndex, total, 0)
+                              + z * gsplatSHCoeff(fIndex, total, 1)
+                              - x * gsplatSHCoeff(fIndex, total, 2));
+    if (u_shDegree >= 2) {
+        float xx = x*x, yy = y*y, zz = z*z;
+        float xy = x*y, yz = y*z, xz = x*z;
+        col += GSPLAT_SH_C2_0 * xy * gsplatSHCoeff(fIndex, total, 3)
+             + GSPLAT_SH_C2_1 * yz * gsplatSHCoeff(fIndex, total, 4)
+             + GSPLAT_SH_C2_2 * (2.0*zz - xx - yy) * gsplatSHCoeff(fIndex, total, 5)
+             + GSPLAT_SH_C2_3 * xz * gsplatSHCoeff(fIndex, total, 6)
+             + GSPLAT_SH_C2_4 * (xx - yy) * gsplatSHCoeff(fIndex, total, 7);
+    }
+    if (u_shDegree >= 3) {
+        float xx = x*x, yy = y*y, zz = z*z;
+        col += GSPLAT_SH_C3_0 * y * (3.0*xx - yy)          * gsplatSHCoeff(fIndex, total, 8)
+             + GSPLAT_SH_C3_1 * x*y*z                      * gsplatSHCoeff(fIndex, total, 9)
+             + GSPLAT_SH_C3_2 * y * (4.0*zz - xx - yy)     * gsplatSHCoeff(fIndex, total, 10)
+             + GSPLAT_SH_C3_3 * z * (2.0*zz - 3.0*xx - 3.0*yy) * gsplatSHCoeff(fIndex, total, 11)
+             + GSPLAT_SH_C3_4 * x * (4.0*zz - xx - yy)     * gsplatSHCoeff(fIndex, total, 12)
+             + GSPLAT_SH_C3_5 * z * (xx - yy)              * gsplatSHCoeff(fIndex, total, 13)
+             + GSPLAT_SH_C3_6 * x * (xx - 3.0*yy)          * gsplatSHCoeff(fIndex, total, 14);
+    }
+    return col;
+}
 #endif
 
 void main(void) {
@@ -306,7 +441,14 @@ void main(void) {
     
     v_color = color;
     v_texcoord = a_position;
-    
+
+    // Add view-dependent color from higher-order SH (no-op when u_shDegree==0).
+    if (u_shDegree > 0) {
+        vec3 worldPos = (u_modelMatrix * v_position).xyz;
+        vec3 dir = normalize(worldPos - u_gsplatCamPos);
+        v_color.rgb = clamp(v_color.rgb + gsplatEvalSH(dir, float(a_index)), 0.0, 1.0);
+    }
+
     vec2 vCenter = vec2(pos2d) / pos2d.w;
     vec2 pixel = 1.0 / u_resolution;
     gl_Position = vec4(

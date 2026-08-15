@@ -136,7 +136,9 @@ void Gsplat::clear() {
     m_scales.clear();
     m_rotations.clear();
     m_colors.clear();
-    
+    m_sh.clear();
+    m_shDegree = 0;
+
     m_worldPositions.clear();
 
     m_sorter.clear();
@@ -148,6 +150,12 @@ void Gsplat::clear() {
         m_texture->clear();
         delete m_texture;
         m_texture = nullptr;
+    }
+
+    if (m_shTexture) {
+        m_shTexture->clear();
+        delete m_shTexture;
+        m_shTexture = nullptr;
     }
 
     if (m_shader && !m_borrowedShader) {
@@ -253,12 +261,6 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
     size_t splatSize = 32;
     size_t splatCount = size / splatSize;
     
-    clear();
-    m_positions.resize(splatCount);
-    m_scales.resize(splatCount);
-    m_rotations.resize(splatCount);
-    m_colors.resize(splatCount);
-
     struct SplatData {
         float x, y, z;
         float sx, sy, sz;
@@ -271,58 +273,32 @@ bool Gsplat::loadSPLAT(const std::string& _filepath) {
          return false;
     }
 
+    // Decode into a format-neutral payload; set() applies the coordinate frame
+    // and builds the render layout (see Gsplat::set()).
+    GsplatData data;
+    data.positions.resize(splatCount);
+    data.scales.resize(splatCount);
+    data.rotations.resize(splatCount);
+    data.colors.resize(splatCount);
+
     for (size_t i = 0; i < splatCount; i++) {
-        float x, y, z;
-        float sx, sy, sz;
-        uint8_t r, g, b, a;
-        uint8_t rot_0, rot_1, rot_2, rot_3;
-        float nx = 0.0f, ny = 0.0f, nz = 0.0f;
-
         const SplatData& s = reinterpret_cast<SplatData*>(buffer.data())[i];
-        x = s.x; y = s.y; z = s.z;
-        sx = s.sx; sy = s.sy; sz = s.sz;
-        r = s.r; g = s.g; b = s.b; a = s.a;
-        rot_0 = s.rot_0; rot_1 = s.rot_1; rot_2 = s.rot_2; rot_3 = s.rot_3;
-        
-        m_positions[i] = s_useColmapFrame ? glm::vec3(x, y, z) : glm::vec3(x, -y, -z);
-        m_scales[i] = glm::vec3(sx, sy, sz);
 
-        // Color
-        m_colors[i] = glm::u8vec4(r, g, b, a);
+        data.positions[i] = glm::vec3(s.x, s.y, s.z);
+        data.scales[i]    = glm::vec3(s.sx, s.sy, s.sz);
+        data.colors[i]    = glm::u8vec4(s.r, s.g, s.b, s.a);
 
-        // Rotation (mapping uint8 0..255 to -1.0..1.0)
-        // (val - 128) / 128.0
-        float r0 = (rot_0 - 128) / 128.0f;
-        float r1 = (rot_1 - 128) / 128.0f;
-        float r2 = (rot_2 - 128) / 128.0f;
-        float r3 = (rot_3 - 128) / 128.0f;
-
-        // Common packing: rot_0, rot_1, rot_2, rot_3 -> x, y, z, w ?
-        glm::quat q(r0, r1, r2, r3); // x, y, z, w
-
-        if (s_useColmapFrame) {
-            m_rotations[i] = glm::normalize(q);
-        } else {
-            // Rotate 180 degrees around X axis to match OpenGL coordinates
-            static const glm::quat flipval(0.0f, 1.0f, 0.0f, 0.0f);
-            m_rotations[i] = glm::normalize(flipval * q);
-        }
+        // Rotation (mapping uint8 0..255 to -1.0..1.0): (val - 128) / 128.0
+        float r0 = (s.rot_0 - 128) / 128.0f;
+        float r1 = (s.rot_1 - 128) / 128.0f;
+        float r2 = (s.rot_2 - 128) / 128.0f;
+        float r3 = (s.rot_3 - 128) / 128.0f;
+        data.rotations[i] = glm::quat(r0, r1, r2, r3); // (w,x,y,z)
     }
 
-    optimizeDataLayout();
-
-    size_t n = m_positions.size();
-    m_worldPositions.resize(n * 3);
-    for (size_t i = 0; i < n; i++) {
-        const glm::vec3& pos = m_positions[i];
-        m_worldPositions[i * 3 + 0] = pos.x;
-        m_worldPositions[i * 3 + 1] = pos.y;
-        m_worldPositions[i * 3 + 2] = pos.z;
-    }
-
-    buildSpatialIndex();
-
-    return true;
+    // Standalone .splat: COLMAP frame (raw) if COLMAP cameras are also loaded,
+    // otherwise the 180-about-X flip for viewing on its own.
+    return set(data, glm::mat4(1.0f), s_useColmapFrame ? GSPLAT_FRAME_RAW : GSPLAT_FRAME_FLIP_YZ);
 }
 
 bool Gsplat::loadPLY(const std::string& _filepath) {
@@ -409,15 +385,17 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
     }
     
     file.read(ss);
-    
-    clear();
 
     size_t vertexCount = vertices_x->count;
-    m_positions.resize(vertexCount);
-    m_scales.resize(vertexCount);
-    m_rotations.resize(vertexCount);
-    m_colors.resize(vertexCount);
-    
+
+    // Decode into a format-neutral payload; set() applies the coordinate frame
+    // and builds the render layout (see Gsplat::set()).
+    GsplatData data;
+    data.positions.resize(vertexCount);
+    data.scales.resize(vertexCount);
+    data.rotations.resize(vertexCount);
+    data.colors.resize(vertexCount);
+
     const float* x_data = reinterpret_cast<const float*>(vertices_x->buffer.get());
     const float* y_data = reinterpret_cast<const float*>(vertices_y->buffer.get());
     const float* z_data = reinterpret_cast<const float*>(vertices_z->buffer.get());
@@ -442,32 +420,21 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
     const float* opacity_data = opacity ? reinterpret_cast<const float*>(opacity->buffer.get()) : nullptr;
     
     for (size_t i = 0; i < vertexCount; i++) {
-        // Position
-        m_positions[i] = s_useColmapFrame ?
-            glm::vec3(x_data[i], y_data[i], z_data[i]) :
-            glm::vec3(x_data[i], -y_data[i], -z_data[i]);
+        data.positions[i] = glm::vec3(x_data[i], y_data[i], z_data[i]);
 
         // Scale (exponential)
-        m_scales[i] = glm::vec3(
+        data.scales[i] = glm::vec3(
             std::exp(scale_0_data[i]),
             std::exp(scale_1_data[i]),
             std::exp(scale_2_data[i])
         );
 
         // Rotation (quaternion - note: different convention)
-        glm::quat q(rot_0_data[i], rot_1_data[i], rot_2_data[i], rot_3_data[i]);
+        data.rotations[i] = glm::quat(rot_0_data[i], rot_1_data[i], rot_2_data[i], rot_3_data[i]);
 
-        if (s_useColmapFrame) {
-            m_rotations[i] = glm::normalize(q);
-        } else {
-            // Rotate 180 degrees around X axis to match OpenGL coordinates
-            static const glm::quat flipval(0.0f, 1.0f, 0.0f, 0.0f);
-            m_rotations[i] = glm::normalize(flipval * q);
-        }
-        
         // Color
         uint8_t r, g, b, a;
-        
+
         if (hasSH) {
             // Spherical harmonics to RGB
             r = static_cast<uint8_t>(glm::clamp((0.5f + SH_C0 * f_dc_0_data[i]) * 255.0f, 0.0f, 255.0f));
@@ -480,7 +447,7 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
         } else {
             r = g = b = 255;
         }
-        
+
         // Opacity (sigmoid)
         if (opacity_data) {
             float op = 1.0f / (1.0f + std::exp(-opacity_data[i]));
@@ -488,13 +455,91 @@ bool Gsplat::loadPLY(const std::string& _filepath) {
         } else {
             a = 255;
         }
-        
-        m_colors[i] = glm::u8vec4(r, g, b, a);
+
+        data.colors[i] = glm::u8vec4(r, g, b, a);
     }
-    
+
+    // Standalone .ply: same frame policy as .splat (see loadSPLAT()).
+    return set(data, glm::mat4(1.0f), s_useColmapFrame ? GSPLAT_FRAME_RAW : GSPLAT_FRAME_FLIP_YZ);
+}
+
+bool Gsplat::set(const GsplatData& _data, const glm::mat4& _transform, GsplatFrame _frame) {
+    size_t n = _data.positions.size();
+    if (n == 0)
+        return false;
+
+    // set() is the single ingest path (.splat / .ply / glTF all route here),
+    // so it owns clearing any prior state.
+    clear();
+
+    m_positions.resize(n);
+    m_scales.resize(n);
+    m_rotations.resize(n);
+    m_colors.resize(n);
+
+    // Tolerate a source that only supplies some of the parallel arrays: fill
+    // the rest with sane defaults instead of reading out of bounds.
+    const bool haveScales = _data.scales.size()    == n;
+    const bool haveRots   = _data.rotations.size() == n;
+    const bool haveColors = _data.colors.size()    == n;
+
+    // 180-degrees-about-X flip for the standalone-splat (COLMAP -> OpenGL) frame.
+    const bool flip = (_frame == GSPLAT_FRAME_FLIP_YZ);
+    static const glm::quat flipQuat(0.0f, 1.0f, 0.0f, 0.0f); // (w,x,y,z) -> 180 about X
+
+    // Split the transform into rotation + per-axis scale so we can carry the
+    // node transform into the splats' quaternions and ellipsoid axes; positions
+    // get the full affine transform. (Identity for standalone .splat/.ply.)
+    glm::mat3 linear = glm::mat3(_transform);
+    glm::vec3 nodeScale = glm::vec3(glm::length(linear[0]), glm::length(linear[1]), glm::length(linear[2]));
+    glm::mat3 nodeRotMat = linear;
+    if (nodeScale.x > 1e-8f) nodeRotMat[0] /= nodeScale.x;
+    if (nodeScale.y > 1e-8f) nodeRotMat[1] /= nodeScale.y;
+    if (nodeScale.z > 1e-8f) nodeRotMat[2] /= nodeScale.z;
+    // quat_cast requires a proper (right-handed) rotation; a mirrored basis
+    // (negative determinant) can't be represented as a quaternion, so fall
+    // back to no extra rotation there (scale is still applied).
+    glm::quat nodeRotQuat(1.0f, 0.0f, 0.0f, 0.0f);
+    if (glm::determinant(nodeRotMat) > 0.0f)
+        nodeRotQuat = glm::normalize(glm::quat_cast(nodeRotMat));
+
+    for (size_t i = 0; i < n; i++) {
+        glm::vec3 p = _data.positions[i];
+        glm::quat q = haveRots ? _data.rotations[i] : glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+        glm::vec3 s = haveScales ? _data.scales[i] : glm::vec3(0.01f);
+
+        if (flip) {
+            p = glm::vec3(p.x, -p.y, -p.z);
+            q = flipQuat * q;
+        }
+
+        p = glm::vec3(_transform * glm::vec4(p, 1.0f));
+        q = nodeRotQuat * q;
+        s = s * nodeScale;
+
+        m_positions[i] = p;
+        m_rotations[i] = glm::normalize(q);
+        m_scales[i]    = s;
+        m_colors[i]    = haveColors ? _data.colors[i] : glm::u8vec4(255);
+    }
+
+    // Higher-order SH (Phase 2): stored as authored; view-dependent color is
+    // evaluated in the splat shader. Rotating the SH basis under an arbitrary
+    // node rotation is deferred -- the common case is an unrotated splat node.
+    int shCoeffs = gsplatSHCoeffCount(_data.shDegree);
+    if (shCoeffs > 0 && _data.sh.size() == n * (size_t)shCoeffs) {
+        m_sh = _data.sh;
+        m_shDegree = _data.shDegree;
+    }
+    else {
+        m_sh.clear();
+        m_shDegree = 0;
+    }
+
     optimizeDataLayout();
 
-    size_t n = m_positions.size();
+    // World positions for the depth sort. The transform is baked in above, so
+    // these are already world-space (built after the Morton reorder).
     m_worldPositions.resize(n * 3);
     for (size_t i = 0; i < n; i++) {
         const glm::vec3& pos = m_positions[i];
@@ -622,6 +667,11 @@ void Gsplat::ensureTexture(int _shaderVersion) {
         else
             m_texture = createTextureFloat();
     }
+
+    // Companion SH texture for view-dependent color (Phase 2). Same for both
+    // shader versions; only built when higher-order SH is present.
+    if (!m_shTexture && m_shDegree > 0)
+        m_shTexture = createTextureSH();
 }
 
 void Gsplat::ensureSorted(const glm::mat4& _viewProj, bool _sort) {
@@ -654,6 +704,13 @@ void Gsplat::use(Shader* _shader) {
                 m_texture->clear();
                 delete m_texture;
                 m_texture = nullptr;
+            }
+            // The SH texture is version-agnostic, but rebuild it alongside so
+            // ensureTexture() repopulates both together.
+            if (m_shTexture) {
+                m_shTexture->clear();
+                delete m_shTexture;
+                m_shTexture = nullptr;
             }
         }
 
@@ -931,6 +988,36 @@ Texture* Gsplat::createTextureUint() {
                  
     Texture* texture = new Texture();
     texture->load(texWidth, texHeight, splatTexture, NEAREST, CLAMP);
+    return texture;
+}
+
+Texture* Gsplat::createTextureSH() {
+    int total = gsplatSHCoeffCount(m_shDegree);
+    size_t splatCount = count();
+    if (total <= 0 || m_sh.size() != splatCount * (size_t)total)
+        return nullptr;
+
+    // One RGBA32F texel per coefficient (alpha unused), tiled the same way as
+    // the main data texture: 1024 splats per row, `total` columns each.
+    const size_t splatsPerRow = 1024;
+    size_t texWidth  = splatsPerRow * (size_t)total;
+    size_t texHeight = std::max(1, (int)std::ceil(splatCount / (float)splatsPerRow));
+
+    std::vector<float> textureData(texWidth * texHeight * 4, 0.0f);
+    for (size_t i = 0; i < splatCount; i++) {
+        size_t row     = i / splatsPerRow;
+        size_t colBase = (i % splatsPerRow) * (size_t)total;
+        for (int c = 0; c < total; c++) {
+            const glm::vec3& coeff = m_sh[i * (size_t)total + c];
+            size_t idx = (row * texWidth + colBase + (size_t)c) * 4;
+            textureData[idx + 0] = coeff.r;
+            textureData[idx + 1] = coeff.g;
+            textureData[idx + 2] = coeff.b;
+        }
+    }
+
+    Texture* texture = new Texture();
+    texture->load(texWidth, texHeight, 4, 32, textureData.data(), NEAREST, CLAMP);
     return texture;
 }
 
@@ -1485,13 +1572,40 @@ void Gsplat::render(Camera* _camera, glm::mat4 _model, bool _sort) {
         glBufferData(GL_ARRAY_BUFFER, m_depthFloatIndex.size() * sizeof(float), m_depthFloatIndex.data(), GL_DYNAMIC_DRAW);
     }
 
+    // Preserve the texture-unit counter across use() when the shader is
+    // borrowed from the scene. In the scene color pass, Uniforms::feedTo() has
+    // already assigned units 0..N-1 to the scene/user samplers (--u_*Tex,
+    // buffers, shadow maps, ...) on this very program, but Shader::use() resets
+    // textureIndex to 0. If the gsplat data texture were then bound to a
+    // hardcoded unit 0 it would clobber whichever sampler feedTo() placed there
+    // -- the alphabetically-first --u_*Tex (e.g. u_alignedTex) -- which would
+    // then sample the packed gsplat data ("blue stripes") instead of its image.
+    // Continuing the counter from N puts u_gsplatTex/u_gsplatShTex on their own
+    // free units. Standalone (non-borrowed) gsplats have no such samplers, so
+    // starting from 0 is correct there.
+    size_t texStart = m_borrowedShader ? m_shader->textureIndex : 0;
     m_shader->use();
+    m_shader->textureIndex = texStart;
 
     glBindVertexArray(m_vao);
 
-    // Set uniforms
-    m_shader->setUniformTexture("u_gsplatTex", m_texture, 0); // Use member variable directly
+    // Set uniforms. Let the shader allocate the next free texture unit for each
+    // (no explicit unit) so they never collide with the scene/user samplers.
+    m_shader->setUniformTexture("u_gsplatTex", m_texture);
     m_shader->setUniform("u_gsplatTexResolution", glm::vec2(m_texture->getWidth(), m_texture->getHeight()));
+
+    // Higher-order SH (view-dependent color, Phase 2). u_shDegree == 0 -- the
+    // case for every degree-0 splat (.splat/.ply and glTF without SH_DEGREE_n)
+    // -- makes the shader skip all SH sampling, so degree-0 rendering is
+    // unchanged.
+    if (m_shTexture && m_shDegree > 0) {
+        m_shader->setUniformTexture("u_gsplatShTex", m_shTexture);
+        m_shader->setUniform("u_gsplatShTexResolution", glm::vec2(m_shTexture->getWidth(), m_shTexture->getHeight()));
+        m_shader->setUniform("u_shDegree", m_shDegree);
+        m_shader->setUniform("u_gsplatCamPos", _camera->getPosition());
+    }
+    else
+        m_shader->setUniform("u_shDegree", 0);
 
     m_shader->setUniform("u_modelMatrix", _model);
     m_shader->setUniform("u_normalMatrix", _camera->getNormalMatrix());
@@ -1781,6 +1895,16 @@ void Gsplat::optimizeDataLayout() {
     permute(m_scales);
     permute(m_rotations);
     permute(m_colors);
+
+    // Higher-order SH is strided (gsplatSHCoeffCount() entries per splat), so
+    // it needs its own block-wise permutation rather than the per-element one.
+    int shCoeffs = gsplatSHCoeffCount(m_shDegree);
+    if (shCoeffs > 0 && m_sh.size() == count * (size_t)shCoeffs) {
+        std::vector<glm::vec3> temp = m_sh;
+        for (size_t i = 0; i < count; i++)
+            for (int c = 0; c < shCoeffs; c++)
+                m_sh[i * shCoeffs + c] = temp[indices[i] * shCoeffs + c];
+    }
 }
 
 } // namespace vera

@@ -5,6 +5,11 @@
 #include <string>
 #include <map>
 
+// GsplatData / gsplatSHCoeffCount are a format-neutral payload usable even when
+// SUPPORT_GSPLAT is off (the point-cloud fallback still reads splat centers);
+// the Gsplat class itself is only touched under SUPPORT_GSPLAT.
+#include "vera/types/gsplat.h"
+
 #include "vera/gl/vbo.h"
 #include "vera/ops/fs.h"
 #include "vera/ops/pixel.h"
@@ -272,6 +277,217 @@ Material* extractMaterial(const tinygltf::Model& _model, const tinygltf::Materia
     return mat;
 }
 
+// Spherical-harmonics degree-0 constant (matches Gsplat's PLY reader), used to
+// turn an SH DC coefficient into a base RGB color.
+static constexpr float GLTF_SH_C0 = 0.28209479177387814f;
+
+// Reads a glTF accessor into a flat float array (accessor.count * ncomp),
+// converting component type and applying glTF normalization for integer types.
+// Covers every component type KHR_gaussian_splatting permits for splat
+// attributes (float, plus (un)signed byte/short, normalized or raw).
+static std::vector<float> readAccessorFloats(const tinygltf::Model& _model, int _accessorIndex, int& _outNComp) {
+    std::vector<float> out;
+    _outNComp = 0;
+    if (_accessorIndex < 0 || _accessorIndex >= (int)_model.accessors.size())
+        return out;
+
+    const tinygltf::Accessor& acc = _model.accessors[_accessorIndex];
+    if (acc.bufferView < 0 || acc.bufferView >= (int)_model.bufferViews.size())
+        return out;
+
+    const tinygltf::BufferView& bv = _model.bufferViews[acc.bufferView];
+    if (bv.buffer < 0 || bv.buffer >= (int)_model.buffers.size())
+        return out;
+    const tinygltf::Buffer& buf = _model.buffers[bv.buffer];
+
+    int ncomp = tinygltf::GetNumComponentsInType(acc.type);
+    if (ncomp <= 0)
+        return out;
+    _outNComp = ncomp;
+
+    int compSize = tinygltf::GetComponentSizeInBytes(acc.componentType);
+    int stride = acc.ByteStride(bv);
+    if (stride <= 0)
+        stride = ncomp * compSize;
+
+    // Guard against a truncated/overrun buffer view (defensive, per the TODO).
+    size_t needed = bv.byteOffset + acc.byteOffset + (acc.count > 0 ? (acc.count - 1) * (size_t)stride + ncomp * (size_t)compSize : 0);
+    if (acc.count == 0 || needed > buf.data.size())
+        return out;
+
+    const uint8_t* base = buf.data.data() + bv.byteOffset + acc.byteOffset;
+    out.resize(acc.count * ncomp);
+    for (size_t i = 0; i < acc.count; i++) {
+        const uint8_t* p = base + i * (size_t)stride;
+        for (int c = 0; c < ncomp; c++) {
+            const uint8_t* e = p + c * (size_t)compSize;
+            float v = 0.0f;
+            switch (acc.componentType) {
+                case TINYGLTF_COMPONENT_TYPE_FLOAT: {
+                    float f; std::memcpy(&f, e, sizeof(float)); v = f;
+                } break;
+                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE: {
+                    uint8_t x = *e; v = acc.normalized ? x / 255.0f : (float)x;
+                } break;
+                case TINYGLTF_COMPONENT_TYPE_BYTE: {
+                    int8_t x; std::memcpy(&x, e, 1); v = acc.normalized ? std::max(x / 127.0f, -1.0f) : (float)x;
+                } break;
+                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT: {
+                    uint16_t x; std::memcpy(&x, e, 2); v = acc.normalized ? x / 65535.0f : (float)x;
+                } break;
+                case TINYGLTF_COMPONENT_TYPE_SHORT: {
+                    int16_t x; std::memcpy(&x, e, 2); v = acc.normalized ? std::max(x / 32767.0f, -1.0f) : (float)x;
+                } break;
+                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT: {
+                    uint32_t x; std::memcpy(&x, e, 4); v = (float)x;
+                } break;
+                default: v = 0.0f; break;
+            }
+            out[i * ncomp + c] = v;
+        }
+    }
+    return out;
+}
+
+// First matching attribute index among a set of candidate semantic names, or -1.
+static int findSplatAttrib(const tinygltf::Primitive& _primitive, std::initializer_list<const char*> _names) {
+    for (const char* n : _names) {
+        std::map<std::string, int>::const_iterator it = _primitive.attributes.find(n);
+        if (it != _primitive.attributes.end())
+            return it->second;
+    }
+    return -1;
+}
+
+// Classifies a primitive as a Gaussian splat: either it carries the ratified
+// KHR_gaussian_splatting extension object, a KHR-namespaced attribute, or the
+// older exporter convention (_SCALE / _ROTATION / _OPACITY). Parsed manually
+// and defensively -- tinygltf has no semantic understanding of these.
+static bool primitiveIsGaussianSplat(const tinygltf::Primitive& _primitive) {
+    if (_primitive.extensions.find("KHR_gaussian_splatting") != _primitive.extensions.end())
+        return true;
+    for (std::map<std::string, int>::const_iterator it = _primitive.attributes.begin(); it != _primitive.attributes.end(); ++it) {
+        const std::string& k = it->first;
+        if (k.rfind("KHR_gaussian_splatting:", 0) == 0)
+            return true;
+        if (k == "_SCALE" || k == "_ROTATION" || k == "_OPACITY")
+            return true;
+    }
+    return false;
+}
+
+// Decodes a splat primitive into a format-neutral GsplatData (positions/scales/
+// rotations in the file's own frame; the node transform + frame are applied by
+// Gsplat::set()). Colors come from the degree-0 SH DC term (or COLOR_0) and
+// OPACITY; higher-order SH (degree 1..3) is captured for view-dependent color
+// (Phase 2). Returns false only if positions can't be read.
+static bool readSplatPrimitive(const tinygltf::Model& _model, const tinygltf::Primitive& _primitive, GsplatData& _data) {
+    int posIdx = findSplatAttrib(_primitive, {"POSITION"});
+    int nc = 0;
+    std::vector<float> pos = readAccessorFloats(_model, posIdx, nc);
+    if (pos.empty() || nc < 3)
+        return false;
+    size_t n = pos.size() / nc;
+
+    _data.positions.resize(n);
+    for (size_t i = 0; i < n; i++)
+        _data.positions[i] = glm::vec3(pos[i * nc + 0], pos[i * nc + 1], pos[i * nc + 2]);
+
+    // SCALE (linear per-axis spread; KHR stores it directly, unlike the log
+    // scale in a 3DGS .ply).
+    int scaleIdx = findSplatAttrib(_primitive, {"KHR_gaussian_splatting:SCALE", "_SCALE"});
+    int sc_nc = 0;
+    std::vector<float> sc = readAccessorFloats(_model, scaleIdx, sc_nc);
+    if (sc.size() == n * (size_t)sc_nc && sc_nc >= 3) {
+        _data.scales.resize(n);
+        for (size_t i = 0; i < n; i++)
+            _data.scales[i] = glm::vec3(sc[i * sc_nc + 0], sc[i * sc_nc + 1], sc[i * sc_nc + 2]);
+    }
+
+    // ROTATION (unit quaternion, glTF component order x,y,z,w).
+    int rotIdx = findSplatAttrib(_primitive, {"KHR_gaussian_splatting:ROTATION", "_ROTATION"});
+    int rot_nc = 0;
+    std::vector<float> ro = readAccessorFloats(_model, rotIdx, rot_nc);
+    if (ro.size() == n * (size_t)rot_nc && rot_nc >= 4) {
+        _data.rotations.resize(n);
+        for (size_t i = 0; i < n; i++) {
+            float x = ro[i * rot_nc + 0], y = ro[i * rot_nc + 1], z = ro[i * rot_nc + 2], w = ro[i * rot_nc + 3];
+            _data.rotations[i] = glm::normalize(glm::quat(w, x, y, z)); // glm quat is (w,x,y,z)
+        }
+    }
+
+    // Base color: degree-0 SH DC term, else COLOR_0, else white.
+    _data.colors.assign(n, glm::u8vec4(255));
+    int shDCIdx = findSplatAttrib(_primitive, {"KHR_gaussian_splatting:SH_DEGREE_0_COEF_0"});
+    int col0Idx = findSplatAttrib(_primitive, {"COLOR_0"});
+    if (shDCIdx >= 0) {
+        int cc = 0;
+        std::vector<float> dc = readAccessorFloats(_model, shDCIdx, cc);
+        if (dc.size() == n * (size_t)cc && cc >= 3)
+            for (size_t i = 0; i < n; i++) {
+                _data.colors[i].r = (uint8_t)glm::clamp((0.5f + GLTF_SH_C0 * dc[i * cc + 0]) * 255.0f, 0.0f, 255.0f);
+                _data.colors[i].g = (uint8_t)glm::clamp((0.5f + GLTF_SH_C0 * dc[i * cc + 1]) * 255.0f, 0.0f, 255.0f);
+                _data.colors[i].b = (uint8_t)glm::clamp((0.5f + GLTF_SH_C0 * dc[i * cc + 2]) * 255.0f, 0.0f, 255.0f);
+            }
+    }
+    else if (col0Idx >= 0) {
+        int cc = 0;
+        std::vector<float> col = readAccessorFloats(_model, col0Idx, cc);
+        if (col.size() == n * (size_t)cc && cc >= 3)
+            for (size_t i = 0; i < n; i++) {
+                _data.colors[i].r = (uint8_t)glm::clamp(col[i * cc + 0] * 255.0f, 0.0f, 255.0f);
+                _data.colors[i].g = (uint8_t)glm::clamp(col[i * cc + 1] * 255.0f, 0.0f, 255.0f);
+                _data.colors[i].b = (uint8_t)glm::clamp(col[i * cc + 2] * 255.0f, 0.0f, 255.0f);
+                if (cc >= 4)
+                    _data.colors[i].a = (uint8_t)glm::clamp(col[i * cc + 3] * 255.0f, 0.0f, 255.0f);
+            }
+    }
+
+    // OPACITY (KHR: linear 0..1) overrides alpha when present.
+    int opIdx = findSplatAttrib(_primitive, {"KHR_gaussian_splatting:OPACITY", "_OPACITY"});
+    int op_nc = 0;
+    std::vector<float> op = readAccessorFloats(_model, opIdx, op_nc);
+    if (op.size() == n && op_nc == 1)
+        for (size_t i = 0; i < n; i++)
+            _data.colors[i].a = (uint8_t)glm::clamp(op[i] * 255.0f, 0.0f, 255.0f);
+
+    // Higher-order SH (Phase 2): highest contiguous degree present (1..3), each
+    // coefficient a VEC3 (RGB). Flattened degree-major: sh[i*total + c].
+    int shDegree = 0;
+    for (int d = 1; d <= 3; d++) {
+        int coeffs = 2 * d + 1;
+        bool all = true;
+        for (int k = 0; k < coeffs && all; k++) {
+            std::string nm = "KHR_gaussian_splatting:SH_DEGREE_" + toString(d) + "_COEF_" + toString(k);
+            if (_primitive.attributes.find(nm) == _primitive.attributes.end())
+                all = false;
+        }
+        if (all) shDegree = d;
+        else break;
+    }
+    if (shDegree > 0) {
+        int total = gsplatSHCoeffCount(shDegree);
+        _data.sh.assign(n * (size_t)total, glm::vec3(0.0f));
+        int outC = 0;
+        bool ok = true;
+        for (int d = 1; d <= shDegree && ok; d++) {
+            int coeffs = 2 * d + 1;
+            for (int k = 0; k < coeffs; k++, outC++) {
+                std::string nm = "KHR_gaussian_splatting:SH_DEGREE_" + toString(d) + "_COEF_" + toString(k);
+                int cc = 0;
+                std::vector<float> v = readAccessorFloats(_model, _primitive.attributes.at(nm), cc);
+                if (v.size() != n * (size_t)cc || cc < 3) { ok = false; break; }
+                for (size_t i = 0; i < n; i++)
+                    _data.sh[i * total + outC] = glm::vec3(v[i * cc + 0], v[i * cc + 1], v[i * cc + 2]);
+            }
+        }
+        if (ok) _data.shDegree = shDegree;
+        else { _data.sh.clear(); _data.shDegree = 0; }
+    }
+
+    return true;
+}
+
 void extractMesh(const tinygltf::Model& _model, const tinygltf::Mesh& _mesh, glm::mat4 _matrix, Scene* _scene, bool _verbose, const std::string& _prefix) {
     if (_verbose)
         std::cout << "  Parsing Mesh " << _mesh.name << std::endl;
@@ -283,6 +499,54 @@ void extractMesh(const tinygltf::Model& _model, const tinygltf::Mesh& _mesh, glm
             std::cout << "   primitive " << i + 1 << "/" << _mesh.primitives.size() << std::endl;
 
         const tinygltf::Primitive &primitive = _mesh.primitives[i];
+
+        // Unique per-primitive key. A single glTF mesh can hold several
+        // primitives (potentially of different types -- mesh + points + splat),
+        // which would collide when keyed by mesh name alone. Only suffix when
+        // there's more than one primitive, to keep existing single-primitive
+        // names stable.
+        std::string base = _prefix.empty() ? _mesh.name : _prefix + "_" + _mesh.name;
+        std::string key = (_mesh.primitives.size() > 1) ? base + "_p" + toString(i) : base;
+
+        // Gaussian-splat primitive? Route it to a Gsplat model; if splats aren't
+        // compiled in (SUPPORT_GSPLAT) or the data can't be built, fall back to
+        // rendering the splat centers as a colored POINTS cloud.
+        if (primitiveIsGaussianSplat(primitive)) {
+            GsplatData sdata;
+            bool ok = readSplatPrimitive(_model, primitive, sdata);
+#ifdef SUPPORT_GSPLAT
+            if (ok) {
+                Gsplat* gsplat = new Gsplat();
+                // glTF is Y-up: no COLMAP flip; the node's world matrix places
+                // the splats (baked in, like mesh verts get _matrix * pos).
+                if (gsplat->set(sdata, _matrix, GSPLAT_FRAME_GLTF)) {
+                    _scene->models[key] = new Model(key, gsplat);
+                    if (_verbose)
+                        std::cout << "    . splat primitive -> Gsplat '" << key << "' ("
+                                  << gsplat->count() << " splats, SH degree " << sdata.shDegree << ")" << std::endl;
+                    continue;
+                }
+                delete gsplat;
+            }
+#endif
+            if (ok) {
+                Mesh pc;
+                pc.setDrawMode(POINTS);
+                for (size_t v = 0; v < sdata.positions.size(); v++) {
+                    pc.addVertex( glm::vec3(_matrix * glm::vec4(sdata.positions[v], 1.0f)) );
+                    const glm::u8vec4& c = sdata.colors[v];
+                    pc.addColor( glm::vec4(c.r, c.g, c.b, c.a) / 255.0f );
+                }
+                if (_scene->materials.find("default") == _scene->materials.end())
+                    _scene->materials["default"] = new Material("default");
+                _scene->models[key] = new Model(key, pc, _scene->materials["default"]);
+                if (_verbose)
+                    std::cout << "    . splat primitive -> POINTS fallback '" << key << "' ("
+                              << pc.getVertices().size() << " points)" << std::endl;
+                continue;
+            }
+            // Couldn't read positions -- fall through to the generic mesh path.
+        }
 
         Mesh mesh;
         if (primitive.indices >= 0)
@@ -386,9 +650,9 @@ void extractMesh(const tinygltf::Model& _model, const tinygltf::Mesh& _mesh, glm
             mat = _scene->materials["default"];
         }
 
-        // Namespace the mesh by the file prefix so several glTFs can coexist.
-        std::string name = _prefix.empty() ? _mesh.name : _prefix + "_" + _mesh.name;
-        _scene->models[name] = new Model(name, mesh, mat);
+        // Namespace by prefix (several glTFs coexisting) + per-primitive suffix
+        // (computed as `key` above).
+        _scene->models[key] = new Model(key, mesh, mat);
     }
 };
 
