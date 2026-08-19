@@ -1166,6 +1166,19 @@ void Gsplat::ensureOcclusionFbo(int _width, int _height) {
 void Gsplat::performOcclusionQuery(const glm::mat4& _viewProj) {
     if (m_blocks.empty()) return;
 
+#if defined(__EMSCRIPTEN__)
+    // Occlusion-query culling is disabled on the WebGL/Emscripten build: the
+    // depth-only occlusion FBO plus asynchronous GL_ANY_SAMPLES_PASSED query
+    // results are unreliable under WebGL2 (spurious samples==0), which
+    // falsely marks whole blocks occluded so their splats never enter the
+    // sorter -- visible-but-not-drawn splats (the "missing splats" seen in the
+    // browser but not natively). It is a pure optimization with no benefit at
+    // the splat counts we render, so skip it entirely and let sort() fall back
+    // to frustum-only culling (block.occluded stays false, queryIssued stays
+    // false, so sort()'s occlusion branch is never taken).
+    return;
+#endif
+
     Frustum frustum = extractFrustum(_viewProj);
 
     // 1. Check previous frame results - THIS UPDATES OCCLUSION STATE
