@@ -3,6 +3,7 @@
 #include <time.h>
 #include <string>
 #include <cstring>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <algorithm>
@@ -987,6 +988,55 @@ static bool                     bControl        = false;
         update_canvas_size();
         return EM_TRUE;
     }
+
+    // Two-finger pinch to zoom. Emscripten's GLFW shim only forwards
+    // single-pointer mouse/wheel events, so multi-touch pinch never
+    // reaches glfwSetScrollCallback and has to be handled separately here.
+    static bool   pinch_active = false;
+    static double pinch_prev_distance = 0.0;
+
+    static double pinch_distance(const EmscriptenTouchEvent* e) {
+        double dx = e->touches[0].targetX - e->touches[1].targetX;
+        double dy = e->touches[0].targetY - e->touches[1].targetY;
+        return sqrt(dx * dx + dy * dy);
+    }
+
+    static EM_BOOL touchstart_callback(int eventType, const EmscriptenTouchEvent *e, void *userData) {
+        pinch_active = (e->numTouches == 2);
+        if (pinch_active)
+            pinch_prev_distance = pinch_distance(e);
+        return EM_FALSE;
+    }
+
+    static EM_BOOL touchmove_callback(int eventType, const EmscriptenTouchEvent *e, void *userData) {
+        if (e->numTouches != 2) {
+            pinch_active = false;
+            return EM_FALSE;
+        }
+
+        double distance = pinch_distance(e);
+        if (pinch_active && pinch_prev_distance > 0.0 && onScroll) {
+            // Match the wheel-scroll convention used in onScroll(): positive
+            // values zoom in. Fingers spreading apart (distance growing)
+            // zooms in; pinching together zooms out.
+            constexpr double zoomfactor = 1.1892;
+            double ratio = distance / pinch_prev_distance;
+            if (ratio > 0.0 && ratio != 1.0)
+                onScroll((float)(log(ratio) / log(zoomfactor)));
+        }
+        pinch_prev_distance = distance;
+        pinch_active = true;
+
+        // Consume the event so the browser doesn't also pinch-zoom the page.
+        return EM_TRUE;
+    }
+
+    static EM_BOOL touchend_callback(int eventType, const EmscriptenTouchEvent *e, void *userData) {
+        pinch_active = (e->numTouches == 2);
+        if (pinch_active)
+            pinch_prev_distance = pinch_distance(e);
+        return EM_FALSE;
+    }
 #endif
 
 #if defined(PLATFORM_WINDOWS)
@@ -1576,6 +1626,11 @@ int initGL(WindowProperties _prop) {
     enable_extension("EXT_color_buffer_float");
 
     emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, true, resize_callback);
+
+    emscripten_set_touchstart_callback("#canvas", NULL, false, touchstart_callback);
+    emscripten_set_touchmove_callback("#canvas", NULL, false, touchmove_callback);
+    emscripten_set_touchend_callback("#canvas", NULL, false, touchend_callback);
+    emscripten_set_touchcancel_callback("#canvas", NULL, false, touchend_callback);
 #else
 
     glfwSetWindowPosCallback(window, [](GLFWwindow* _window, int x, int y) {
