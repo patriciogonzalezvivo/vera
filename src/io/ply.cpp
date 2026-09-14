@@ -27,7 +27,10 @@ bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose, const s
     if (!_prefix.empty())
         name = _prefix;
 
-    Material default_material;
+    if (_scene->materials.find("default") == _scene->materials.end())
+        _scene->materials["default"] = new Material("default");
+    Material* default_material = _scene->materials["default"];
+
     std::vector<glm::vec4> mesh_colors;
     std::vector<glm::vec3> mesh_vertices;
     std::vector<glm::vec3> mesh_normals;
@@ -83,7 +86,7 @@ bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose, const s
 
         // Because most people have their own mesh types, tinyply treats parsed data as structured/typed byte buffers. 
         // See examples below on how to marry your own application-specific data structures with this one. 
-        std::shared_ptr<PlyData> vertices, normals, colors, texcoords, faces, edges;
+        std::shared_ptr<tinyply::PlyData> vertices, normals, colors, texcoords, faces, edges;
 
         // The header information can be used to programmatically extract properties on elements
         // known to exist in the header prior to reading the data. For brevity of this sample, properties 
@@ -199,7 +202,6 @@ bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose, const s
     //  Succed loading the PLY data
     //  (proceed replacing the data on mesh)
     //
-    _materials[default_material.name] = default_material;
 
     if (face_indices.size() > 0) {
         Mesh mesh;
@@ -215,7 +217,7 @@ bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose, const s
 
         mesh.computeTangents();
 
-        _scene->setModel( name, new Model(name, mesh, default_material) );
+        _scene->models[name] = new Model(name, mesh, default_material);
     }
 
     if (edge_indices.size() > 0) {
@@ -229,7 +231,7 @@ bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose, const s
 
         mesh.addIndices( edge_indices );
 
-        _scene->setModel( name + "_edges", new Model(name + "_edges", mesh, default_material) );
+        _scene->models[name + "_edges"] = new Model(name + "_edges", mesh, default_material);
 
     }
 
@@ -241,7 +243,7 @@ bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose, const s
         mesh.addTexCoords(mesh_texcoords);
         mesh.addNormals( mesh_normals );
 
-        _scene->setModel( name + "_points", new Model(name + "_points", mesh, default_material) );
+        _scene->models[name + "_points"] = new Model(name + "_points", mesh, default_material);
     }
     
     return false;
@@ -307,7 +309,7 @@ bool loadPLY(const std::string& _filename, Mesh& _mesh ) {
 
         // Because most people have their own mesh types, tinyply treats parsed data as structured/typed byte buffers. 
         // See examples below on how to marry your own application-specific data structures with this one. 
-        std::shared_ptr<PlyData> vertices, normals, colors, texcoords, faces, edges;
+        std::shared_ptr<tinyply::PlyData> vertices, normals, colors, texcoords, faces, edges;
 
         // The header information can be used to programmatically extract properties on elements
         // known to exist in the header prior to reading the data. For brevity of this sample, properties 
