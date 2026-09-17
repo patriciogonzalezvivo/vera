@@ -7,12 +7,16 @@
 #include "vera/ops/geom.h"
 #include "vera/ops/string.h"
 
-namespace vera {
-
 #if defined(SUPPORT_PLY_BINARY)
 
 #define TINYPLY_IMPLEMENTATION
 #include "tinyply.h"
+
+#endif
+
+namespace vera {
+
+#if defined(SUPPORT_PLY_BINARY)
 
 
 bool loadPLY(const std::string& _filename, Scene* _scene, bool _verbose, const std::string& _prefix) {
