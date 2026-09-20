@@ -364,11 +364,19 @@ else()
         message(STATUS "PLATFORM LINUX")
         target_compile_definitions(vera PUBLIC   PLATFORM_LINUX)
 
-        set(OpenGL_GL_PREFERENCE GLVND)
-        find_package(OpenGL REQUIRED)
-        target_link_libraries(vera PUBLIC 
-            OpenGL::GL
-        )
+        if (WAYLAND)
+            find_package(OpenGL REQUIRED COMPONENTS OpenGL EGL)
+            target_link_libraries(vera PUBLIC
+                OpenGL::OpenGL
+                OpenGL::EGL
+            )
+        else()
+            set(OpenGL_GL_PREFERENCE GLVND)
+            find_package(OpenGL REQUIRED)
+            target_link_libraries(vera PUBLIC
+                OpenGL::GL
+            )
+        endif()
 
     endif()
 
