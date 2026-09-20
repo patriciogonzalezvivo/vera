@@ -117,6 +117,7 @@ endif()
 # C++ LIBRAY
 #
 add_library(vera ${VERA_SOURCES})
+target_compile_definitions(vera PUBLIC SUPPORT_PLY_BINARY)
 target_link_libraries(vera PRIVATE lygia)
 
 set_target_properties(vera PROPERTIES

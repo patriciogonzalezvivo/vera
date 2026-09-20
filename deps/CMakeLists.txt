@@ -6,6 +6,11 @@ if (NOT NO_X11 AND NOT FORCE_DRM AND NOT EMSCRIPTEN)
     set(GLFW_BUILD_TESTS OFF CACHE BOOL "")
     set(GLFW_INSTALL OFF CACHE BOOL "")
 
+    if (WAYLAND)
+        set(GLFW_BUILD_X11 OFF CACHE BOOL "Build support for X11" FORCE)
+        set(GLFW_BUILD_WAYLAND ON CACHE BOOL "Build support for Wayland" FORCE)
+    endif()
+
     if(UNIX AND NOT APPLE)
         find_program(WAYLAND_SCANNER_EXECUTABLE NAMES wayland-scanner)
         if (NOT WAYLAND_SCANNER_EXECUTABLE)
