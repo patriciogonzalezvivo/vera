@@ -1,6 +1,7 @@
 #include "vera/types/scene.h"
 
 #include <sys/stat.h>
+#include <set>
 
 #include "vera/ops/fs.h"
 #include "vera/ops/pixel.h"
@@ -300,8 +301,13 @@ void Scene::printTextures() {
 }
 
 void Scene::clearTextures() {
+    // The same Texture* can be registered under several names (aliases such as
+    // u_cameraTex -> _camera0), so delete each pointer only once.
+    std::set<Texture*> unique;
     for (TexturesMap::iterator it = textures.begin(); it != textures.end(); ++it)
-        delete (it->second);
+        unique.insert(it->second);
+    for (std::set<Texture*>::iterator it = unique.begin(); it != unique.end(); ++it)
+        delete (*it);
     textures.clear();
     streams.clear();
     m_changed = true;
