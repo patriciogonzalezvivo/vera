@@ -117,6 +117,7 @@ endif()
 # C++ LIBRAY
 #
 add_library(vera ${VERA_SOURCES})
+target_compile_definitions(vera PUBLIC SUPPORT_PLY_BINARY)
 target_link_libraries(vera PRIVATE lygia)
 
 set_target_properties(vera PROPERTIES
@@ -364,11 +365,19 @@ else()
         message(STATUS "PLATFORM LINUX")
         target_compile_definitions(vera PUBLIC   PLATFORM_LINUX)
 
-        set(OpenGL_GL_PREFERENCE GLVND)
-        find_package(OpenGL REQUIRED)
-        target_link_libraries(vera PUBLIC 
-            OpenGL::GL
-        )
+        if (WAYLAND)
+            find_package(OpenGL REQUIRED COMPONENTS OpenGL EGL)
+            target_link_libraries(vera PUBLIC
+                OpenGL::OpenGL
+                OpenGL::EGL
+            )
+        else()
+            set(OpenGL_GL_PREFERENCE GLVND)
+            find_package(OpenGL REQUIRED)
+            target_link_libraries(vera PUBLIC
+                OpenGL::GL
+            )
+        endif()
 
     endif()
 

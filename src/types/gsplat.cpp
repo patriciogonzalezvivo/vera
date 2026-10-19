@@ -8,7 +8,6 @@
 #include "glm/gtc/quaternion.hpp"
 
 
-#define TINYPLY_IMPLEMENTATION
 #include "tinyply.h"
 
 #include <cstring>
