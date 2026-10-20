@@ -90,6 +90,14 @@ bool loadGlslFrom(const std::string& _path, std::string *_into);
 /// @return True if successfully loaded
 bool loadGlslFrom(const std::string& _filename, std::string *_into, const StringList& _include_folders, StringList *_dependencies);
 
+/// Insert LYGIA's license notice once, right after any leading #version line,
+/// when one of _dependencies is a LYGIA file (and the notice isn't there yet).
+/// The resolveGlsl/loadGlslFrom overloads that return a string already do this;
+/// call it after the bool overloads, which recurse per file.
+/// @param _src Resolved GLSL source, modified in place
+/// @param _dependencies Dependencies collected while resolving _src
+void addLygiaNotice(std::string& _src, const StringList& _dependencies);
+
 /// Resolve #include directives in GLSL source
 /// @param _src GLSL source code
 /// @return Source with includes resolved

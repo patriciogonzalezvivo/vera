@@ -192,6 +192,7 @@ std::string loadGlslFrom(const std::string& _path) {
 std::string loadGlslFrom(const std::string &_path, const StringList& _include_folders, StringList *_dependencies) {
     std::string str = "";
     loadGlslFrom(_path, &str, _include_folders, _dependencies);
+    addLygiaNotice(str, *_dependencies);
     return str;
 }
 
@@ -288,10 +289,41 @@ bool loadGlslFrom(const std::string &_path, std::string *_into, const std::vecto
     return true;
 }
 
+// LYGIA's license asks that everyone who gets a copy of any part of it also gets
+// the license and its source line. The bundled copy (lygia.cpp) is comment
+// stripped, so add one notice per resolved shader -- not one per included file.
+static const std::string LYGIA_NOTICE =
+    "// This shader includes code from LYGIA, Copyright (c) Patricio Gonzalez Vivo\n"
+    "// https://lygia.xyz -- dual-licensed under the Prosperity License 3.0.0\n"
+    "// (https://prosperitylicense.com/versions/3.0.0) and the Patron License\n"
+    "// (https://lygia.xyz/license). Source: https://github.com/patriciogonzalezvivo/lygia\n";
+
+static bool isLygiaDependency(const std::string& _dep) {
+    return _dep.rfind("lygia/", 0) == 0 || _dep.find("/lygia/") != std::string::npos;
+}
+
+void addLygiaNotice(std::string& _src, const StringList& _dependencies) {
+    bool usesLygia = false;
+    for (const std::string& dep : _dependencies)
+        if (isLygiaDependency(dep)) { usesLygia = true; break; }
+    if (!usesLygia || _src.find("https://lygia.xyz") != std::string::npos)
+        return;
+
+    // Shader::load() only detects a #version on the very first line, so the
+    // notice goes right after it, never before.
+    size_t at = 0;
+    if (_src.compare(0, 8, "#version") == 0) {
+        at = _src.find('\n');
+        at = (at == std::string::npos) ? _src.size() : at + 1;
+    }
+    _src.insert(at, LYGIA_NOTICE);
+}
+
 std::string resolveGlsl(const std::string& _src, const StringList& _include_folders, StringList *_dependencies) {
     std::string str = "";
     try {
         resolveGlsl(_src, "", &str, _include_folders, _dependencies);
+        addLygiaNotice(str, *_dependencies);
     } catch (const std::exception& e) {
         std::cerr << "Top-level resolveGlsl error: " << e.what() << std::endl;
     }
@@ -398,6 +430,7 @@ std::string resolveGlsl(const std::string& _src) {
     std::string str = "";
     try {
         resolveGlsl(_src, "", &str, folders, &deps);
+        addLygiaNotice(str, deps);
     } catch (const std::exception& e) {
         std::cerr << "Top-level resolveGlsl error: " << e.what() << std::endl;
     }
