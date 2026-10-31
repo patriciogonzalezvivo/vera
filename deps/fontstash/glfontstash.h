@@ -470,7 +470,12 @@ void glfons__udpateAtas(void* usrPtr, unsigned int xoff, unsigned int yoff,
                         unsigned int width, unsigned int height, const unsigned int* pixels) {
     GLFONScontext* gl = (GLFONScontext*) usrPtr;
 
+    // restore what the caller had bound (it used to unbind unit 0, leaving
+    // the next draw sampling an incomplete texture)
+    GLint activeUnit = 0, prevTexture = 0;
+    glGetIntegerv(GL_ACTIVE_TEXTURE, &activeUnit);
     glActiveTexture(GL_TEXTURE0 + ATLAS_TEXTURE_SLOT);
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTexture);
     GLFONS_GL_CHECK(glBindTexture(GL_TEXTURE_2D, gl->atlas));
 
     GLint alignment;
@@ -481,7 +486,8 @@ void glfons__udpateAtas(void* usrPtr, unsigned int xoff, unsigned int yoff,
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
 
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D, (GLuint)prevTexture);
+    glActiveTexture((GLenum)activeUnit);
 }
 
 void glfonsSetColor(FONScontext* ctx, unsigned int color) {
