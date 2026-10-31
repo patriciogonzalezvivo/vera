@@ -124,7 +124,11 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
                 type = GL_FLOAT;
             }
             #else
-            if ( haveExtension("OES_texture_float") ) {
+            // macOS exposes a legacy 2.1 context (GL_ARB_texture_float / GL_APPLE_float_pixels,
+            // never the OES_ names), which used to fall through to an 8-bit buffer
+            if ( haveExtension("OES_texture_float") ||
+                 haveExtension("GL_ARB_texture_float") ||
+                 haveExtension("GL_APPLE_float_pixels") ) {
                 format = GL_RGBA32F;
                 type = GL_FLOAT;
             }
