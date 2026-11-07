@@ -250,14 +250,14 @@ void Fbo::bind() {
         if (m_depth_id != 0) 
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depth_id, 0);
 
-        #if !defined(__EMSCRIPTEN__)
+        // Also on WebGL: skipping it there left the scene/normal/position buffers
+        // holding the previous frame (trails), unlike native.
         if (m_autoclear) {
             if (m_depth)
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             else
                 glClear(GL_COLOR_BUFFER_BIT);
         }
-        #endif
 
         m_binded = true;
     }

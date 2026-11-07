@@ -190,7 +190,7 @@ bool TextureStreamAV::load(const std::string& _path, bool _vFlip, TextureFilter 
     }
 
     // open the decoder
-    if (avcodec_open2(av_codec_ctx, av_decoder, NULL) < 0) {
+    if (avcodec_open2(av_codec_ctx, av_codec, NULL) < 0) {
         std::cout << "failed to open codec" << std::endl;
         clear();
         return false;
@@ -478,21 +478,25 @@ void  TextureStreamAV::clear() {
     if (conv_ctx)
         sws_freeContext(conv_ctx);
 
-    if (av_frame) 
-        av_free(av_frame);
+    conv_ctx = NULL;
+
+    if (av_frame)
+        av_frame_free(&av_frame);
 
     if (av_packet)
-        av_free(av_packet);
-        
-    // if (av_codec_ctx)
-    //     avcodec_close(av_codec_ctx);
-        
-    if (av_format_ctx)
-        avformat_free_context(av_format_ctx);
-        // avformat_close_input(&av_format_ctx);
+        av_packet_free(&av_packet);
 
-    if (frame_data)
+    // also closes the codec (avcodec_close is deprecated/removed in newer FFmpeg)
+    if (av_codec_ctx)
+        avcodec_free_context(&av_codec_ctx);
+
+    if (av_format_ctx)
+        avformat_close_input(&av_format_ctx);
+
+    if (frame_data) {
         free(frame_data);
+        frame_data = NULL;
+    }
 
     if (m_id != 0)
         glDeleteTextures(1, &m_id);

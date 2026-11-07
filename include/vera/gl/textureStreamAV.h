@@ -52,7 +52,7 @@ private:
 
     AVFormatContext *av_format_ctx;
     AVCodecContext  *av_codec_ctx;
-    AVCodec         *av_decoder;
+    const AVCodec   *av_decoder;
     AVFrame         *av_frame;
     AVPacket        *av_packet;
     AVRational      time_base;

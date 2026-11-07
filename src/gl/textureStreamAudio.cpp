@@ -17,18 +17,33 @@
 #define MA_NO_GENERATION
 #define MINIAUDIO_IMPLEMENTATION
 
+// av_tx only has the float RDFT transform since FFmpeg 6.0 (libavutil 58),
+// older versions use av_rdft (libavcodec/avfft.h, removed in FFmpeg 7.0)
 extern "C" {
-// #include <libavcodec/avfft.h>
+#include <libavutil/version.h>
+}
+#if LIBAVUTIL_VERSION_MAJOR >= 58
+    #define VERA_USE_AV_TX
+#endif
+
+extern "C" {
+#ifdef VERA_USE_AV_TX
 #include <libavutil/tx.h>
+#else
+#include <libavcodec/avfft.h>
+#endif
 #include <libavutil/mem.h>
 #include "miniaudio.h"
 }
 
 ma_device_config a_deviceConfig;
 ma_device a_device;
-// static RDFTContext *ctx;
-static AVTXContext *tx_ctx;
+#ifdef VERA_USE_AV_TX
+static AVTXContext *tx_ctx = nullptr;
 static av_tx_fn tx_fn;
+#else
+static RDFTContext *rdft_ctx = nullptr;
+#endif
 ma_context context;
 ma_device_info* pPlaybackDeviceInfos;
 ma_device_info* pCaptureDeviceInfos;
@@ -143,10 +158,13 @@ bool TextureStreamAudio::load(const std::string &_device_id_str, bool _vFlip, ve
     }
 
     // init dft calculator
-    // ctx = av_rdft_init((int) log2(m_buf_len), DFT_R2C);
-    // if (!ctx) {
+#ifdef VERA_USE_AV_TX
     float scale = 1.0f;
     if (av_tx_init(&tx_ctx, &tx_fn, AV_TX_FLOAT_RDFT, 0, m_buf_len, &scale, 0) < 0) {
+#else
+    rdft_ctx = av_rdft_init((int) log2(m_buf_len), DFT_R2C);
+    if (!rdft_ctx) {
+#endif
         ma_device_uninit(&a_device);
         ma_context_uninit(&context);
         std::cout << "Failed to init dft calculator."  << std::endl;
@@ -199,8 +217,11 @@ bool TextureStreamAudio::update() {
         m_dft_buffer[i] = value;
     }
 
-    // av_rdft_calc(ctx, m_dft_buffer);
+#ifdef VERA_USE_AV_TX
     tx_fn(tx_ctx, m_dft_buffer, m_dft_buffer, sizeof(float));
+#else
+    av_rdft_calc(rdft_ctx, m_dft_buffer);
+#endif
 
     // copy frequency values to RED pixels
     for (int i = 0; i < m_width; i++) {
@@ -240,8 +261,15 @@ void TextureStreamAudio::clear() {
     ma_device_uninit(&a_device);
     ma_context_uninit(&context);
 
-   if (tx_ctx) 
-        av_tx_uninit(&tx_ctx); 
+#ifdef VERA_USE_AV_TX
+    if (tx_ctx)
+        av_tx_uninit(&tx_ctx);
+#else
+    if (rdft_ctx) {
+        av_rdft_end(rdft_ctx);
+        rdft_ctx = nullptr;
+    }
+#endif
 
     av_free(m_dft_buffer);
 
