@@ -1582,10 +1582,14 @@ void textHighlight(const std::string& _text, const Polyline& _path, float _offse
     bool      prev_stroke = stroke_enabled;
     bool      prev_fill   = fill_enabled;
 
-    // Draw background band
+    // Draw background band. The points are already in screen pixels (the world matrix was applied above),
+    // so draw them with an identity world matrix: otherwise any translate()/scale() around the call is applied twice.
+    const glm::mat4 prev_world = matrix_world;
+    matrix_world = glm::mat4(1.0f);
     fill(_bg);
     noStroke();
     triangles(tris);
+    matrix_world = prev_world;
 
     // Restore and draw text on top
     fill_enabled   = prev_fill;
