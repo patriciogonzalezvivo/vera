@@ -727,7 +727,9 @@ void glfonsDraw(FONScontext* ctx) {
     if(!blending)
         glEnable(GL_BLEND);
 
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // same colour as glBlendFunc(SRC_ALPHA, ONE_MINUS_SRC_ALPHA); the alpha composites "over" too (a + dst * (1 - a), not a * a + ...),
+    // so text drawn into a transparent FBO keeps its edges when that FBO is laid over something else
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
 #ifndef FONS_NO_VAO
     glBindVertexArray(gl->vao);
@@ -747,8 +749,11 @@ void glfonsDraw(FONScontext* ctx) {
         glEnable(GL_DEPTH_TEST);
 
     glBlendFuncSeparate(blendSrcRGB, blendDstRGB, blendSrcAlpha, blendDstAlpha);
-    glActiveTexture(boundTextureUnit);
+    // give the atlas unit its texture back, then the active unit (this used to bind unit 0's texture on the active unit:
+    // a shader texture on unit 1, like a matcap set just before, was replaced after the first text drawn with it)
+    glActiveTexture(GL_TEXTURE0 + ATLAS_TEXTURE_SLOT);
     glBindTexture(GL_TEXTURE_2D, textureUnit0);
+    glActiveTexture(boundTextureUnit);
     glUseProgram(boundProgram);
 }
 
