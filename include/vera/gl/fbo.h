@@ -10,16 +10,20 @@
 //   COLOR_DEPTH_TEXTURES       — both colour and depth as samplable textures.
 //   GBUFFER_TEXTURE            — float colour + depth (nearest filter, clamped).
 //   DEPTH_TEXTURE              — depth-only (for shadow maps).
+//   COLOR_HALF_TEXTURE         — RGBA 16-bit float colour, no depth (half the memory and bandwidth of COLOR_FLOAT_TEXTURE).
+//   RED_HALF_TEXTURE           — one 16-bit float channel (.r), no depth: distance fields, masks. Falls back to RGBA16F, then RGBA32F.
 
 namespace vera {
 
 enum FboType {
-    COLOR_TEXTURE = 0, 
-    COLOR_TEXTURE_DEPTH_BUFFER, 
+    COLOR_TEXTURE = 0,
+    COLOR_TEXTURE_DEPTH_BUFFER,
     COLOR_FLOAT_TEXTURE,
     COLOR_DEPTH_TEXTURES,
     GBUFFER_TEXTURE,
-    DEPTH_TEXTURE
+    DEPTH_TEXTURE,
+    COLOR_HALF_TEXTURE,
+    RED_HALF_TEXTURE
 };
 
 class Fbo {

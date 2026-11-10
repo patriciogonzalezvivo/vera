@@ -48,6 +48,8 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
     switch(_type) {
         case COLOR_TEXTURE:
         case COLOR_FLOAT_TEXTURE:
+        case COLOR_HALF_TEXTURE:
+        case RED_HALF_TEXTURE:
             m_depth = false;
             color_texture = true;
             depth_texture = false;
@@ -108,11 +110,37 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
         glBindTexture(GL_TEXTURE_2D, m_id);
 
         GLenum format = GL_RGBA;
+        GLenum layout = GL_RGBA;
         GLenum type = GL_UNSIGNED_BYTE;
 
 #if defined(PLATFORM_RPI) || defined(DRIVER_DRM)
 #else
-        if (_type == COLOR_FLOAT_TEXTURE || 
+        bool half = (_type == COLOR_HALF_TEXTURE || _type == RED_HALF_TEXTURE);
+        if (half) {
+            // 16-bit float: renderable and blendable with EXT_color_buffer_float on WebGL2 (no EXT_float_blend needed, unlike 32-bit);
+            // on desktop with float textures (the legacy macOS 2.1 context included). One channel needs texture_rg (core in GL3 / WebGL2).
+            #if defined(__EMSCRIPTEN__)
+            bool hasHalf = getWebGLVersionNumber() >= 2 && enableExtension("EXT_color_buffer_float");
+            bool hasRed = hasHalf;
+            #else
+            bool hasHalf = haveExtension("GL_ARB_texture_float") || haveExtension("GL_APPLE_float_pixels") ||
+                           haveExtension("OES_texture_half_float") || haveExtension("GL_ARB_half_float_pixel");
+            bool hasRed = haveExtension("GL_ARB_texture_rg");
+            #endif
+            if (hasHalf) {
+                type = GL_FLOAT;            // no data is uploaded; FLOAT is a valid source type for 16F on GL and WebGL2
+                if (_type == RED_HALF_TEXTURE && hasRed) {
+                    format = GL_R16F;
+                    layout = GL_RED;
+                }
+                else
+                    format = GL_RGBA16F;
+            }
+            else
+                half = false;
+        }
+        if (_type == COLOR_FLOAT_TEXTURE ||
+            (_type == COLOR_HALF_TEXTURE && !half) || (_type == RED_HALF_TEXTURE && !half) ||
             _type == GBUFFER_TEXTURE) {
             #if defined(__EMSCRIPTEN__)
             // In WebGL2, float color-buffer rendering requires EXT_color_buffer_float.
@@ -140,7 +168,7 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type,
         }
 #endif
 
-        glTexImage2D(GL_TEXTURE_2D, 0, format, m_width, m_height, 0, GL_RGBA, type, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, m_width, m_height, 0, layout, type, NULL);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, getWrap(_wrap));
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, getWrap(_wrap));
