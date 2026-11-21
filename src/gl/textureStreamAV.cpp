@@ -256,13 +256,31 @@ bool TextureStreamAV::load(const std::string& _path, bool _vFlip, TextureFilter 
     return true;
 }
 
+static const char* av_make_error(int errnum);
+
 void TextureStreamAV::restart() {
     m_currentFrame = 0;
     m_time = 0.0;
     m_waitFrom = 0.0;
     m_waitUntil = 0.0;
-    avio_seek(av_format_ctx->pb, 0, SEEK_SET);
-    avformat_seek_file(av_format_ctx, m_streamId, 0, 0, av_format_ctx->streams[m_streamId]->duration, 0);
+
+    // Seek to the very beginning using the whole timestamp range, so it works
+    // even when the stream duration/start_time are unknown (AV_NOPTS_VALUE)
+    int64_t start = av_format_ctx->streams[m_streamId]->start_time;
+    if (start == AV_NOPTS_VALUE)
+        start = 0;
+
+    int response = avformat_seek_file(av_format_ctx, m_streamId, INT64_MIN, start, INT64_MAX, 0);
+    if (response < 0) {
+        // Fallback: legacy seek to the closest keyframe before the start
+        response = av_seek_frame(av_format_ctx, m_streamId, start, AVSEEK_FLAG_BACKWARD);
+        if (response < 0)
+            printf("Failed to restart stream: %s\n", av_make_error(response));
+    }
+
+    // Drop any frames still buffered in the decoder from before the seek
+    if (av_codec_ctx)
+        avcodec_flush_buffers(av_codec_ctx);
 }
 
 void TextureStreamAV::setSpeed( float _speed ) {
@@ -310,8 +328,12 @@ bool TextureStreamAV::update() {
     m_time += vera::getDelta() * m_speed;
     m_time = glm::max(m_time, m_waitFrom);
 
-    if (m_time > getDuration())
-        m_time = 0.0;
+    if (m_time > getDuration()) {
+        if (m_device)
+            m_time = 0.0;
+        else
+            restart();
+    }
 
     // TODO:
     //  - this should be a thread instead of calculating deltas on the main loop
